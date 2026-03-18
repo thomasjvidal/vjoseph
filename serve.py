@@ -1,4 +1,5 @@
 import http.server, os, json, urllib.request, urllib.error
+from http.server import ThreadingHTTPServer
 
 PORT = int(os.environ.get("PORT", 3000))
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -131,6 +132,6 @@ class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *a):
         print(f'[{self.address_string()}] {fmt % a}', flush=True)
 
-with http.server.HTTPServer(('', PORT), H) as s:
-    print(f'Serving on port {PORT}', flush=True)
+with ThreadingHTTPServer(('', PORT), H) as s:
+    print(f'Serving on port {PORT} (threaded)', flush=True)
     s.serve_forever()
