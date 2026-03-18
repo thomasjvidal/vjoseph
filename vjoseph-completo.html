@@ -647,7 +647,7 @@ canvas.chart{width:100%;border-radius:5px;}
         <button class="meet-spd-btn" data-speed="1.25" onclick="setTTSSpeed(1.25)">1.25×</button>
         <button class="meet-spd-btn" data-speed="1.5" onclick="setTTSSpeed(1.5)">1.5×</button>
         <label class="meet-autolabel"><input type="checkbox" id="tts-enabled" checked onchange="ttsEnabled=this.checked" style="accent-color:#ffe640"> Auto-leitura</label>
-        <span id="meet-tts-status"></span>
+        <span id="meet-tts-status" style="margin-left:auto;font-family:'Inter',sans-serif;font-size:11px;color:#6b6b80;"></span>
       </div>
 
       <!-- composer -->
@@ -1858,8 +1858,9 @@ async function meetSend(){
   prog.style.display='block';fill.style.width='0%';
 
   if(mode==='parallel'){
+    // Espaça 900ms entre cada agente para não estoura rate limit do Groq (30 RPM)
     await Promise.allSettled(respondents.map(async(agent,i)=>{
-      await new Promise(r=>setTimeout(r,i*80));
+      await new Promise(r=>setTimeout(r,i*900));
       const t=meetTypingEl(agent.name,agent.emoji,agent.color);
       try{
         const reply=await callAgent(agent,msg,ctx);
@@ -1867,7 +1868,11 @@ async function meetSend(){
         meetConversationHistory.push({speaker:agent.name,text:reply});
         fill.style.width=Math.min(100,(i+1)/respondents.length*100)+'%';
         if(npcs[agent.npcIdx])npcs[agent.npcIdx].say(reply.slice(0,18)+'...');
-      }catch(e){t.remove();meetMsgEl(agent.name,agent.emoji,agent.color,'[Erro de conexão — tente novamente]');}
+      }catch(e){
+        t.remove();
+        const errMsg='[Erro de conexão — '+e.message.slice(0,60)+']';
+        meetMsgEl(agent.name,agent.emoji,agent.color,errMsg);
+      }
     }));
   } else if(mode==='sequential'){
     for(let i=0;i<respondents.length;i++){
@@ -1983,10 +1988,10 @@ let _lfLeads=[];
 
 // ── AI proxy — chama /api/chat no servidor local (serve.py) ─
 async function callGemini(systemPrompt,messages,maxTokens=600,pipeline=false){
-  const MAX_RETRIES=2;
+  const MAX_RETRIES=3;
   for(let attempt=0;attempt<MAX_RETRIES;attempt++){
     const ctrl=new AbortController();
-    const timer=setTimeout(()=>ctrl.abort(),45000); // 45s timeout
+    const timer=setTimeout(()=>ctrl.abort(),50000);
     try{
       const res=await fetch('/api/chat',{
         method:'POST',
@@ -1995,14 +2000,23 @@ async function callGemini(systemPrompt,messages,maxTokens=600,pipeline=false){
         signal:ctrl.signal
       });
       clearTimeout(timer);
-      if(!res.ok){const err=await res.json().catch(()=>({error:'HTTP '+res.status}));throw new Error(err.error||'HTTP '+res.status);}
+      if(!res.ok){
+        // 429 = rate limit: espera e tenta de novo
+        if(res.status===429&&attempt<MAX_RETRIES-1){
+          await new Promise(r=>setTimeout(r,2000*(attempt+1)));
+          continue;
+        }
+        const err=await res.json().catch(()=>({error:'HTTP '+res.status}));
+        throw new Error(err.error||'HTTP '+res.status);
+      }
       const d=await res.json();
       if(d.error)throw new Error(d.error);
       return d.text||'Sem resposta.';
     }catch(e){
       clearTimeout(timer);
-      if(attempt<MAX_RETRIES-1&&(e.name==='AbortError'||e.message.includes('fetch')||e.message.includes('network'))){
-        await new Promise(r=>setTimeout(r,800));
+      // Retry em erros de rede ou timeout, não em erros de lógica
+      if(attempt<MAX_RETRIES-1&&(e.name==='AbortError'||e.message.includes('Failed to fetch')||e.message.includes('NetworkError'))){
+        await new Promise(r=>setTimeout(r,1500*(attempt+1)));
         continue;
       }
       throw e;
@@ -2167,15 +2181,26 @@ function toggleVoiceInput(){
   };
   voiceRecognizer.onerror=e=>{
     isRecording=false;
-    const btn=document.getElementById('meet-mic-btn');if(btn)btn.classList.remove('recording');
+    const btn=document.getElementById('meet-mic-btn');if(btn){btn.classList.remove('recording');btn.textContent='🎤';}
     const inp=document.getElementById('meet-input');
     if(inp)inp.placeholder='Digite ou 🎤 fale para os agentes...';
     if(e.error==='not-allowed'||e.error==='permission-denied'){
-      meetSysMsg('🔒 Microfone bloqueado. Para liberar: clique no 🔒 na barra de endereço do Chrome → Microfone → Permitir → recarregue a página.');
+      // Mostra instruções detalhadas com link para abrir no Chrome
+      const d=document.createElement('div');
+      d.style.cssText='background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.2);border-radius:10px;padding:12px 14px;font-family:"Inter",sans-serif;font-size:13px;color:#e0e0e0;line-height:1.6;';
+      d.innerHTML=`<div style="font-weight:600;color:#ff6b6b;margin-bottom:6px;">🔒 Microfone bloqueado</div>
+<div style="color:#aaa;font-size:12px;">O preview do Claude Code não permite microfone. Para usar o áudio:</div>
+<ol style="margin:8px 0 8px 16px;padding:0;color:#ccc;font-size:12px;line-height:2;">
+  <li>Abra o Chrome e vá para: <b style="color:#ffe640">http://localhost:3000/vjoseph-completo.html</b></li>
+  <li>Clique no 🔒 na barra de endereço → Microfone → <b>Permitir</b></li>
+  <li>Recarregue a página e use o 🎤 normalmente</li>
+</ol>
+<button onclick="navigator.clipboard.writeText('http://localhost:3000/vjoseph-completo.html')" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(255,230,64,.3);background:rgba(255,230,64,.07);color:#ffe640;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;">📋 Copiar URL</button>`;
+      const msgs=document.getElementById('meet-msgs');if(msgs){msgs.appendChild(d);msgs.scrollTop=999999;}
     } else if(e.error==='no-speech'){
-      meetSysMsg('⚠️ Nenhuma fala detectada. Tente novamente.');
+      meetSysMsg('⚠️ Nenhuma fala detectada. Tente falar mais perto do microfone.');
     } else {
-      meetSysMsg('⚠️ Erro no microfone ('+e.error+'). Use Chrome ou Edge e certifique que o site tem permissão.');
+      meetSysMsg('⚠️ Microfone: '+e.error+'. Use Chrome com permissão de microfone liberada.');
     }
   };
   voiceRecognizer.start();
