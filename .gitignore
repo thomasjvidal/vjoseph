@@ -1,0 +1,17 @@
+# API keys - NUNCA commitar
+ai-config.json
+
+# Arquivos temporários
+*.tmp
+app_tail.txt
+temp_css_addition.css
+
+# Node / Python
+node_modules/
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db

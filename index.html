@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeadFlow — Automação de Prospecção</title>
+  <meta name="description"
+    content="Sistema de automação para geração de leads, criação de sites e prospecção via Instagram." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="lead-carousel-premium.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#logoGrad)" stroke="url(#logoGrad)" stroke-width="1"
+              stroke-linejoin="round" />
+            <defs>
+              <linearGradient id="logoGrad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#7C3AED" />
+                <stop offset="100%" stop-color="#06B6D4" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="logo-text">LeadFlow</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Principal</div>
+      <a href="#" class="nav-item active" data-view="dashboard" id="nav-dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-view="messages" id="nav-messages">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span>Mensagens</span>
+      </a>
+      <a href="#" class="nav-item" data-view="lab-mensagens" id="nav-lab-mensagens">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+        <span>Lab de Mensagens</span>
+      </a>
+      <a href="#" class="nav-item" data-view="generator" id="nav-generator">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </svg>
+        <span>Gerador de Sites</span>
+      </a>
+      <div class="nav-divider" aria-hidden="true"></div>
+      <div class="nav-section-label">Sistema</div>
+      <a href="#" class="nav-item" data-view="kpis" id="nav-kpis">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3v18h18" />
+          <path d="M7 14l3-3 3 2 4-6" />
+          <circle cx="7" cy="14" r="1.2" fill="currentColor" />
+          <circle cx="10" cy="11" r="1.2" fill="currentColor" />
+          <circle cx="13" cy="13" r="1.2" fill="currentColor" />
+          <circle cx="17" cy="7" r="1.2" fill="currentColor" />
+        </svg>
+        <span>KPI's</span>
+      </a>
+      <a href="#" class="nav-item" data-view="biblioteca-templates" id="nav-biblioteca-templates">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>Biblioteca Templates</span>
+      </a>
+      <a href="#" class="nav-item" data-view="office" id="nav-office">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <span>Office</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-pipeline-hq" onclick="navigatePipelineHQ(event)">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="5" height="20" rx="1"/><rect x="9.5" y="9" width="5" height="15" rx="1"/><rect x="17" y="6" width="5" height="18" rx="1"/>
+        </svg>
+        <span>Pipeline HQ</span>
+      </a>
+      <a href="#" class="nav-item" data-view="leads" id="nav-leads">
+        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span id="nav-leads-count" style="
+            position: absolute; 
+            top: -4px; 
+            right: -6px; 
+            font-size: 8px; 
+            background: var(--bg-surface); 
+            color: var(--text-secondary); 
+            border: 1px solid var(--border); 
+            padding: 0 3px; 
+            border-radius: 6px; 
+            min-width: 12px; 
+            height: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            line-height: 1;
+            font-weight: 600;
+          ">0</span>
+        </div>
+        <span>Leads</span>
+      </a>
+      <a href="#" class="nav-item" data-view="settings" id="nav-settings">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.07 4.93A9.97 9.97 0 0 0 12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10a9.97 9.97 0 0 0-2.93-7.07z" />
+        </svg>
+        <span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">M</div>
+        <div class="user-details">
+          <span class="user-name">MFS Studio</span>
+          <span class="user-plan">Pro</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="topbarMenuBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <div class="page-title-wrap">
+          <h1 class="page-title" id="pageTitle">Dashboard</h1>
+          <div class="breadcrumb" id="breadcrumb">Visão geral do sistema</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div id="saveIndicator" class="save-indicator"></div>
+      </div>
+    </header>
+
+    <!-- VIEWS -->
+    <div class="view-container">
+
+      <!-- DASHBOARD VIEW -->
+      <section class="view active" id="view-dashboard">
+        
+        <!-- HEADER CARD -->
+        <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+          <div class="metrics-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="font-size: 20px; font-weight: 600; color: var(--text-primary);">Hoje</h2>
+              <p style="color: var(--text-muted); font-size: 13px;" id="currentDateDisplay">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRID CARD -->
+        <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+          <div id="dashboardMetricsPanel" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="metrics-grid">
+            <div class="metric-card gradient-violet">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div class="metric-trend up"
+                  style="background: rgba(124, 58, 237, 0.1); color: #A78BFA; border: 1px solid rgba(124, 58, 237, 0.2);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                  +12%
+                </div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Total de Leads</span>
+                <span class="metric-value" id="metricTotal">0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-green">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <div class="metric-trend up"
+                  style="background: rgba(16, 185, 129, 0.1); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                  +24%
+                </div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Mensagens Enviadas</span>
+                <span class="metric-value" id="metricMessages">0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-pink">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <path d="M8 21h8M12 17v4" />
+                  </svg>
+                </div>
+                <div class="metric-trend up"
+                  style="background: rgba(255, 20, 147, 0.1); color: #FF1493; border: 1px solid rgba(255, 20, 147, 0.2);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                  +8%
+                </div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Sites Gerados</span>
+                <span class="metric-value" id="metricSites">0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-orange">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </div>
+                <div class="metric-trend up"
+                  style="background: rgba(245, 158, 11, 0.1); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.2);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                  +31%
+                </div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Receita Potencial</span>
+                <span class="metric-value" id="metricRevenue">R$ 0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-neon neon-green">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18M3 12h18M21 3v18" />
+                    <circle cx="21" cy="12" r="2" />
+                  </svg>
+                </div>
+                <div class="metric-trend up"
+                  style="background: rgba(57, 255, 20, 0.1); color: #39FF14; border: 1px solid rgba(57, 255, 20, 0.2); box-shadow: 0 0 8px rgba(57, 255, 20, 0.2);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                  +0%
+                </div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Receita Confirmada</span>
+                <span class="metric-value" id="metricRevenueConfirmed">R$ 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUCKETS CARD -->
+        <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+          <div class="dash2-buckets" id="dashBuckets" style="margin-top: 0;">
+            <div class="dash2-bucket" data-accent="slate">
+              <span class="dash2-bucket-label">Entrada</span>
+              <span class="dash2-bucket-value" id="d1-bucket-a">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="indigo">
+              <span class="dash2-bucket-label">Em Conversa</span>
+              <span class="dash2-bucket-value" id="d1-bucket-b">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="amber">
+              <span class="dash2-bucket-label">Proposta</span>
+              <span class="dash2-bucket-value" id="d1-bucket-c">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="green">
+              <span class="dash2-bucket-label">Fechado</span>
+              <span class="dash2-bucket-value" id="d1-bucket-d">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="gray">
+              <span class="dash2-bucket-label">Arquivado</span>
+              <span class="dash2-bucket-value" id="d1-bucket-e">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="orange">
+              <span class="dash2-bucket-label">Follow-up</span>
+              <span class="dash2-bucket-value" id="d1-bucket-f">0</span>
+              <span class="dash2-bucket-sub"></span>
+            </div>
+            <div class="dash2-bucket" data-accent="blue">
+              <span class="dash2-bucket-label">Meta Mensal</span>
+              <div class="dash2-bucket-row">
+                <div class="dash2-bucket-value">
+                  <span id="goalCurrent">0</span><span class="dash2-bucket-sep">/</span><span id="goalTarget">0</span>
+                </div>
+                <div class="dash2-bucket-badge" id="goalPercentage">0%</div>
+              </div>
+              <span class="dash2-bucket-sub">sites</span>
+            </div>
+            <div class="dash2-bucket" data-accent="pink">
+              <span class="dash2-bucket-label">Ritmo</span>
+              <div class="dash2-bucket-row">
+                <div class="dash2-bucket-value"><span id="goalPaceValue">0.0</span></div>
+                <div class="dash2-bucket-badge" id="goalPaceStatus">--</div>
+              </div>
+              <span class="dash2-bucket-sub">sites/dia</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAROUSEL CARD -->
+      <div class="dashboard-card lead-carousel" id="leadCarousel" aria-label="Carrossel de Leads" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 10px; box-shadow: var(--shadow-sm);">
+            <div class="lead-tabs" style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0;">
+              <button class="lead-tab-btn active" id="btn-tab-pipeline" onclick="switchLeadTab('pipeline')" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Pipeline</button>
+              <button class="lead-tab-btn" id="btn-tab-unico" onclick="switchLeadTab('unico')" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Único</button>
+            </div>
+
+            <div id="tab-unico" class="lead-tab-content" style="display: none;">
+              <div class="lead-carousel-header">
+                <div class="lead-carousel-filter-wrapper">
+                  <select class="lead-carousel-filter" id="leadCarouselFilter" onchange="dashboardCarouselFilter()">
+                    <option value="">Todos os estágios</option>
+                    <option value="coletados">Coletados</option>
+                    <option value="perfil_engajado">Perfil Engajado</option>
+                    <option value="dm1_enviada">DM1 Enviada</option>
+                    <option value="nao_respondeu">Não Respondeu</option>
+                    <option value="respondeu">Respondeu</option>
+                    <option value="follow_up_1">Follow-up 1</option>
+                    <option value="chat_gerado">Gerar Site</option>
+                    <option value="dm2_enviada">DM2 Enviada</option>
+                    <option value="proposta_enviada">Proposta Enviada</option>
+                    <option value="follow_up_2">Follow-up 2</option>
+                    <option value="fechado">Fechado</option>
+                    <option value="arquivado">Arquivado / Sem Interesse</option>
+                  </select>
+                </div>
+                <div class="lead-carousel-nav">
+                  <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </button>
+                  <div class="lead-carousel-counter" id="leadCarouselCounter">0/0</div>
+                  <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="lead-carousel-body" id="leadCarouselBody"></div>
+            </div>
+
+            <div id="tab-pipeline" class="lead-tab-content" style="display: block;">
+              <div class="kanban-mini" id="kanbanMiniDashboard" style="overflow-x: auto; padding-bottom: 12px;">
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#7C3AED"></span>
+                    <span>Coletados</span>
+                    <span class="kanban-count" id="k3-coletados">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-coletados"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#64748b"></span>
+                    <span>Perfil Engajado</span>
+                    <span class="kanban-count" id="k3-perfil_engajado">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-perfil_engajado"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#3b82f6"></span>
+                    <span>DM1 Enviada</span>
+                    <span class="kanban-count" id="k3-dm1_enviada">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-dm1_enviada"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#06b6d4"></span>
+                    <span>Não Respondeu</span>
+                    <span class="kanban-count" id="k3-nao_respondeu">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-nao_respondeu"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#8b5cf6"></span>
+                    <span>Respondeu</span>
+                    <span class="kanban-count" id="k3-respondeu">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-respondeu"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#fb923c"></span>
+                    <span>Follow-up 1</span>
+                    <span class="kanban-count" id="k3-follow_up_1">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-follow_up_1"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#ec4899"></span>
+                    <span>Gerar Site</span>
+                    <span class="kanban-count" id="k3-chat_gerado">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-chat_gerado"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#db2777"></span>
+                    <span>DM2 Enviada</span>
+                    <span class="kanban-count" id="k3-dm2_enviada">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-dm2_enviada"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#f59e0b"></span>
+                    <span>Proposta Enviada</span>
+                    <span class="kanban-count" id="k3-proposta_enviada">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-proposta_enviada"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#f97316"></span>
+                    <span>Follow-up 2</span>
+                    <span class="kanban-count" id="k3-follow_up_2">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-follow_up_2"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#22c55e"></span>
+                    <span>Fechado</span>
+                    <span class="kanban-count" id="k3-fechado">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-fechado"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#94a3b8"></span>
+                    <span>Arquivado / Sem Interesse</span>
+                    <span class="kanban-count" id="k3-arquivado">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-arquivado"></div>
+                </div>
+              </div>
+            </div>
+      </div>
+
+
+
+
+      </section>
+
+      <!-- LAB DE MENSAGENS VIEW -->
+      <section class="view" id="view-lab-mensagens">
+        <div class="lab-container" style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+          
+          <!-- HEADER -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+              <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Lab de Mensagens</h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Teste, compare e otimize suas mensagens de prospecção</p>
+            </div>
+            <button id="btn-new-lab-test" class="btn-primary" onclick="addNewLabMessage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Nova Copy
+            </button>
+          </div>
+
+          <!-- PIPELINE STAGES TABS -->
+          <div class="lab-tabs" style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+            <button class="lab-tab active" data-stage="dm1" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">DM1 - Primeiro Contato</button>
+            <button class="lab-tab" data-stage="dm2" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM2 - Follow-up</button>
+            <button class="lab-tab" data-stage="dm3" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM3 - Qualificação</button>
+            <button class="lab-tab" data-stage="proposta" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Proposta</button>
+            <button class="lab-tab" data-stage="follow_proposta" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Follow-up Proposta</button>
+            <button class="lab-tab" data-stage="fechamento" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Fechamento</button>
+          </div>
+
+          <!-- METRICS SUMMARY -->
+          <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <div id="lab-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+              <div>
+                <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">Melhor Performance</span>
+                <span style="font-size: 18px; font-weight: 600; color: #22c55e;">—</span>
+              </div>
+              <div>
+                <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">Total Envios</span>
+                <span style="font-size: 18px; font-weight: 600; color: var(--text-primary);">0</span>
+              </div>
+              <div>
+                <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">Taxa Média Resposta</span>
+                <span style="font-size: 18px; font-weight: 600; color: var(--primary);">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARDS GRID -->
+          <div class="lab-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 24px;">
+            <!-- Content rendered via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- BIBLIOTECA DE TEMPLATES VIEW -->
+      <section class="view" id="view-biblioteca-templates">
+        <div class="library-container" style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+          
+          <!-- HEADER -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+              <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Biblioteca de Templates</h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Gerencie seus produtos: Mini Chats e Landing Pages</p>
+            </div>
+            <button class="btn-primary" onclick="alert('Funcionalidade em desenvolvimento: Novo Template')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Novo Template
+            </button>
+          </div>
+
+          <!-- CATEGORY TABS -->
+          <div class="library-tabs" style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0;">
+            <button class="library-tab active" data-category="minichat" style="background: none; border: none; padding: 12px 16px; color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--primary); cursor: pointer;">Mini Chat</button>
+            <button class="library-tab" data-category="landing" style="background: none; border: none; padding: 12px 16px; color: var(--text-muted); font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer;">Landing Page</button>
+          </div>
+
+          <!-- CONTENT GRID -->
+          <!-- MINICHAT GRID -->
+          <div id="lib-section-minichat" class="library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
+            <!-- TEMPLATE CARD EXAMPLE 1 -->
+            <div class="template-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.2s;">
+              <div style="height: 160px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; opacity: 0.8;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                  <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">Mini Chat Nutricionista</h3>
+                  <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Mini Chat</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">Template de diagnóstico inicial para captação de leads de nutrição.</p>
+                <div style="margin-bottom: 16px;">
+                  <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Variáveis</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[nome]</span>
+                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[whatsapp]</span>
+                  </div>
+                </div>
+                <button class="btn-secondary" style="width: 100%; justify-content: center;">Editar Template</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LANDING PAGE GRID -->
+          <div id="lib-section-landing" class="library-grid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
+            <!-- TEMPLATE CARD EXAMPLE 2 -->
+            <div class="template-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.2s;">
+              <div style="height: 160px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; opacity: 0.8;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </div>
+              <div style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                  <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">Nutricionista Premium</h3>
+                  <span style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Landing Page</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">Site completo com seções de Hero, Sobre, Método e Agendamento.</p>
+                <div style="margin-bottom: 16px;">
+                  <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Variáveis</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[nome]</span>
+                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[especialidade]</span>
+                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[cidade]</span>
+                  </div>
+                </div>
+                <button class="btn-secondary" style="width: 100%; justify-content: center;">Editar Template</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OFFICE VIEW -->
+      <section class="view" id="view-office" style="height: calc(100vh - 80px); overflow: hidden; padding: 0;">
+        <iframe src="vjoseph-completo.html" style="width: 100%; height: 100%; border: none; display: block;" title="Office VJoseph HQ"></iframe>
+      </section>
+
+      <section class="view" id="view-kpis">
+        <div class="kpi-view">
+          <details class="kpi-section" id="kpiSectionControl">
+            <summary class="kpi-section-summary">
+              <span>Painel de Controle</span>
+              <span class="kpi-section-hint">métricas que controlam o crescimento</span>
+            </summary>
+            <div class="kpi-section-body">
+              <div class="kpi-cards-grid" id="kpiCardsPrimary"></div>
+            </div>
+          </details>
+
+          <div class="kpi-section-flow" aria-hidden="true">↓</div>
+
+          <details class="kpi-section" id="kpiSectionFunnel">
+            <summary class="kpi-section-summary">
+              <span>Funil Visual</span>
+              <span class="kpi-section-hint">entenda o funil em 3 segundos</span>
+            </summary>
+            <div class="kpi-section-body">
+              <div class="kpi-funnel-layout">
+                <div class="kpi-funnel-visual" id="kpiFunnelVisual"></div>
+              </div>
+            </div>
+          </details>
+
+          <div class="kpi-section-flow" aria-hidden="true">↓</div>
+
+          <details class="kpi-section" id="kpiSectionFinance">
+            <summary class="kpi-section-summary">
+              <span>Financeiro & Meta</span>
+              <span class="kpi-section-hint">projeção, ritmo, dinheiro no funil</span>
+            </summary>
+            <div class="kpi-section-body">
+              <div class="kpi-grid-3">
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Pipeline Financeiro</div>
+                    <div class="kpi-block-subtitle">Dinheiro no funil</div>
+                  </div>
+                  <div class="kpi-finance-viz" id="kpiFinanceViz"></div>
+                  <div class="kpi-table-wrap kpi-table-compact">
+                    <table class="kpi-table" id="kpiFinanceTable"></table>
+                  </div>
+                </div>
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Meta do Mês</div>
+                    <div class="kpi-block-subtitle">Ritmo e projeção</div>
+                  </div>
+                  <div class="kpi-viz kpi-month-viz" id="kpiMonthViz"></div>
+                  <div class="kpi-table-wrap kpi-table-compact kpi-table-soft">
+                    <table class="kpi-table" id="kpiMonthPaceTable"></table>
+                  </div>
+                </div>
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Velocidade</div>
+                    <div class="kpi-block-subtitle">Ritmo operacional</div>
+                  </div>
+                  <div class="kpi-viz kpi-speed-viz" id="kpiSpeedViz"></div>
+                  <div class="kpi-table-wrap kpi-table-compact kpi-table-soft">
+                    <table class="kpi-table" id="kpiSpeedTable"></table>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </details>
+
+          <div class="kpi-section-flow" aria-hidden="true">↓</div>
+
+          <details class="kpi-section" id="kpiSectionOps">
+            <summary class="kpi-section-summary">
+              <span>Operação</span>
+              <span class="kpi-section-hint">etapas, backlog, ciclo, atividade</span>
+            </summary>
+            <div class="kpi-section-body">
+              <div class="kpi-grid-2">
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Tempo por Etapa</div>
+                    <div class="kpi-block-subtitle">Quanto tempo cada lead fica em cada etapa</div>
+                  </div>
+                  <div class="kpi-viz" id="kpiStageDurationsViz"></div>
+                </div>
+              </div>
+
+              <div class="kpi-grid-2">
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Ciclo Operacional</div>
+                    <div class="kpi-block-subtitle">Quanto tempo leva para avançar</div>
+                  </div>
+                  <div class="kpi-table-wrap">
+                    <table class="kpi-table" id="kpiCycleTable"></table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </details>
+
+          <div class="kpi-section-flow" aria-hidden="true">↓</div>
+
+          <details class="kpi-section" id="kpiSectionQuality">
+            <summary class="kpi-section-summary">
+              <span>Base & Qualidade</span>
+              <span class="kpi-section-hint">cidades, especialidades, dados faltando</span>
+            </summary>
+            <div class="kpi-section-body">
+              <div class="kpi-grid-2">
+                <div class="kpi-block">
+                  <div class="kpi-block-head">
+                    <div class="kpi-block-title">Top Cidades</div>
+                    <div class="kpi-block-subtitle">Distribuição geográfica</div>
+                  </div>
+                  <div class="kpi-table-wrap">
+                    <table class="kpi-table" id="kpiTopCitiesTable"></table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="view" id="view-dashboard2">
+        <div class="dash2">
+          <div class="metrics-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+              <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary);">Hoje</h2>
+              <p style="color: var(--text-muted); font-size: 14px;" id="currentDateDisplayDash2">--</p>
+            </div>
+          </div>
+
+          <div class="dash2-summary-card">
+            <div class="dash2-summary-head">
+              <div class="dash2-summary-title">Visão Geral</div>
+              <div class="dash2-summary-subtitle">Métricas e buckets atualizados automaticamente</div>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric-card gradient-violet">
+                <div class="metric-header">
+                  <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <div class="metric-trend" style="background: rgba(124, 58, 237, 0.1); color: #A78BFA; border: 1px solid rgba(124, 58, 237, 0.2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    Auto
+                  </div>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Total de Leads</span>
+                  <span class="metric-value" id="d2-total">0</span>
+                </div>
+              </div>
+
+              <div class="metric-card gradient-green">
+                <div class="metric-header">
+                  <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-trend" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    Auto
+                  </div>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Mensagens Enviadas</span>
+                  <span class="metric-value" id="d2-msgs">0</span>
+                </div>
+              </div>
+
+              <div class="metric-card gradient-pink">
+                <div class="metric-header">
+                  <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                      <path d="M8 21h8M12 17v4"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-trend" style="background: rgba(255, 20, 147, 0.1); color: #FF1493; border: 1px solid rgba(255, 20, 147, 0.2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    Auto
+                  </div>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Sites Gerados</span>
+                  <span class="metric-value" id="d2-sites">0</span>
+                </div>
+              </div>
+
+              <div class="metric-card gradient-orange">
+                <div class="metric-header">
+                  <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-trend" style="background: rgba(245, 158, 11, 0.1); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    Auto
+                  </div>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Receita Potencial</span>
+                  <span class="metric-value" id="d2-potential">R$ 0</span>
+                </div>
+              </div>
+
+              <div class="metric-card gradient-neon neon-green">
+                <div class="metric-header">
+                  <div class="metric-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 6L9 17l-5-5"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-trend" style="background: rgba(57, 255, 20, 0.1); color: #39FF14; border: 1px solid rgba(57, 255, 20, 0.2); box-shadow: 0 0 8px rgba(57, 255, 20, 0.2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    Auto
+                  </div>
+                </div>
+                <div class="metric-info">
+                  <span class="metric-label">Receita Confirmada</span>
+                  <span class="metric-value" id="d2-confirmed">R$ 0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dash2-summary-divider"></div>
+
+            <div class="dash2-buckets" id="dash2Buckets">
+              <div class="dash2-bucket" data-accent="slate">
+                <span class="dash2-bucket-label">Entrada</span>
+                <span class="dash2-bucket-value" id="d2-bucket-a">0</span>
+                <span class="dash2-bucket-sub">Coletado + Engajado + DM1</span>
+              </div>
+              <div class="dash2-bucket" data-accent="indigo">
+                <span class="dash2-bucket-label">Em Conversa</span>
+                <span class="dash2-bucket-value" id="d2-bucket-b">0</span>
+                <span class="dash2-bucket-sub">Respondeu + Site + DM2</span>
+              </div>
+              <div class="dash2-bucket" data-accent="amber">
+                <span class="dash2-bucket-label">Proposta</span>
+                <span class="dash2-bucket-value" id="d2-bucket-c">0</span>
+                <span class="dash2-bucket-sub">Cobrado</span>
+              </div>
+              <div class="dash2-bucket" data-accent="green">
+                <span class="dash2-bucket-label">Fechado</span>
+                <span class="dash2-bucket-value" id="d2-bucket-d">0</span>
+                <span class="dash2-bucket-sub">Vitória</span>
+              </div>
+              <div class="dash2-bucket" data-accent="gray">
+                <span class="dash2-bucket-label">Arquivado</span>
+                <span class="dash2-bucket-value" id="d2-bucket-e">0</span>
+                <span class="dash2-bucket-sub">Sem interesse</span>
+              </div>
+              <div class="dash2-bucket" data-accent="orange">
+                <span class="dash2-bucket-label">Follow-up</span>
+                <span class="dash2-bucket-value" id="d2-bucket-f">0</span>
+                <span class="dash2-bucket-sub">Parados</span>
+              </div>
+              <div class="dash2-bucket" data-accent="blue">
+                <span class="dash2-bucket-label">DM1 enviadas</span>
+                <span class="dash2-bucket-value" id="d2-bucket-g">0</span>
+                <span class="dash2-bucket-sub">DM1 em diante</span>
+              </div>
+              <div class="dash2-bucket" data-accent="pink">
+                <span class="dash2-bucket-label">Sites gerados</span>
+                <span class="dash2-bucket-value" id="d2-bucket-h">0</span>
+                <span class="dash2-bucket-sub">DM2 em diante</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash2-top">
+            <div class="dash2-title-wrap">
+              <div class="dash2-title">Pipeline Único</div>
+              <div class="dash2-subtitle">Arraste os cards para mover. Use os botões só para acelerar a próxima ação.</div>
+            </div>
+            <div class="dash2-legend">
+              <span class="dash2-legend-dot ok"></span><span class="dash2-legend-text">Ok</span>
+              <span class="dash2-legend-dot warn"></span><span class="dash2-legend-text">Atenção</span>
+              <span class="dash2-legend-dot late"></span><span class="dash2-legend-text">48h sem resposta</span>
+            </div>
+          </div>
+
+          <div class="dash2-board-wrap">
+            <div class="prospecting-board" id="dash2Board"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LEADS VIEW -->
+      <section class="view" id="view-leads">
+        <div class="leads-toolbar">
+          <div class="leads-tabs" role="tablist" aria-label="Leads">
+            <button class="leads-tab active" id="leadsTabActive" type="button" role="tab"
+              aria-selected="true">Ativos</button>
+            <button class="leads-tab" id="leadsTabArchived" type="button" role="tab"
+              aria-selected="false">Arquivados</button>
+          </div>
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" id="leadsSearch" placeholder="Buscar por nome, Instagram..." />
+          </div>
+          <div class="filter-group">
+            <input type="date" id="dateFilter" class="filter-date" title="Filtrar por data">
+            <select id="statusFilter" class="filter-select">
+              <option value="">Todos os status</option>
+              <option value="coletado">Coletado</option>
+              <option value="contatado">Contatado</option>
+              <option value="site_pronto">Site Pronto</option>
+              <option value="fechado">Fechado</option>
+              <option value="sem_interesse">Sem Interesse</option>
+              <option value="arquivado">Arquivado</option>
+            </select>
+            <select id="sortFilter" class="filter-select" title="Ordenar por">
+              <option value="status" selected>📊 Status (Pipeline)</option>
+              <option value="date_desc">📅 Data (Recentes)</option>
+              <option value="date_asc">📅 Data (Antigos)</option>
+              <option value="site">🌐 Com Site</option>
+            </select>
+            <button class="btn-primary" id="addLeadBtn2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adicionar Lead
+            </button>
+            <button class="btn-secondary" id="importLeadsBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Importar
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="leadsTable">
+            <thead>
+              <tr>
+                <th width="40"><input type="checkbox" id="selectAll"></th>
+                <th>Nome / Instagram</th>
+                <th>Especialidade</th>
+                <th>Cidade</th>
+                <th>Data</th>
+                <th>Status</th>
+                <th>Site</th>
+                <th width="120">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="leadsBody">
+              <!-- JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ANALYZER VIEW -->
+      <section class="view" id="view-analyzer">
+        <div class="analyzer-layout">
+          <div class="analyzer-input-panel">
+            <div class="panel-header">
+              <h2>Análise de Bio com IA</h2>
+              <p>Cole a bio do Instagram e a IA extrai os dados estruturados automaticamente</p>
+            </div>
+            <div class="form-group">
+              <label>Bio do Instagram</label>
+              <textarea id="bioInput" rows="8"
+                placeholder="Cole aqui a bio da nutricionista...&#10;&#10;Exemplo:&#10;Dra. Ana Lima | Nutricionista Esportiva&#10;Atendo online e presencial em SP&#10;Emagrecimento + Performance ✨&#10;Link para agenda 👇"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Perfil (opcional)</label>
+              <input type="text" id="instaHandle" placeholder="@draanalima" class="form-input" />
+            </div>
+            <button class="btn-primary btn-full" id="analyzeBioBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+              </svg>
+              Analisar com IA
+            </button>
+            <div class="api-notice" id="apiNotice">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Configure sua Gemini API key em Configurações para usar IA real. Por agora, usando análise local.
+            </div>
+          </div>
+          <div class="analyzer-result-panel" id="analyzerResult">
+            <div class="result-placeholder">
+              <div class="placeholder-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <p>Cole uma bio e clique em "Analisar com IA"<br />para ver os dados extraídos aqui</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GENERATOR VIEW -->
+      <section class="view" id="view-generator">
+        <div class="generator-layout">
+          <div class="generator-left">
+            <div class="panel-header">
+              <h2>Gerador de Sites</h2>
+              <p>Escolha um template e personalize as informações para gerar o site automaticamente</p>
+            </div>
+
+            <div class="form-group">
+              <label>Selecionar Lead (ou preencher manualmente)</label>
+              <div class="select-with-avatar">
+                <div class="selected-avatar" id="genSelectedAvatar" style="display:none">
+                  <span class="avatar-fallback">?</span>
+                  <img id="genAvatarImg" src="" alt="" referrerpolicy="no-referrer">
+                </div>
+                <select id="genLeadSelect" class="form-select">
+                  <option value="">— Preencher manualmente —</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between" style="margin-bottom: 16px; margin-top: 24px;">
+              <h3
+                style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                Informações do Cliente</h3>
+              <button class="icon-btn" id="toggleClientInfo" title="Minimizar/Expandir">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  class="w-5 h-5 transition-transform rotate-180" id="toggleClientIcon">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <div id="clientInfoContainer" class="generator-scroll-area collapsed">
+              <div class="gen-form-grid">
+                <div class="form-group">
+                  <label>Nome Completo</label>
+                  <input type="text" id="genName" placeholder="Dra. Ana Lima" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Especialidade</label>
+                  <input type="text" id="genSpecialty" placeholder="Nutricionista Esportiva" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Cidade</label>
+                  <input type="text" id="genCity" placeholder="São Paulo, SP" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Atendimento</label>
+                  <select id="genAttendance" class="form-select">
+                    <option>Online e Presencial</option>
+                    <option>Apenas Online</option>
+                    <option>Apenas Presencial</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label>Tagline / Frase de impacto</label>
+                  <input type="text" id="genTagline" placeholder="Transforme sua saúde com nutrição de alta performance"
+                    class="form-input" />
+                </div>
+                <div class="form-group full-width">
+                  <label>Bio / Sobre mim</label>
+                  <textarea id="genBio" rows="3"
+                    placeholder="Conte um pouco sobre sua trajetória, formação e diferenciais..."
+                    class="form-input"></textarea>
+                </div>
+                <div class="form-group full-width">
+                  <label>Serviços (um por linha)</label>
+                  <textarea id="genServices" rows="4"
+                    placeholder="Consultoria Nutricional&#10;Acompanhamento Esportivo&#10;Plano Alimentar Personalizado&#10;Suplementação"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>WhatsApp</label>
+                  <input type="text" id="genWhatsapp" placeholder="(11) 99999-9999" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Instagram</label>
+                  <input type="text" id="genInstagram" placeholder="@draanalima" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Foto (URL)</label>
+                  <input type="text" id="genAvatar" placeholder="https://..." class="form-input" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="flex items-center justify-between" style="margin-bottom: 16px; margin-top: 24px;">
+                <h3
+                  style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                  Template</h3>
+                <button class="icon-btn" id="toggleTemplateSection" title="Minimizar/Expandir">
+                  <svg id="toggleTemplateIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    class="w-5 h-5 transition-transform rotate-180">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </button>
+              </div>
+              <div class="template-selector-container collapsed" id="templateSelectorContainer">
+                <div class="template-selector" id="templateSelector">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+            </div>
+
+
+
+            <!-- Botões section removed -->
+
+
+
+
+
+            <!-- Gallery section removed -->
+            <button class="btn-primary btn-full" id="generateSiteBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              Gerar Site
+            </button>
+          </div>
+          <div class="generator-right">
+            <div class="preview-panel">
+              <div class="preview-topbar">
+                <div class="preview-dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="preview-url">leadflow.site/dra-ana</div>
+                <div class="preview-actions">
+                  <button class="preview-btn" id="openPreviewBtn" title="Abrir em tela cheia">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1" />
+                    </svg>
+                  </button>
+                  <button class="preview-btn" id="copyHtmlBtn" title="Copiar HTML">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                  <button class="preview-btn" id="exportPdfSmallBtn" title="Exportar PDF">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </button>
+                  <button class="preview-btn" id="saveLeadSiteBtn" title="Publicar (Vercel)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="preview-iframe-wrap">
+                <iframe id="sitePreview" title="Preview do site gerado"></iframe>
+                <div class="preview-placeholder" id="previewPlaceholder">
+                  <div class="placeholder-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="2" y="3" width="20" height="14" rx="2" />
+                      <path d="M8 21h8M12 17v4" />
+                    </svg>
+                  </div>
+                  <p>Preencha os dados e clique em<br />"Gerar Site" para ver o preview aqui</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MESSAGES VIEW (PROSPECTING CONTROL SYSTEM) -->
+      <section class="view" id="view-messages">
+        <div class="prospecting-dashboard">
+          <!-- Top Metrics -->
+          <div class="prospecting-metrics">
+            <div class="prospecting-metric-card">
+              <span class="prospecting-metric-label">Mensagens Hoje</span>
+              <span class="prospecting-metric-value" id="pm-sent-today">0</span>
+            </div>
+            <div class="prospecting-metric-card">
+              <span class="prospecting-metric-label">Respostas</span>
+              <span class="prospecting-metric-value" id="pm-responses">0</span>
+            </div>
+            <div class="prospecting-metric-card">
+              <span class="prospecting-metric-label">Em Conversa</span>
+              <span class="prospecting-metric-value" id="pm-in-conversation">0</span>
+            </div>
+            <div class="prospecting-metric-card">
+              <span class="prospecting-metric-label">Conversões</span>
+              <span class="prospecting-metric-value" id="pm-conversions">0</span>
+            </div>
+          </div>
+
+          <!-- Kanban Board -->
+          <div class="kanban-mini" id="kanbanMiniMessages">
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#7C3AED"></span>
+                <span>Coletados</span>
+                <span class="kanban-count" id="k2m-coletados">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-coletados"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#64748b"></span>
+                <span>Perfil Engajado</span>
+                <span class="kanban-count" id="k2m-perfil_engajado">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-perfil_engajado"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#3b82f6"></span>
+                <span>DM1 Enviada</span>
+                <span class="kanban-count" id="k2m-dm1_enviada">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-dm1_enviada"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#06b6d4"></span>
+                <span>Não Respondeu</span>
+                <span class="kanban-count" id="k2m-nao_respondeu">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-nao_respondeu"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#8b5cf6"></span>
+                <span>Respondeu</span>
+                <span class="kanban-count" id="k2m-respondeu">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-respondeu"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#fb923c"></span>
+                <span>Follow-up 1</span>
+                <span class="kanban-count" id="k2m-follow_up_1">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-follow_up_1"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#ec4899"></span>
+                <span>Gerar Site</span>
+                <span class="kanban-count" id="k2m-chat_gerado">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-chat_gerado"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#db2777"></span>
+                <span>DM2 Enviada</span>
+                <span class="kanban-count" id="k2m-dm2_enviada">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-dm2_enviada"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#f59e0b"></span>
+                <span>Proposta Enviada</span>
+                <span class="kanban-count" id="k2m-proposta_enviada">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-proposta_enviada"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#f97316"></span>
+                <span>Follow-up 2</span>
+                <span class="kanban-count" id="k2m-follow_up_2">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-follow_up_2"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#22c55e"></span>
+                <span>Fechado</span>
+                <span class="kanban-count" id="k2m-fechado">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-fechado"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot" style="background:#94a3b8"></span>
+                <span>Arquivado / Sem Interesse</span>
+                <span class="kanban-count" id="k2m-arquivado">0</span>
+              </div>
+              <div class="kanban-cards" id="kanbanv2m-arquivado"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PIPELINE VIEW -->
+      <section class="view" id="view-pipeline">
+        <div class="pipeline-layout">
+          <div class="pipeline-header">
+            <h2>Fluxo da Automação</h2>
+            <p>Visualização completa do pipeline de prospecção e conversão</p>
+          </div>
+          <div class="pipeline-stats">
+            <div class="pipe-stat">
+              <span class="pipe-stat-val" id="convRate">0%</span>
+              <span class="pipe-stat-label">Taxa de Conversão</span>
+            </div>
+            <div class="pipe-stat">
+              <span class="pipe-stat-val" id="avgRevenue">R$ 0</span>
+              <span class="pipe-stat-label">Receita Projetada/Dia</span>
+            </div>
+            <div class="pipe-stat">
+              <span class="pipe-stat-val" id="timePerLead">~3min</span>
+              <span class="pipe-stat-label">Tempo por Lead</span>
+            </div>
+          </div>
+          <div class="flow-diagram">
+            <div class="flow-step" style="--color:124,58,237">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 8a6 6 0 0 1 0 8"></path>
+                  <path d="M8 16a6 6 0 0 1 0-8"></path>
+                  <path d="M12 2v4"></path>
+                  <path d="M12 18v4"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>1) Coleta de Leads</h3>
+                <p>Entrada via Instagram (perfil/cidade/especialidade) e padronização dos dados.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Instagram</span>
+                  <span class="tool-tag">CSV/Sheets</span>
+                  <span class="tool-tag">Parser</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span id="p-leads">—</span>
+                <small>leads</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:6,182,212">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>2) Enriquecimento & Regras</h3>
+                <p>Identifica contexto do perfil, valida campos e prepara o lead para a automação.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Gemini API</span>
+                  <span class="tool-tag">Regras</span>
+                  <span class="tool-tag">Webhook</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span id="p-contacted">0</span>
+                <small>contatados</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:16,185,129">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="14" rx="2"></rect>
+                  <path d="M7 21h10"></path>
+                  <path d="M9 17v4"></path>
+                  <path d="M15 17v4"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>3) Geração de Site</h3>
+                <p>Cria um site personalizado para o lead e disponibiliza o link automaticamente.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Templates</span>
+                  <span class="tool-tag">Vercel API</span>
+                  <span class="tool-tag">Deploy</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="avgRevenue">R$ 0</span>
+                <small>receita total</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:245,158,11">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>4) Prospecção & Follow-up</h3>
+                <p>Envia mensagens e segue o lead por etapas (DM1, resposta, site, DM2, proposta).</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Mensagens</span>
+                  <span class="tool-tag">n8n</span>
+                  <span class="tool-tag">WhatsApp</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="convRate">0%</span>
+                <small>conversão</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:34,197,94">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>5) Fechamento & Métricas</h3>
+                <p>Consolidación do funil, histórico, relatórios e leitura operacional para iterar o processo.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">KPIs</span>
+                  <span class="tool-tag">Histórico</span>
+                  <span class="tool-tag">Dashboard</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span id="p-closed">0</span>
+                <small>fechados</small>
+              </div>
+            </div>
+          </div>
+          <div class="flow-diagram">
+            <div class="flow-step" style="--color:124,58,237">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 8a6 6 0 0 1 0 8"></path>
+                  <path d="M8 16a6 6 0 0 1 0-8"></path>
+                  <path d="M12 2v4"></path>
+                  <path d="M12 18v4"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>1) Coleta de Leads</h3>
+                <p>Entrada via Instagram (perfil/cidade/especialidade) e padronização dos dados.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Instagram</span>
+                  <span class="tool-tag">CSV/Sheets</span>
+                  <span class="tool-tag">Parser</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="leads">—</span>
+                <small>leads</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:6,182,212">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>2) Enriquecimento & Regras</h3>
+                <p>Identifica contexto do perfil, valida campos e prepara o lead para a automação.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Gemini API</span>
+                  <span class="tool-tag">Regras</span>
+                  <span class="tool-tag">Webhook</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="contacted">0</span>
+                <small>contatados</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:16,185,129">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="14" rx="2"></rect>
+                  <path d="M7 21h10"></path>
+                  <path d="M9 17v4"></path>
+                  <path d="M15 17v4"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>3) Geração de Site</h3>
+                <p>Cria um site personalizado para o lead e disponibiliza o link automaticamente.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Templates</span>
+                  <span class="tool-tag">Vercel API</span>
+                  <span class="tool-tag">Deploy</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="avgRevenue">R$ 0</span>
+                <small>receita total</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:245,158,11">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>4) Prospecção & Follow-up</h3>
+                <p>Envia mensagens e segue o lead por etapas (DM1, resposta, site, DM2, proposta).</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">Mensagens</span>
+                  <span class="tool-tag">n8n</span>
+                  <span class="tool-tag">WhatsApp</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="convRate">0%</span>
+                <small>conversão</small>
+              </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step" style="--color:34,197,94">
+              <div class="flow-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+              </div>
+              <div class="flow-content">
+                <h3>5) Fechamento & Métricas</h3>
+                <p>Consolidación do funil, histórico, relatórios e leitura operacional para iterar o processo.</p>
+                <div class="flow-tools">
+                  <span class="tool-tag">KPIs</span>
+                  <span class="tool-tag">Histórico</span>
+                  <span class="tool-tag">Dashboard</span>
+                </div>
+              </div>
+              <div class="flow-metric">
+                <span data-pipe="closed">0</span>
+                <small>fechados</small>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SETTINGS VIEW -->
+      <section class="view" id="view-settings">
+        <div class="settings-layout">
+          <div class="settings-section">
+            <h2>Configurações do Negócio</h2>
+            <div class="settings-card">
+              <div class="gen-form-grid">
+                <div class="form-group">
+                  <label>Preço do Serviço (R$)</label>
+                  <input type="number" id="servicePrice" value="350" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Meta de Leads/Dia</label>
+                  <input type="number" id="dailyLeadGoal" value="100" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Meta Mensal de Sites</label>
+                  <input type="number" id="monthlySiteGoal" value="30" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Seu Nome / Empresa</label>
+                  <input type="text" id="yourName" placeholder="MFS Studio" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label>Seu Instagram</label>
+                  <input type="text" id="yourInstagram" placeholder="@mfsstudio" class="form-input" />
+                </div>
+                <div class="form-group full-width">
+                  <label>Vercel API Token</label>
+                  <input type="password" id="vercelToken" placeholder="Ativo para deploy automático"
+                    class="form-input" />
+                  <p class="field-hint">Token pessoal da Vercel para automação de sites.</p>
+                </div>
+              </div>
+              <button class="btn-primary" id="saveSettings">Salvar Configurações</button>
+            </div>
+          </div>
+          <div class="settings-section">
+            <h2>Biblioteca de Templates</h2>
+            <div class="settings-card">
+              <div class="form-group">
+                <label>Nome do Template</label>
+                <input type="text" id="newTemplateName" placeholder="Ex: Meu Template Personalizado"
+                  class="form-input" />
+              </div>
+              <div class="form-group">
+                <label>Código HTML</label>
+                <textarea id="newTemplateHtml" rows="10"
+                  placeholder="Cole o código HTML aqui. Use {{nome}}, {{especialidade}}, etc." class="form-input"
+                  style="font-family: monospace; font-size: 12px;"></textarea>
+                <p class="field-hint">Variáveis: {{nome}}, {{instagram}}, {{especialidade}}, {{cidade}}, {{bio}},
+                  {{servicos}}, {{whatsapp}}, {{foto}}, {{tagline}}, {{atendimento}}</p>
+              </div>
+              <div style="display:flex; gap:10px">
+                <button class="btn-secondary" id="autoConvertBtn" style="flex:1">⚡ Converter Automaticamente</button>
+                <button class="btn-primary" id="addTemplateBtn" style="flex:1">Adicionar Template</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <h2>Dados e Segurança</h2>
+            <div class="settings-card">
+              <div class="danger-zone">
+                <div>
+                  <h4>Backup Completo</h4>
+                  <p>Baixe uma cópia de segurança de todos os seus dados (Leads, Histórico, Configurações)</p>
+                </div>
+                <button class="btn-primary" id="backupBtn">Baixar Backup (JSON)</button>
+              </div>
+
+              <div class="danger-zone" style="margin-top:16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                <div>
+                  <h4>Restaurar Backup</h4>
+                  <p>Recupere seus dados a partir de um arquivo de backup</p>
+                </div>
+                <input type="file" id="restoreInput" accept=".json,.csv,text/csv,application/json" style="display: none;" />
+                <button class="btn-secondary" onclick="document.getElementById('restoreInput').click()">Restaurar
+                  Dados</button>
+              </div>
+
+              <div class="danger-zone" style="margin-top:16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                <div>
+                  <h4>Exportar Leads (Excel/CSV)</h4>
+                  <p>Baixe uma lista simples dos seus leads para planilhas</p>
+                </div>
+                <button class="btn-secondary" id="exportCsvBtn">Exportar CSV</button>
+              </div>
+
+              <div class="danger-zone" style="margin-top:16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                <div>
+                  <h4 style="color:var(--red)">Limpar Todos os Dados</h4>
+                  <p>Remove todos os leads e configurações (irreversível)</p>
+                </div>
+                <button class="btn-danger" id="clearDataBtn">Limpar Dados</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: ADD/EDIT LEAD -->
+  <div class="modal-overlay" id="leadModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Novo Lead</h3>
+        <button class="modal-close" id="closeLeadModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editLeadId">
+
+        <!-- Lead Avatar Preview -->
+        <div class="modal-lead-profile">
+          <div class="modal-avatar-wrapper" id="avatarUploadTrigger"
+            style="cursor: pointer; position: relative; overflow: hidden;">
+            <span class="modal-avatar-initials" id="modalAvatarInitials">?</span>
+            <img id="modalAvatarImg" src="" alt="Lead" referrerpolicy="no-referrer">
+            <div class="avatar-overlay"
+              style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; border-radius: 50%;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </div>
+          </div>
+          <input type="file" id="leadPhotoInput" accept="image/*" style="display: none;">
+          <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">Clique na foto para alterar</div>
+        </div>
+
+        <!-- Smart Paste Area -->
+        <div class="smart-paste-area"
+          style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border-color);">
+          <div class="form-group full-width">
+            <label style="display:flex;justify-content:space-between;align-items:center">
+              <span>Smart Paste (Cole a ficha do lead aqui)</span>
+              <span style="font-size:11px;color:var(--text-muted)">Nome, Instagram, Bio, Especialidades,
+                Cidade...</span>
+            </label>
+            <textarea id="smartPasteInput" rows="5"
+              placeholder="Cole os dados do lead aqui e clique em 'Preencher Automaticamente'..."
+              style="font-family:monospace;font-size:12px" class="form-input"></textarea>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <input type="number" id="smartPasteCount" placeholder="Qtd. (opcional)" class="form-input"
+                style="width: 120px;" min="1">
+              <button class="btn-secondary btn-full" id="smartPasteBtn" style="margin-top:0; flex: 1;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Preencher Automaticamente
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between" style="margin-bottom: 16px;">
+          <h3
+            style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+            Dados do Lead</h3>
+          <button class="icon-btn" id="toggleLeadForm" title="Expandir/Minimizar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              class="w-5 h-5 transition-transform rotate-180" id="toggleLeadFormIcon">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="gen-form-grid collapsed" id="leadFormGrid">
+          <div class="form-group">
+            <label>Nome *</label>
+            <input type="text" id="leadName" placeholder="Dra. Ana Lima" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Instagram *</label>
+            <input type="text" id="leadInstagram" placeholder="@draanalima" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Foto (URL)</label>
+            <input type="text" id="leadImage" placeholder="https://exemplo.com/foto.jpg" class="form-input" />
+          </div>
+          <div class="form-group full-width">
+            <label>Bio</label>
+            <textarea id="leadBio" rows="3" placeholder="Bio do Instagram..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Especialidade</label>
+            <input type="text" id="leadSpecialty" placeholder="Nutricionista Esportiva" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Cidade</label>
+            <input type="text" id="leadCity" placeholder="São Paulo, SP" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>WhatsApp</label>
+            <input type="text" id="leadWhatsapp" placeholder="(11) 99999-9999" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Atendimento</label>
+            <select id="leadAttendance" class="form-select">
+              <option value="Online e Presencial">Online e Presencial</option>
+              <option value="Apenas Online">Apenas Online</option>
+              <option value="Apenas Presencial">Apenas Presencial</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="leadStatus" class="form-select">
+              <option value="coletado">Coletado</option>
+              <option value="contatado">Contatado</option>
+              <option value="site_pronto">Site Pronto</option>
+              <option value="cobrado">Cobrado</option>
+              <option value="fechado">Fechado</option>
+              <option value="sem_interesse">Sem Interesse</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label>Datas no Pipeline (V2)</label>
+            <textarea id="leadV2StageDates" rows="6" readonly
+              placeholder="As datas aparecem aqui quando o lead entra em cada etapa..."></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>Tagline / Frase de Impacto</label>
+            <input type="text" id="leadTagline" placeholder="Transforme sua saúde com nutrição de alta performance"
+              class="form-input" />
+          </div>
+          <div class="form-group full-width">
+            <label>Serviços (um por linha)</label>
+            <textarea id="leadServices" rows="4"
+              placeholder="Consultoria Nutricional&#10;Acompanhamento Esportivo&#10;Plano Alimentar Personalizado"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>Link do Site Gerado</label>
+            <input type="text" id="leadSiteLink" placeholder="https://leadflow.site/dra-ana" class="form-input" />
+          </div>
+          <div class="form-group full-width">
+            <label>Observações</label>
+            <textarea id="leadNotes" rows="2" placeholder="Notas sobre este lead..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelLeadModal">Cancelar</button>
+        <button class="btn-primary" id="saveLeadBtn">Salvar Lead</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="leadTimelineModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="leadTimelineTitle">Timeline</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-secondary" id="leadTimelineEditBtn" type="button">Editar</button>
+          <button class="modal-close" id="closeLeadTimelineModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body" id="leadTimelineBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: SITE PREVIEW FULLSCREEN -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <h3>Preview do Site</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="modal-close" id="exportPdfBtn" title="Exportar PDF">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </button>
+          <button class="modal-close" id="toggleDeviceBtn" title="Alternar Mobile/PC">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12" y2="18"></line>
+            </svg>
+          </button>
+          <button class="modal-close" id="closePreviewModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding:0;flex:1;display:flex">
+        <iframe id="fullPreview" style="width:100%;flex:1;border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORT LEADS -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Importar Leads</h3>
+        <button class="modal-close" id="closeImportModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);margin-bottom:16px">Cole os perfis no formato:
+          <code>nome,@instagram,especialidade,cidade</code> (um por linha)
+        </p>
+        <textarea id="importText" rows="10"
+          placeholder="Dra. Ana Lima,@draanalima,Nutricionista Esportiva,São Paulo&#10;Dra. Maria Costa,@drmariacosta,Nutricionista Clínica,Curitiba"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelImportModal">Cancelar</button>
+        <button class="btn-primary" id="doImportBtn">Importar Leads</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECTION BAR -->
+  <div class="selection-bar" id="selectionBar">
+    <div class="selection-count">
+      <span id="selectionCount">0</span> leads selecionados
+    </div>
+    <div class="selection-actions">
+      <button type="button" class="selection-btn warning" id="selectionArchiveBtn">Arquivar</button>
+      <button type="button" class="selection-btn success" id="selectionUnarchiveBtn">Desarquivar</button>
+      <button type="button" class="selection-btn danger" id="selectionDeleteBtn">Excluir</button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+    <span id="toastMsg">Ação realizada com sucesso!</span>
+  </div>
+
+  <!-- MODAL: LAB MESSAGE EDITOR -->
+  <div class="modal-overlay" id="labMessageModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="labMessageModalTitle">Nova Copy</h3>
+        <button class="modal-close" onclick="closeLabMessageModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="labMsgId">
+        <input type="hidden" id="labMsgStage">
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Nome da Copy</label>
+          <input type="text" id="labMsgName" class="form-input" placeholder="Ex: Copy A - Abordagem Direta" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Mensagem</label>
+          <textarea id="labMsgText" class="form-input" rows="6" placeholder="Escreva sua mensagem aqui..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); resize: vertical; font-family: inherit;"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Envios (Opcional)</label>
+            <input type="number" id="labMsgSent" class="form-input" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
+          </div>
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Taxa de Resposta (Opcional)</label>
+            <input type="text" id="labMsgRate" class="form-input" placeholder="0%" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeLabMessageModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveLabMessage()">Salvar Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=sync1"></script>
+  <script src="lab-library.js"></script>
+</body>
+
+</html>
