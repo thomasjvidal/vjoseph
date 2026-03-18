@@ -3,6 +3,14 @@
    Full application logic
    ========================================= */
 
+// ---- TIPOS DE TEMPLATE (built-in, sempre disponíveis) ----
+const BUILTIN_TEMPLATE_TYPES = [
+  { name: 'landing_simples',  label: 'Landing Simples',      fields: ['nome','especialidade','cta','whatsapp'] },
+  { name: 'landing_basica',   label: 'Landing Básica',        fields: ['nome','bio','cta','whatsapp'] },
+  { name: 'landing_servicos', label: 'Landing com Serviços',  fields: ['nome','tagline','bio','servico_1','servico_2','servico_3','cta','whatsapp'] },
+  { name: 'landing_completa', label: 'Landing Completa',      fields: ['nome','tagline','bio','servico_1','servico_2','servico_3','servico_4','foto','cta','whatsapp','instagram'] },
+];
+
 // ---- STATE ----
 let state = {
   leads: [],
@@ -20,6 +28,7 @@ let state = {
   leadsTab: 'ativos',
   selectedTemplate: 'minimal',
   customTemplates: [],
+  templateTypes: [],
   generatedHTML: '',
   currentPreviewTemplate: '',
   currentMsgTemplate: 0,
@@ -88,6 +97,7 @@ function save() {
     localStorage.setItem('lf_leads', JSON.stringify(state.leads));
     localStorage.setItem('lf_settings', JSON.stringify(state.settings));
     localStorage.setItem('lf_custom_templates', JSON.stringify(state.customTemplates));
+    localStorage.setItem('lf_template_types', JSON.stringify(state.templateTypes));
     localStorage.setItem('lf_preview_settings', JSON.stringify(state.previewSettings));
     localStorage.setItem('lf_dashboard_tab', state.dashboardTab === 'pipeline' ? 'pipeline' : 'metrics');
 
@@ -115,6 +125,7 @@ function load() {
     const leads = localStorage.getItem('lf_leads');
     const settings = localStorage.getItem('lf_settings');
     const customTemplates = localStorage.getItem('lf_custom_templates');
+    const templateTypes = localStorage.getItem('lf_template_types');
     const previewSettings = localStorage.getItem('lf_preview_settings');
     const dashboardTab = localStorage.getItem('lf_dashboard_tab');
     if (leads) {
@@ -161,9 +172,11 @@ function load() {
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
     if (customTemplates) state.customTemplates = JSON.parse(customTemplates) || [];
     if (!Array.isArray(state.customTemplates)) state.customTemplates = [];
+    if (templateTypes) state.templateTypes = JSON.parse(templateTypes) || [];
+    if (!Array.isArray(state.templateTypes)) state.templateTypes = [];
     state.dashboardTab = 'metrics';
 
-    renderTemplateLibrary();
+    renderGeneratorTemplates();
     // Start sidebar collapsed
     const sb = document.getElementById('sidebar');
     if (sb) sb.classList.add('collapsed');
@@ -328,7 +341,7 @@ function navigate(view, activeNavEl) {
   if (view === 'kpis') renderKPIs();
   if (view === 'dashboard2') renderDashboard2();
   if (view === 'leads') renderLeadsTable();
-  if (view === 'generator') populateGenLeadSelect();
+  if (view === 'generator') { populateGenLeadSelect(); renderGeneratorTemplates(); }
   if (view === 'messages') {
     renderProspectingBoard();
     renderMiniKanbanV2('k2m-', 'kanbanv2m-');
@@ -3595,7 +3608,7 @@ const BUILTIN_TEMPLATES = [
   { id: 'nutri', name: 'Nutri Premium ✦', generator: generateNutri }
 ];
 
-function renderTemplateLibrary() {
+function renderGeneratorTemplates() {
   const container = document.getElementById('templateSelector');
   if (!container) return;
 
@@ -3664,28 +3677,223 @@ function renderTemplateLibrary() {
   });
 }
 
-function addCustomTemplate() {
-  const name = document.getElementById('newTemplateName').value.trim();
-  const html = document.getElementById('newTemplateHtml').value.trim();
+function addCustomTemplate(nameVal, htmlVal, typeVal, onSuccess) {
+  // Suporta chamada antiga sem typeVal: addCustomTemplate(name, html, callback)
+  if (typeof typeVal === 'function') { onSuccess = typeVal; typeVal = null; }
+
+  const name = nameVal || (document.getElementById('newTemplateName') ? document.getElementById('newTemplateName').value.trim() : '');
+  const html = htmlVal || (document.getElementById('newTemplateHtml') ? document.getElementById('newTemplateHtml').value.trim() : '');
 
   if (!name || !html) {
     toast('Preencha nome e HTML do template');
-    return;
+    return false;
   }
 
   const newTemplate = {
     id: 'custom_' + Date.now(),
     name,
-    html
+    html,
+    type: typeVal || 'landing_servicos'
   };
 
   state.customTemplates.push(newTemplate);
   save();
-  renderTemplateLibrary();
+  renderGeneratorTemplates();
 
-  document.getElementById('newTemplateName').value = '';
-  document.getElementById('newTemplateHtml').value = '';
-  toast('Template adicionado!');
+  if (document.getElementById('newTemplateName')) document.getElementById('newTemplateName').value = '';
+  if (document.getElementById('newTemplateHtml')) document.getElementById('newTemplateHtml').value = '';
+  toast('✅ Template adicionado!');
+  if (typeof onSuccess === 'function') onSuccess();
+  return true;
+}
+
+function deleteCustomTemplate(id) {
+  if (!confirm('Excluir este template? Esta ação não pode ser desfeita.')) return;
+  state.customTemplates = state.customTemplates.filter(t => t.id !== id);
+  save();
+  renderGeneratorTemplates();
+  // Refresh biblioteca se estiver aberta
+  if (document.getElementById('lib-section-landing')) {
+    const activeTab = document.querySelector('.library-tab.active');
+    if (activeTab && window._libCategory) {
+      // Trigger re-render in lab-library context
+      if (typeof window._labRenderTemplateLibrary === 'function') window._labRenderTemplateLibrary(window._libCategory);
+    }
+  }
+  toast('Template excluído.');
+}
+
+function openNewTemplateModal() {
+  const overlay = document.createElement('div');
+  overlay.id = 'new-template-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#13131f;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;';
+
+  // Helper: build type dropdown options
+  function buildTypeOptions(selectedName) {
+    const allTypes = [...BUILTIN_TEMPLATE_TYPES, ...(state.templateTypes || [])];
+    return allTypes.map(t =>
+      `<option value="${t.name}" ${t.name === selectedName ? 'selected' : ''}>${t.label}</option>`
+    ).join('');
+  }
+
+  modal.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#e0e0e0;">+ Novo Template de Landing Page</div>
+        <div id="ntm-subtitle" style="font-size:12px;color:#6b6b80;margin-top:2px;">Passo 1 de 2 — Cole o HTML e converta as variáveis</div>
+      </div>
+      <button id="ntm-close" style="background:transparent;border:none;color:#6b6b80;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="ntm-step1" style="padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Nome do Template</label>
+        <input id="ntm-name" type="text" placeholder="Ex: Landing Nutricionista Dark" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Código HTML</label>
+        <textarea id="ntm-html" placeholder="Cole o HTML completo aqui. Use {{nome}}, {{bio}}, {{tagline}}, {{servicos}}, {{foto}}, {{whatsapp}}, {{instagram}}, {{cta}}..." style="width:100%;height:280px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#c0c0d0;font-family:monospace;font-size:12px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+        <div style="font-size:11px;color:#5a5a70;margin-top:6px;">Variáveis disponíveis: {{nome}}, {{bio}}, {{tagline}}, {{servico_1}}, {{servicos}}, {{foto}}, {{cta}}, {{whatsapp}}, {{instagram}}, {{especialidade}}, {{cidade}}</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 (hidden initially) -->
+    <div id="ntm-step2" style="padding:16px 20px;overflow-y:auto;flex:1;display:none;flex-direction:column;gap:16px;">
+      <div id="ntm-detected-vars" style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:600;color:#a78bfa;margin-bottom:8px;">⚡ Variáveis detectadas:</div>
+        <div id="ntm-vars-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:#c0c0d0;margin-bottom:4px;">Como deseja classificar este template?</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="radio" name="ntm-type-choice" value="existing" checked style="accent-color:#7c3aed;">
+        <span style="color:#e0e0e0;font-size:13px;">Usar tipo existente</span>
+      </label>
+      <div id="ntm-existing-block" style="padding-left:26px;">
+        <select id="ntm-type-select" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;">
+          ${buildTypeOptions('landing_servicos')}
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="radio" name="ntm-type-choice" value="new" style="accent-color:#7c3aed;">
+        <span style="color:#e0e0e0;font-size:13px;">Criar novo tipo</span>
+      </label>
+      <div id="ntm-new-block" style="padding-left:26px;display:none;">
+        <input id="ntm-new-type-name" type="text" placeholder="Nome do tipo (ex: landing_fisio)" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
+        <input id="ntm-new-type-label" type="text" placeholder="Rótulo visível (ex: Landing Fisioterapia)" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
+        <div style="font-size:12px;color:#6b6b80;margin-bottom:8px;">Campos incluídos neste tipo:</div>
+        <div id="ntm-field-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+
+    <div id="ntm-footer" style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+      <button id="ntm-convert" class="btn-secondary" style="flex:1;min-width:140px;">⚡ Converter Variáveis</button>
+      <button id="ntm-save" style="flex:1;min-width:140px;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:none;">💾 Salvar Template</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const nameEl  = modal.querySelector('#ntm-name');
+  const htmlEl  = modal.querySelector('#ntm-html');
+  const step1   = modal.querySelector('#ntm-step1');
+  const step2   = modal.querySelector('#ntm-step2');
+  const footer  = modal.querySelector('#ntm-footer');
+  const subtitle = modal.querySelector('#ntm-subtitle');
+  const close   = () => overlay.remove();
+
+  modal.querySelector('#ntm-close').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+  // Radio toggle
+  modal.querySelectorAll('input[name="ntm-type-choice"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const isNew = radio.value === 'new';
+      modal.querySelector('#ntm-existing-block').style.display = isNew ? 'none' : 'block';
+      modal.querySelector('#ntm-new-block').style.display      = isNew ? 'block' : 'none';
+    });
+  });
+
+  let detectedVars = [];
+
+  // Step 1 → Step 2 transition
+  modal.querySelector('#ntm-convert').onclick = () => {
+    const html = htmlEl.value.trim();
+    if (!html) { toast('Cole o HTML primeiro!'); return; }
+    let result;
+    try {
+      result = convertHTMLToTemplate(html);
+      htmlEl.value = result.html;
+    } catch(e) { toast('Erro ao converter HTML.'); return; }
+
+    detectedVars = result.variables || [];
+
+    // Fill detected vars display
+    const varsList = modal.querySelector('#ntm-vars-list');
+    varsList.innerHTML = detectedVars.length
+      ? detectedVars.map(v => `<span style="background:rgba(124,58,237,.15);color:#a78bfa;padding:3px 8px;border-radius:5px;font-size:12px;font-family:monospace;">{{${v}}}</span>`).join('')
+      : '<span style="color:#6b6b80;font-size:12px;">Nenhuma variável detectada</span>';
+
+    // Build checkboxes for "create new type"
+    const ALL_VARS = ['nome','especialidade','tagline','bio','servico_1','servico_2','servico_3','servico_4','cta','whatsapp','instagram','foto','cidade','atendimento'];
+    const checkboxContainer = modal.querySelector('#ntm-field-checkboxes');
+    checkboxContainer.innerHTML = ALL_VARS.map(v => {
+      const checked = detectedVars.includes(v) ? 'checked' : '';
+      return `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:4px 10px;">
+        <input type="checkbox" value="${v}" ${checked} style="accent-color:#7c3aed;">
+        <span style="font-size:12px;font-family:monospace;color:#c0c0d0;">{{${v}}}</span>
+      </label>`;
+    }).join('');
+
+    // Refresh type dropdown (in case new types were added)
+    modal.querySelector('#ntm-type-select').innerHTML = buildTypeOptions('landing_servicos');
+
+    // Show step 2
+    step1.style.display = 'none';
+    step2.style.display = 'flex';
+    subtitle.textContent = 'Passo 2 de 2 — Classifique o template';
+    modal.querySelector('#ntm-convert').style.display = 'none';
+    modal.querySelector('#ntm-save').style.display = 'block';
+  };
+
+  // Salvar
+  modal.querySelector('#ntm-save').onclick = () => {
+    const name = nameEl.value.trim();
+    const html = htmlEl.value.trim();
+    if (!name) { toast('Dê um nome ao template!'); nameEl.focus(); return; }
+    if (!html)  { toast('O HTML não pode estar vazio!'); return; }
+
+    const choice = modal.querySelector('input[name="ntm-type-choice"]:checked').value;
+    let typeVal;
+
+    if (choice === 'existing') {
+      typeVal = modal.querySelector('#ntm-type-select').value;
+    } else {
+      // Create new type
+      const typeName  = modal.querySelector('#ntm-new-type-name').value.trim().replace(/\s+/g,'_').toLowerCase();
+      const typeLabel = modal.querySelector('#ntm-new-type-label').value.trim();
+      if (!typeName || !typeLabel) { toast('Preencha o nome e rótulo do novo tipo!'); return; }
+      const checkedFields = [...modal.querySelectorAll('#ntm-field-checkboxes input:checked')].map(cb => cb.value);
+      if (!checkedFields.length) { toast('Selecione pelo menos 1 campo para o novo tipo!'); return; }
+      const newType = { name: typeName, label: typeLabel, fields: checkedFields };
+      if (!Array.isArray(state.templateTypes)) state.templateTypes = [];
+      state.templateTypes.push(newType);
+      typeVal = typeName;
+    }
+
+    addCustomTemplate(name, html, typeVal, () => {
+      if (typeof window._labRenderTemplateLibrary === 'function') {
+        window._labRenderTemplateLibrary('landing');
+      }
+      close();
+    });
+  };
+
+  nameEl.focus();
 }
 
 function convertHTMLToTemplate(html) {
@@ -3756,6 +3964,12 @@ function convertHTMLToTemplate(html) {
           node.setAttribute('href', href.replace(waRegex, '$1{{whatsapp}}'));
           variables.add('whatsapp');
         }
+        // Instagram links in href
+        const igRegex = /https?:\/\/(?:www\.)?instagram\.com\/([^/?#"'\s]+)/;
+        if (igRegex.test(href)) {
+          node.setAttribute('href', href.replace(igRegex, 'https://instagram.com/{{instagram}}'));
+          variables.add('instagram');
+        }
       }
     }
   }
@@ -3772,6 +3986,51 @@ function convertHTMLToTemplate(html) {
 
   // Process Text and Links - Start from documentElement to cover everything
   processText(doc.documentElement);
+
+  // 5b. Detect BIO — parágrafo mais longo (80+ palavras), exceto footer/nav/header
+  const skipTags = new Set(['SCRIPT','STYLE','NAV','FOOTER','HEADER']);
+  let longestP = null, longestWords = 0;
+  doc.querySelectorAll('p').forEach(p => {
+    let ancestor = p.parentElement;
+    while (ancestor) { if (skipTags.has(ancestor.tagName)) return; ancestor = ancestor.parentElement; }
+    const words = (p.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+    if (words > longestWords && words >= 30) { longestWords = words; longestP = p; }
+  });
+  if (longestP) {
+    longestP.innerHTML = '{{bio}}';
+    variables.add('bio');
+  }
+
+  // 5c. Detect TAGLINE — primeiro h2 ou h3 com 3-20 palavras que não seja nome
+  const hEls = doc.querySelectorAll('h2, h3');
+  for (const h of hEls) {
+    const txt = (h.textContent || '').trim();
+    const wc = txt.split(/\s+/).filter(Boolean).length;
+    if (wc >= 3 && wc <= 20 && !txt.includes('{{nome}}')) {
+      h.innerHTML = '{{tagline}}';
+      variables.add('tagline');
+      break; // só o primeiro
+    }
+  }
+
+  // 5d. Detect SERVIÇOS — lista (ul/ol) com 3+ itens curtos (2-8 palavras cada)
+  const lists = doc.querySelectorAll('ul, ol');
+  for (const ul of lists) {
+    const items = Array.from(ul.querySelectorAll('li'));
+    if (items.length >= 3) {
+      const allShort = items.every(li => {
+        const wc = (li.textContent||'').trim().split(/\s+/).filter(Boolean).length;
+        return wc >= 1 && wc <= 10;
+      });
+      if (allShort) {
+        items.forEach((li, idx) => {
+          li.innerHTML = `{{servico_${idx+1}}}`;
+          variables.add(`servico_${idx+1}`);
+        });
+        break; // só a primeira lista de serviços
+      }
+    }
+  }
 
   // 5. Detect existing variables ({{...}}) in the final string
   let finalHtml = doc.documentElement.outerHTML;
@@ -3799,7 +4058,13 @@ function generateCustomTemplate(html, data) {
   output = output.replace(/{{bio}}/g, data.bio || '');
   output = output.replace(/{{tagline}}/g, data.tagline || '');
   output = output.replace(/{{atendimento}}/g, data.attendance || '');
-  output = output.replace(/{{servicos}}/g, data.services.join(', '));
+  output = output.replace(/{{cta}}/g, data.cta || 'Agendar consulta');
+  output = output.replace(/{{servicos}}/g, (data.services||[]).join(', '));
+  // Serviços individuais: {{servico_1}}, {{servico_2}}, ...
+  const svcArr = data.services || [];
+  for (let i = 0; i < 12; i++) {
+    output = output.replace(new RegExp(`{{servico_${i+1}}}`, 'g'), svcArr[i] || '');
+  }
   // Map {{foto}} and {{foto_hero}} to avatar
   output = output.replace(/{{foto}}/g, data.avatar || '');
   output = output.replace(/{{foto_hero}}/g, data.avatar || '');
@@ -3831,8 +4096,12 @@ function getSiteFormData() {
       if (Array.isArray(l.images)) images = l.images;
     }
   }
+  // Garante que a foto do lead apareça como imagem principal nos templates built-in
+  if (avatar && (!images.length || !images[0])) {
+    images = [avatar, ...images];
+  }
 
-  return { name, specialty, city, attendance, tagline, bio, services, whatsapp, instagram, avatar, images };
+  return { name, specialty, city, attendance, tagline, bio, services, whatsapp, instagram, avatar, images, cta: '' };
 }
 
 function generateSiteHTML(data, templateId) {
@@ -3893,10 +4162,87 @@ function getTemplateImage(data, index, fallbackUrl) {
   return placeholderTemplateImageDataUri(data, index);
 }
 
-function generateSite() {
+async function generateSiteWithAI(data, templateType) {
+  try {
+    // Resolve fields based on template type
+    const allTypes = [...BUILTIN_TEMPLATE_TYPES, ...(state.templateTypes || [])];
+    const typeObj  = allTypes.find(t => t.name === templateType);
+    const fields   = typeObj ? typeObj.fields : ['nome','tagline','bio','servico_1','servico_2','servico_3','cta','whatsapp'];
+
+    // Build only the JSON shape the template actually needs
+    const jsonShape = {};
+    if (fields.includes('tagline')) jsonShape.tagline = 'frase de impacto em até 12 palavras';
+    if (fields.includes('bio'))     jsonShape.bio     = 'parágrafo profissional em até 55 palavras na 3ª pessoa';
+    if (fields.includes('cta'))     jsonShape.cta     = 'frase curta para botão WhatsApp (ex: Agende sua consulta)';
+    const servicoCount = fields.filter(f => f.startsWith('servico_')).length;
+    if (servicoCount > 0) jsonShape.servicos = `array com exatamente ${servicoCount} serviço(s) melhorado(s)`;
+
+    // If nothing to generate, skip AI call
+    if (Object.keys(jsonShape).length === 0) return null;
+
+    const prompt = `Você é um copywriter especialista em sites de profissionais de saúde no Brasil.
+Retorne SOMENTE um JSON válido (sem markdown, sem blocos de código) com estas chaves:
+${JSON.stringify(jsonShape, null, 2)}
+
+Dados do profissional:
+Nome: ${data.name}
+Especialidade: ${data.specialty}
+Cidade: ${data.city || 'Brasil'}
+Bio original: ${data.bio || 'não informada'}
+Tagline original: ${data.tagline || 'não informada'}
+Serviços: ${(data.services||[]).join(', ') || 'não informados'}
+Atendimento: ${data.attendance || 'presencial'}`;
+
+    const res = await fetch('http://localhost:3000/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: 'Você é copywriter. Responda SOMENTE com JSON puro, sem markdown, sem blocos de código.',
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 500
+      })
+    });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.error) return null;
+    const text = (d.text || '').trim().replace(/^```json\s*|^```\s*|```$/gm, '');
+    const ai = JSON.parse(text);
+    return {
+      tagline:  ai.tagline  || data.tagline,
+      bio:      ai.bio      || data.bio,
+      services: Array.isArray(ai.servicos) && ai.servicos.length ? ai.servicos : data.services,
+      cta:      ai.cta      || 'Agendar consulta'
+    };
+  } catch(e) {
+    console.warn('[IA Site] Falha:', e.message);
+    return null;
+  }
+}
+
+async function generateSite() {
   const data = getSiteFormData();
   const template = state.selectedTemplate;
   state.currentPreviewTemplate = template;
+
+  // Resolve template type for AI
+  const tplObj = state.customTemplates.find(t => t.id === template);
+  const templateType = tplObj ? tplObj.type : null;
+
+  // Loading no botão
+  const btn = document.querySelector('button[onclick="generateSite()"]');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span style="opacity:.7">⏳ Gerando com IA...</span>'; }
+
+  // IA melhora o copy antes de gerar
+  const aiCopy = await generateSiteWithAI(data, templateType);
+  if (aiCopy) {
+    data.tagline  = aiCopy.tagline;
+    data.bio      = aiCopy.bio;
+    data.services = aiCopy.services;
+    data.cta      = aiCopy.cta;
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
 
   const html = generateSiteHTML(data, template);
   state.generatedHTML = html;
@@ -3911,7 +4257,7 @@ function generateSite() {
   const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/dr[ao]-?/g, '');
   document.querySelector('.preview-url').textContent = `leadflow.site/${slug}`;
 
-  toast('Site gerado com sucesso!');
+  toast(aiCopy ? '✨ Site gerado com IA!' : 'Site gerado com sucesso!');
 }
 
 function sanitizeGeneratedHtml(html, data) {
@@ -6222,6 +6568,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
 
   // Backup & Restore Listeners
   const backupBtn = document.getElementById('backupBtn');

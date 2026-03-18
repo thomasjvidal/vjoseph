@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where python:*)",
+      "Bash(where python3:*)",
+      "Bash(where node:*)",
+      "Bash(curl -s \"http://localhost:53218/\")",
+      "Bash(curl -v \"http://localhost:53218/\")",
+      "Bash(curl -s -X POST \"http://localhost:3000/api/chat\" -H \"Content-Type: application/json\" -d '{\"\"system\"\":\"\"test\"\",\"\"messages\"\":[{\"\"role\"\":\"\"user\"\",\"\"content\"\":\"\"hi\"\"}],\"\"maxTokens\"\":10}')",
+      "Bash(curl -v -X GET \"http://localhost:3000/\")",
+      "Bash(gh auth:*)",
+      "Bash(taskkill //F //FI \"IMAGENAME eq python.exe\")",
+      "Bash(timeout /t 3)",
+      "Bash(curl -s -X POST http://localhost:3000/api/transcribe -H \"Content-Type: application/json\" -d \"{\"\"audio\"\":\"\"\"\",\"\"mime\"\":\"\"audio/webm\"\"}\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/transcribe -H \"Content-Type: application/json\" -d '{\"\"audio\"\":\"\"\"\",\"\"mime\"\":\"\"audio/webm\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/chat -H \"Content-Type: application/json\" -d '{\"\"system\"\":\"\"test\"\",\"\"messages\"\":[{\"\"role\"\":\"\"user\"\",\"\"content\"\":\"\"oi\"\"}],\"\"maxTokens\"\":50}')",
+      "Bash(python3 -c \":*)",
+      "Bash(where py:*)",
+      "Bash(py -c \":*)"
+    ]
+  }
+}

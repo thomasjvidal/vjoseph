@@ -573,12 +573,12 @@ canvas.chart{width:100%;border-radius:5px;}
 
   <!-- LEFT SIDEBAR -->
   <div id="meet-sidebar" style="width:224px;flex-shrink:0;background:#111118;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden;transition:width .22s ease;">
-    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;display:flex;align-items:center;gap:8px;">
-      <div style="flex:1;min-width:0;" id="meet-sidebar-title">
-        <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;color:#e0e0e0;">⚡ Sala de Reunião</div>
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#6b6b80;margin-top:2px;">Convoque · Converse · Decida</div>
+    <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:#e0e0e0;">⚡ Sala de Reunião</div>
+        <button id="meet-sidebar-toggle" onclick="toggleMeetSidebar()" title="Minimizar painel" style="padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#6b6b80;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;flex-shrink:0;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(255,255,255,.25)'" onmouseout="this.style.color='#6b6b80';this.style.borderColor='rgba(255,255,255,.1)'">✕ Fechar</button>
       </div>
-      <button id="meet-sidebar-toggle" onclick="toggleMeetSidebar()" title="Recolher painel" style="width:26px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,.08);background:transparent;color:#6b6b80;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;">◀</button>
+      <div style="font-family:'Inter',sans-serif;font-size:11px;color:#6b6b80;">Convoque · Converse · Decida</div>
     </div>
 
     <!-- AGENT CHECKBOXES -->
@@ -603,9 +603,13 @@ canvas.chart{width:100%;border-radius:5px;}
       </div>
     </div>
 
-    <div style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
-      <button onclick="meetExport()" id="btn-export-meet" style="display:none;width:100%;padding:7px;border:1px solid rgba(0,204,106,.2);border-radius:8px;background:transparent;color:#00cc6a;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;">📋 Exportar ata</button>
-      <button onclick="closeMeeting()" style="width:100%;padding:8px;border:1px solid rgba(255,255,255,.07);border-radius:8px;background:transparent;color:#6b6b80;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .12s;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#6b6b80'">✕ Fechar sala</button>
+    <div style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);flex-shrink:0;display:flex;flex-direction:column;gap:5px;">
+      <div style="display:flex;gap:5px;">
+        <button onclick="saveMeeting()" style="flex:1;padding:6px;border:1px solid rgba(0,204,106,.2);border-radius:7px;background:transparent;color:#00cc6a;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .12s;" title="Salvar conversa no histórico">💾 Salvar</button>
+        <button onclick="newMeeting()" style="flex:1;padding:6px;border:1px solid rgba(255,107,107,.2);border-radius:7px;background:transparent;color:#ff6b6b;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .12s;" title="Iniciar nova reunião (apaga histórico)">🗑️ Nova</button>
+      </div>
+      <button onclick="meetExport()" id="btn-export-meet" style="display:none;width:100%;padding:6px;border:1px solid rgba(255,230,64,.15);border-radius:7px;background:transparent;color:#ffe640;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;">📋 Exportar ata</button>
+      <button onclick="closeMeeting()" style="width:100%;padding:7px;border:1px solid rgba(255,255,255,.07);border-radius:7px;background:transparent;color:#6b6b80;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .12s;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#6b6b80'">✕ Fechar sala</button>
     </div>
   </div>
 
@@ -617,6 +621,7 @@ canvas.chart{width:100%;border-radius:5px;}
       <span id="meet-status-label" class="meet-status-badge open">SALA ABERTA</span>
       <div id="meet-progress-bar" style="flex:1;max-width:180px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;display:none;"><div id="meet-progress-fill" style="height:100%;background:#ffe640;width:0%;transition:width .4s;"></div></div>
       <div id="meet-timer" style="font-family:'Inter',sans-serif;font-size:12px;color:#6b6b80;display:none;"></div>
+      <button id="meet-sidebar-reopen" onclick="toggleMeetSidebar()" title="Abrir painel de agentes" style="display:none;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8080a0;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#8080a0'">⚡ Agentes</button>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center;" id="meet-active-avatars"></div>
     </div>
 
@@ -646,6 +651,7 @@ canvas.chart{width:100%;border-radius:5px;}
         <button class="meet-spd-btn active" data-speed="1" onclick="setTTSSpeed(1)">1×</button>
         <button class="meet-spd-btn" data-speed="1.25" onclick="setTTSSpeed(1.25)">1.25×</button>
         <button class="meet-spd-btn" data-speed="1.5" onclick="setTTSSpeed(1.5)">1.5×</button>
+        <button class="meet-spd-btn" data-speed="2" onclick="setTTSSpeed(2)">2×</button>
         <label class="meet-autolabel"><input type="checkbox" id="tts-enabled" checked onchange="ttsEnabled=this.checked" style="accent-color:#ffe640"> Auto-leitura</label>
         <span id="meet-tts-status" style="margin-left:auto;font-family:'Inter',sans-serif;font-size:11px;color:#6b6b80;"></span>
       </div>
@@ -1703,20 +1709,18 @@ function meetTargetToggle(id){
 
 function toggleMeetSidebar(){
   const sb=document.getElementById('meet-sidebar');
-  const btn=document.getElementById('meet-sidebar-toggle');
-  const title=document.getElementById('meet-sidebar-title');
-  const isOpen=sb.style.width!=='40px';
+  const reopenBtn=document.getElementById('meet-sidebar-reopen');
+  const isOpen=sb.getAttribute('data-open')!=='false';
   if(isOpen){
-    sb.style.width='40px';
-    btn.textContent='▶';btn.title='Expandir painel';
-    title.style.display='none';
-    // Esconde todo o conteúdo exceto o botão
-    Array.from(sb.children).forEach((c,i)=>{if(i>0)c.style.display='none';});
+    sb.style.width='0px';
+    sb.style.borderRight='none';
+    sb.setAttribute('data-open','false');
+    if(reopenBtn)reopenBtn.style.display='block';
   }else{
     sb.style.width='224px';
-    btn.textContent='◀';btn.title='Recolher painel';
-    title.style.display='';
-    Array.from(sb.children).forEach(c=>{c.style.display='';});
+    sb.style.borderRight='1px solid rgba(255,255,255,.06)';
+    sb.setAttribute('data-open','true');
+    if(reopenBtn)reopenBtn.style.display='none';
   }
 }
 
@@ -1731,21 +1735,27 @@ function openMeeting(){
   const ov=document.getElementById('meet-ov');
   ov.style.display='flex';ov.style.opacity='0';ov.style.pointerEvents='all';
   requestAnimationFrame(()=>{ov.style.transition='opacity .25s';ov.style.opacity='1';});
-  // Reset
-  document.getElementById('meet-msgs').innerHTML='';
   document.getElementById('meet-ata-area').style.display='none';
-  document.getElementById('btn-export-meet').style.display='none';
   document.getElementById('meet-progress-bar').style.display='none';
   document.getElementById('meet-timer').style.display='none';
-  const sl=document.getElementById('meet-status-label');
-  if(sl){sl.textContent='SALA ABERTA';sl.className='meet-status-badge open';}
-  meetAta=[];meetConversationHistory=[];meetTargetAgents=new Set();
+  meetTargetAgents=new Set();
   closePipeline();closeModal();
 
-  // Welcome system message
-  setTimeout(()=>{
-    meetSysMsg('Sala de reunião aberta. Escolha os agentes, selecione uma pauta ou escreva sua mensagem e pressione ENTER ou clique ENVIAR. Você pode falar com todos ou selecionar agentes específicos nos botões acima.');
-  },300);
+  const msgs=document.getElementById('meet-msgs');
+  const isFirstOpen=!msgs||msgs.children.length===0;
+  if(isFirstOpen){
+    // Primeira abertura: card de boas-vindas com tópicos
+    setTimeout(()=>{ meetWelcomeCard(); },300);
+  } else {
+    // Reaberta: separador visual, sem apagar histórico
+    const sep=document.createElement('div');
+    sep.style.cssText='text-align:center;color:#2a2a40;font-size:11px;font-family:"Inter",sans-serif;padding:6px;letter-spacing:.5px;';
+    sep.textContent='─────── retomada ' + new Date().toLocaleTimeString('pt-BR') + ' ───────';
+    msgs.appendChild(sep);
+    msgs.scrollTop=999999;
+  }
+  const sl=document.getElementById('meet-status-label');
+  if(sl){sl.textContent='SALA ABERTA';sl.className='meet-status-badge open';}
 }
 
 function closeMeeting(){
@@ -1753,6 +1763,86 @@ function closeMeeting(){
   ov.style.opacity='0';clearInterval(meetTimerInterval);
   meetReturnNPCs();
   setTimeout(()=>{ov.style.display='none';ov.style.pointerEvents='none';},250);
+}
+
+function newMeeting(){
+  if(meetConversationHistory.length>0&&!confirm('Iniciar nova reunião? O histórico atual será perdido.'))return;
+  const msgs=document.getElementById('meet-msgs');
+  if(msgs)msgs.innerHTML='';
+  meetAta=[];meetConversationHistory=[];meetStartTime=null;
+  clearInterval(meetTimerInterval);
+  window._meetMsgStore={};_ttsQueue=[];_ttsQueueActive=false;
+  stopSpeaking();
+  document.getElementById('btn-export-meet').style.display='none';
+  document.getElementById('meet-timer').style.display='none';
+  const sl=document.getElementById('meet-status-label');
+  if(sl){sl.textContent='SALA ABERTA';sl.className='meet-status-badge open';}
+  setTimeout(()=>{ meetWelcomeCard(); },100);
+}
+
+function saveMeeting(){
+  if(!meetConversationHistory.length){meetSysMsg('Sem mensagens para salvar.');return;}
+  const saves=JSON.parse(localStorage.getItem('hq_saved_meetings')||'[]');
+  const entry={
+    id:Date.now(),
+    date:new Date().toLocaleString('pt-BR'),
+    messages:meetConversationHistory.slice(),
+    ata:meetAta.slice()
+  };
+  saves.unshift(entry);
+  if(saves.length>20)saves.pop(); // máximo 20 reuniões salvas
+  localStorage.setItem('hq_saved_meetings',JSON.stringify(saves));
+  meetSysMsg('💾 Reunião salva! ('+new Date().toLocaleString('pt-BR')+') — '+meetConversationHistory.length+' mensagens.');
+}
+
+// ── WELCOME CARD ─────────────────────────────────
+function meetWelcomeCard(){
+  const msgs=document.getElementById('meet-msgs');
+  if(!msgs)return;
+  // Evita duplicata
+  const old=document.getElementById('meet-welcome-card');
+  if(old)old.remove();
+  const topics=[
+    {icon:'📊',text:'Como está o negócio hoje?'},
+    {icon:'🎯',text:'Estamos batendo a meta?'},
+    {icon:'🚀',text:'O que priorizar agora?'},
+    {icon:'💡',text:'Novas estratégias de vendas'},
+    {icon:'🚨',text:'Há algum problema urgente?'},
+    {icon:'💰',text:'Como está o fluxo de caixa?'},
+    {icon:'📈',text:'Análise do pipeline de leads'},
+    {icon:'🤝',text:'Como fechar o próximo cliente?'},
+  ];
+  const d=document.createElement('div');
+  d.id='meet-welcome-card';
+  d.style.cssText='display:flex;flex-direction:column;align-items:center;padding:32px 20px 20px;gap:16px;';
+  d.innerHTML=`
+    <div style="font-size:32px;line-height:1;">💬</div>
+    <div style="font-family:'Inter',sans-serif;font-size:19px;font-weight:700;color:#e0e0e0;text-align:center;line-height:1.3;">Sobre o que vamos falar hoje?</div>
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#6b6b80;text-align:center;">Escolha um tema ou escreva sua própria mensagem abaixo 👇</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px;margin-top:4px;">
+      ${topics.map(t=>`
+        <button
+          onclick="setMeetTopic(this)"
+          data-topic="${t.text.replace(/"/g,'&quot;')}"
+          style="padding:9px 16px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:rgba(255,255,255,.03);color:#c0c0d0;font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:7px;"
+          onmouseover="this.style.background='rgba(255,230,64,.09)';this.style.borderColor='rgba(255,230,64,.35)';this.style.color='#ffe640'"
+          onmouseout="this.style.background='rgba(255,255,255,.03)';this.style.borderColor='rgba(255,255,255,.1)';this.style.color='#c0c0d0'"
+        ><span>${t.icon}</span><span>${t.text}</span></button>
+      `).join('')}
+    </div>
+  `;
+  msgs.appendChild(d);
+  msgs.scrollTop=999999;
+}
+
+function setMeetTopic(btn){
+  const topic=btn.dataset.topic;
+  const inp=document.getElementById('meet-input');
+  if(!inp)return;
+  inp.value=topic;
+  inp.focus();
+  // Scroll para o input
+  inp.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ── MESSAGE RENDERING ────────────────────────────
@@ -1805,6 +1895,9 @@ async function meetSend(){
   const msg=inp.value.trim();if(!msg)return;
   inp.value='';inp.disabled=true;
   document.getElementById('meet-send-btn').disabled=true;
+  // Remove welcome card on first send
+  const wc=document.getElementById('meet-welcome-card');
+  if(wc)wc.remove();
 
   // Determine which agents respond — VJ Orador sempre é separado (fala por último)
   const allSel=MEET_AGENTS.filter(a=>meetSelectedAgents.has(a.id));
@@ -1919,6 +2012,22 @@ async function meetSend(){
 
   fill.style.width='100%';
   setTimeout(()=>{prog.style.display='none';},1000);
+
+  // Botão "▶ Ouvir respostas desta rodada"
+  const turnTexts=meetConversationHistory
+    .slice(-(respondents.length+(hasOrador?1:0)))
+    .filter(h=>h.speaker!=='Thomas')
+    .map(h=>h.text);
+  if(turnTexts.length>0){
+    const turnRow=document.createElement('div');
+    turnRow.style.cssText='display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:0 0 4px;';
+    const turnStored='_turn_'+Date.now();
+    window[turnStored]=turnTexts;
+    turnRow.innerHTML=`<span style="font-family:'Inter',sans-serif;font-size:11px;color:#3a3a55;">${turnTexts.length} resposta${turnTexts.length>1?'s':''}</span><button onclick="speakTurn(window['${turnStored}'])" style="padding:3px 10px;border-radius:12px;border:1px solid rgba(255,230,64,.25);background:rgba(255,230,64,.06);color:#ffe640;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .12s;" onmouseover="this.style.background='rgba(255,230,64,.12)'" onmouseout="this.style.background='rgba(255,230,64,.06)'">▶ Ouvir rodada</button>`;
+    document.getElementById('meet-msgs').appendChild(turnRow);
+    document.getElementById('meet-msgs').scrollTop=999999;
+  }
+
   inp.disabled=false;document.getElementById('meet-send-btn').disabled=false;
   inp.focus();
 }
@@ -2057,22 +2166,22 @@ function speakText(text){
   if(!text)return;
   _lastSpokenText=text;
   _ttsQueueActive=false;
-  const doSpeak=()=>{
+  speechSynthesis.cancel();
+  // Aguarda 30ms (mínimo necessário após cancel para o chrome resetar estado)
+  setTimeout(()=>{
     const u=new SpeechSynthesisUtterance(text);
     u.lang='pt-BR'; u.rate=ttsSpeed;
     if(window._ptVoice)u.voice=window._ptVoice;
     const s=document.getElementById('meet-tts-status');
     u.onstart=()=>{if(s)s.textContent='🔊 lendo...'; updatePlayBtn();};
     u.onend=()=>{if(s)s.textContent=''; updatePlayBtn();};
-    u.onerror=()=>{if(s)s.textContent=''; updatePlayBtn();};
+    u.onerror=(ev)=>{
+      if(s)s.textContent='';
+      // Chrome bug: interrupted = normal ao cancelar, não é erro real
+      if(ev.error!=='interrupted') updatePlayBtn();
+    };
     speechSynthesis.speak(u);
-  };
-  if(speechSynthesis.speaking||speechSynthesis.pending){
-    speechSynthesis.cancel();
-    setTimeout(doSpeak,80);
-  }else{
-    doSpeak();
-  }
+  }, 30);
 }
 
 // ── Play All (fila de mensagens) ─────────────────────
@@ -2129,6 +2238,16 @@ function stopSpeaking(){
   updatePlayBtn();
 }
 
+function speakTurn(texts){
+  if(!texts||!texts.length)return;
+  _ttsQueueActive=false;
+  speechSynthesis.cancel();
+  _ttsQueue=texts.filter(t=>t&&t.trim());
+  _ttsQueueIdx=0;
+  _ttsQueueActive=true;
+  setTimeout(playNextInQueue,60);
+}
+
 function setTTSSpeed(spd){
   ttsSpeed=spd;
   // Fix: usa a classe correta do HTML atual
@@ -2146,13 +2265,92 @@ function setTTSSpeed(spd){
   }
 }
 
-// ── STT ─────────────────────────────────────────────
-let voiceRecognizer=null, isRecording=false;
+// ── STT — Groq Whisper (servidor) + fallback SpeechRecognition ──────────
+let voiceRecognizer=null, isRecording=false, _mediaRecorder=null, _audioChunks=[];
 
-function toggleVoiceInput(){
+async function toggleVoiceInput(){
   if(isRecording){stopVoiceInput();return;}
+  // Primary: SpeechRecognition nativo (gratuito, funciona no Chrome com permissão)
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){meetSysMsg('⚠️ Reconhecimento de voz não suportado. Use Chrome ou Edge.');return;}
+  if(SR){
+    _startSpeechRecognition();
+    return;
+  }
+  // Fallback: Groq Whisper (se SpeechRecognition nao disponivel)
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      _startWhisperRecording(stream);
+      return;
+    }catch(err){
+      if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){
+        _showMicBlockedMsg();return;
+      }
+    }
+  }
+  meetSysMsg('⚠️ Reconhecimento de voz nao suportado neste browser. Use Chrome.');
+}
+
+function _startWhisperRecording(stream){
+  _audioChunks=[];
+  // Tenta webm, depois ogg como fallback
+  const mimeType=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ?'audio/webm;codecs=opus'
+    :MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/ogg';
+  _mediaRecorder=new MediaRecorder(stream,{mimeType});
+  _mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)_audioChunks.push(e.data);};
+  _mediaRecorder.onstop=async()=>{
+    stream.getTracks().forEach(t=>t.stop());
+    const blob=new Blob(_audioChunks,{type:mimeType});
+    const btn=document.getElementById('meet-mic-btn');
+    if(btn){btn.textContent='⏳';btn.disabled=true;}
+    const inp=document.getElementById('meet-input');
+    if(inp)inp.placeholder='⏳ Transcrevendo...';
+    try{
+      // Converte blob → base64 via FileReader (sem estourar call stack em áudios grandes)
+      const b64=await new Promise((res,rej)=>{
+        const fr=new FileReader();
+        fr.onload=()=>res(fr.result.split(',')[1]);
+        fr.onerror=rej;
+        fr.readAsDataURL(blob);
+      });
+      const res=await fetch('/api/transcribe',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({audio:b64,mime:mimeType.split(';')[0]})
+      });
+      const d=await res.json();
+      if(d.text&&inp){
+        inp.value=d.text;
+        inp.style.height='auto';
+        inp.style.height=Math.min(inp.scrollHeight,140)+'px';
+        inp.focus();
+        meetSysMsg('🎤 Transcrito: "'+d.text.slice(0,60)+(d.text.length>60?'...':'')+'"');
+      }else if(d.error){
+        meetSysMsg('⚠️ Erro na transcrição: '+d.error.slice(0,80));
+      }
+    }catch(e){
+      meetSysMsg('⚠️ Falha ao transcrever: '+e.message);
+    }finally{
+      isRecording=false;
+      _mediaRecorder=null;
+      const btn=document.getElementById('meet-mic-btn');
+      if(btn){btn.textContent='🎤';btn.disabled=false;btn.classList.remove('recording');}
+      if(inp)inp.placeholder='Mensagem para os agentes... (Enter para enviar, Shift+Enter para nova linha)';
+    }
+  };
+  _mediaRecorder.start(100); // chunk a cada 100ms
+  isRecording=true;
+  const btn=document.getElementById('meet-mic-btn');
+  if(btn){btn.classList.add('recording');btn.textContent='⏹';btn.title='Parar gravação';}
+  const inp=document.getElementById('meet-input');
+  if(inp){inp.value='';inp.placeholder='🎙️ Gravando... clique ⏹ para parar e transcrever';}
+  meetSysMsg('🎙️ Gravando com Whisper — fale e clique ⏹ quando terminar.');
+}
+
+function _startSpeechRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){meetSysMsg('⚠️ Reconhecimento de voz não suportado neste browser.');return;}
   voiceRecognizer=new SR();
   voiceRecognizer.lang='pt-BR';
   voiceRecognizer.continuous=true;
@@ -2160,13 +2358,12 @@ function toggleVoiceInput(){
   voiceRecognizer.onstart=()=>{
     isRecording=true;
     const btn=document.getElementById('meet-mic-btn');
-    if(btn){btn.classList.add('recording');btn.title='Clique para parar';}
+    if(btn){btn.classList.add('recording');btn.textContent='⏹';btn.title='Parar';}
     const inp=document.getElementById('meet-input');
-    if(inp){inp.value='';inp.placeholder='🎙️ Ouvindo... fale agora';}
-    meetSysMsg('🎙️ Microfone ativo — fale sua pergunta.');
+    if(inp){inp.value='';inp.placeholder='🎙️ Ouvindo...';}
+    meetSysMsg('🎙️ Microfone ativo.');
   };
   voiceRecognizer.onresult=e=>{
-    // Acumula TODOS os resultados (0..length), não só o delta
     let t='';
     for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
     const inp=document.getElementById('meet-input');
@@ -2175,38 +2372,34 @@ function toggleVoiceInput(){
   voiceRecognizer.onend=()=>{
     isRecording=false;
     const btn=document.getElementById('meet-mic-btn');
-    if(btn){btn.classList.remove('recording');btn.title='Gravar voz (pt-BR)';}
+    if(btn){btn.classList.remove('recording');btn.textContent='🎤';btn.title='Gravar voz';}
     const inp=document.getElementById('meet-input');
-    if(inp)inp.placeholder='Mensagem para os agentes... (Enter para enviar, Shift+Enter para nova linha)';
+    if(inp)inp.placeholder='Mensagem para os agentes...';
   };
   voiceRecognizer.onerror=e=>{
     isRecording=false;
     const btn=document.getElementById('meet-mic-btn');if(btn){btn.classList.remove('recording');btn.textContent='🎤';}
-    const inp=document.getElementById('meet-input');
-    if(inp)inp.placeholder='Digite ou 🎤 fale para os agentes...';
-    if(e.error==='not-allowed'||e.error==='permission-denied'){
-      // Mostra instruções detalhadas com link para abrir no Chrome
-      const d=document.createElement('div');
-      d.style.cssText='background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.2);border-radius:10px;padding:12px 14px;font-family:"Inter",sans-serif;font-size:13px;color:#e0e0e0;line-height:1.6;';
-      d.innerHTML=`<div style="font-weight:600;color:#ff6b6b;margin-bottom:6px;">🔒 Microfone bloqueado</div>
-<div style="color:#aaa;font-size:12px;">O preview do Claude Code não permite microfone. Para usar o áudio:</div>
-<ol style="margin:8px 0 8px 16px;padding:0;color:#ccc;font-size:12px;line-height:2;">
-  <li>Abra o Chrome e vá para: <b style="color:#ffe640">http://localhost:3000/vjoseph-completo.html</b></li>
-  <li>Clique no 🔒 na barra de endereço → Microfone → <b>Permitir</b></li>
-  <li>Recarregue a página e use o 🎤 normalmente</li>
-</ol>
-<button onclick="navigator.clipboard.writeText('http://localhost:3000/vjoseph-completo.html')" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(255,230,64,.3);background:rgba(255,230,64,.07);color:#ffe640;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;">📋 Copiar URL</button>`;
-      const msgs=document.getElementById('meet-msgs');if(msgs){msgs.appendChild(d);msgs.scrollTop=999999;}
-    } else if(e.error==='no-speech'){
-      meetSysMsg('⚠️ Nenhuma fala detectada. Tente falar mais perto do microfone.');
-    } else {
-      meetSysMsg('⚠️ Microfone: '+e.error+'. Use Chrome com permissão de microfone liberada.');
-    }
+    if(e.error==='not-allowed'||e.error==='permission-denied'){_showMicBlockedMsg();}
+    else if(e.error==='no-speech'){meetSysMsg('⚠️ Nenhuma fala detectada.');}
+    else{meetSysMsg('⚠️ Microfone: '+e.error);}
   };
   voiceRecognizer.start();
 }
 
+function _showMicBlockedMsg(){
+  const d=document.createElement('div');
+  d.style.cssText='background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.2);border-radius:10px;padding:12px 14px;font-family:"Inter",sans-serif;font-size:12px;color:#e0e0e0;line-height:1.7;';
+  d.innerHTML=`<b style="color:#ff6b6b;">🔒 Microfone bloqueado</b><br>
+<span style="color:#aaa;">Verifique:</span><br>
+• Windows → Configurações → Privacidade → Microfone → <b>ativar para Chrome</b><br>
+• Chrome → <b>chrome://settings/content/microphone</b> → remover localhost dos bloqueados<br>
+• Na barra de endereço do Chrome: clique no 🔒 → Microfone → <b>Permitir</b><br>
+<button onclick="navigator.clipboard.writeText('chrome://settings/content/microphone')" style="margin-top:6px;padding:4px 10px;border-radius:5px;border:1px solid rgba(255,230,64,.3);background:rgba(255,230,64,.07);color:#ffe640;font-size:11px;cursor:pointer;">📋 Copiar URL das config</button>`;
+  const msgs=document.getElementById('meet-msgs');if(msgs){msgs.appendChild(d);msgs.scrollTop=999999;}
+}
+
 function stopVoiceInput(){
+  if(_mediaRecorder&&_mediaRecorder.state!=='inactive'){_mediaRecorder.stop();return;}
   if(voiceRecognizer){voiceRecognizer.stop();voiceRecognizer=null;}
   isRecording=false;
 }

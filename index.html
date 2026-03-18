@@ -578,9 +578,9 @@
               <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Biblioteca de Templates</h2>
               <p style="color: var(--text-muted); font-size: 14px;">Gerencie seus produtos: Mini Chats e Landing Pages</p>
             </div>
-            <button class="btn-primary" onclick="alert('Funcionalidade em desenvolvimento: Novo Template')">
+            <button class="btn-primary" onclick="openNewTemplateModal()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              Novo Template
+              + Novo Template
             </button>
           </div>
 
@@ -590,57 +590,9 @@
             <button class="library-tab" data-category="landing" style="background: none; border: none; padding: 12px 16px; color: var(--text-muted); font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer;">Landing Page</button>
           </div>
 
-          <!-- CONTENT GRID -->
-          <!-- MINICHAT GRID -->
-          <div id="lib-section-minichat" class="library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
-            <!-- TEMPLATE CARD EXAMPLE 1 -->
-            <div class="template-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.2s;">
-              <div style="height: 160px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); display: flex; align-items: center; justify-content: center; color: white;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; opacity: 0.8;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <div style="padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                  <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">Mini Chat Nutricionista</h3>
-                  <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Mini Chat</span>
-                </div>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">Template de diagnóstico inicial para captação de leads de nutrição.</p>
-                <div style="margin-bottom: 16px;">
-                  <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Variáveis</div>
-                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[nome]</span>
-                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[whatsapp]</span>
-                  </div>
-                </div>
-                <button class="btn-secondary" style="width: 100%; justify-content: center;">Editar Template</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- LANDING PAGE GRID -->
-          <div id="lib-section-landing" class="library-grid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
-            <!-- TEMPLATE CARD EXAMPLE 2 -->
-            <div class="template-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.2s;">
-              <div style="height: 160px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); display: flex; align-items: center; justify-content: center; color: white;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; opacity: 0.8;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8M12 17v4"/></svg>
-              </div>
-              <div style="padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                  <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">Nutricionista Premium</h3>
-                  <span style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Landing Page</span>
-                </div>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">Site completo com seções de Hero, Sobre, Método e Agendamento.</p>
-                <div style="margin-bottom: 16px;">
-                  <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">Variáveis</div>
-                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[nome]</span>
-                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[especialidade]</span>
-                    <span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[cidade]</span>
-                  </div>
-                </div>
-                <button class="btn-secondary" style="width: 100%; justify-content: center;">Editar Template</button>
-              </div>
-            </div>
-          </div>
+          <!-- CONTENT GRID (populado pelo JS) -->
+          <div id="lib-section-minichat" class="library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;"></div>
+          <div id="lib-section-landing" class="library-grid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;"></div>
         </div>
       </section>
 
@@ -1686,9 +1638,9 @@
                 <p class="field-hint">Variáveis: {{nome}}, {{instagram}}, {{especialidade}}, {{cidade}}, {{bio}},
                   {{servicos}}, {{whatsapp}}, {{foto}}, {{tagline}}, {{atendimento}}</p>
               </div>
-              <div style="display:flex; gap:10px">
-                <button class="btn-secondary" id="autoConvertBtn" style="flex:1">⚡ Converter Automaticamente</button>
-                <button class="btn-primary" id="addTemplateBtn" style="flex:1">Adicionar Template</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn-secondary" id="autoConvertBtn" style="flex:1; min-width:160px;">⚡ Converter Automaticamente</button>
+                <button class="btn-primary" id="addTemplateBtn" style="flex:1; min-width:160px;">Adicionar Template</button>
               </div>
             </div>
           </div>

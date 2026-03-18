@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vjoseph",
+      "runtimeExecutable": "C:\\Users\\milen\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "runtimeArgs": ["serve.py"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

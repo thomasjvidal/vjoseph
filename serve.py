@@ -1,5 +1,13 @@
-import http.server, os, json, time, urllib.request, urllib.error
+import http.server, os, json, time, urllib.request, urllib.error, sys
 from http.server import ThreadingHTTPServer
+
+def _log(msg):
+    """Print seguro no Windows — converte caracteres especiais para ASCII."""
+    try:
+        safe = str(msg).encode('ascii', 'replace').decode('ascii')
+        print(safe, flush=True)
+    except Exception:
+        pass
 
 PORT = int(os.environ.get("PORT", 3000))
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +29,8 @@ class H(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/api/chat':
             self._ai()
+        elif self.path == '/api/transcribe':
+            self._transcribe()
         else:
             self.send_error(404)
 
@@ -30,7 +40,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
     def _call_groq(self, groq_key, model, groq_msgs, maxtok):
-        """Chama Groq com retry automático em rate limit (429)."""
+        """Chama Groq com uma chave específica. Lança HTTPError 429 sem esperar (para rotação de chave)."""
         payload = json.dumps({
             'model':      model,
             'max_tokens': maxtok,
@@ -45,26 +55,9 @@ class H(http.server.SimpleHTTPRequestHandler):
                 'User-Agent':    'VJoseph/1.0 Python/3.12'
             }
         )
-        last_err = None
-        for attempt in range(3):
-            try:
-                with urllib.request.urlopen(req, timeout=45) as r:
-                    d = json.loads(r.read())
-                    return d['choices'][0]['message']['content'].strip()
-            except urllib.error.HTTPError as e:
-                last_err = e
-                if e.code == 429:
-                    # Respeita o header retry-after, ou espera com backoff
-                    try:
-                        retry_after = int(e.headers.get('retry-after', 2))
-                    except Exception:
-                        retry_after = 2
-                    wait = min(retry_after, 6) * (attempt + 1)
-                    print(f'[Groq] Rate limit 429 — aguardando {wait}s (tentativa {attempt+1}/3)', flush=True)
-                    time.sleep(wait)
-                    continue
-                raise  # outros erros HTTP: propaga direto
-        raise last_err  # esgotou as 3 tentativas
+        with urllib.request.urlopen(req, timeout=45) as r:
+            d = json.loads(r.read())
+            return d['choices'][0]['message']['content'].strip()
 
     def _call_anthropic(self, anthropic_key, model, system, clean_msgs, maxtok):
         """Chama Anthropic Claude."""
@@ -87,12 +80,81 @@ class H(http.server.SimpleHTTPRequestHandler):
             d = json.loads(r.read())
             return d['content'][0]['text'].strip()
 
+    def _transcribe(self):
+        import base64
+        c = cfg()
+        # Pega primeira chave Groq disponível
+        groq_key = ''
+        for k in ['groq_key', 'groq_key_2', 'groq_key_3']:
+            v = c.get(k, '').strip()
+            if v:
+                groq_key = v
+                break
+        if not groq_key:
+            return self._err(400, 'Sem groq_key para transcrição')
+        try:
+            n = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(n))
+            audio_b64 = body.get('audio', '')
+            mime = body.get('mime', 'audio/webm')
+            if not audio_b64:
+                return self._err(400, 'Sem audio')
+            audio_bytes = base64.b64decode(audio_b64)
+            # Determina extensão
+            if 'webm' in mime:
+                ext = 'webm'
+            elif 'ogg' in mime:
+                ext = 'ogg'
+            elif 'mp4' in mime or 'm4a' in mime:
+                ext = 'mp4'
+            else:
+                ext = 'webm'
+            # Monta multipart/form-data manualmente
+            boundary = 'VJBoundary7x9z2k'
+            parts = []
+            parts.append(('--' + boundary + '\r\n').encode())
+            parts.append(('Content-Disposition: form-data; name="file"; filename="audio.' + ext + '"\r\n').encode())
+            parts.append(('Content-Type: ' + mime + '\r\n\r\n').encode())
+            parts.append(audio_bytes)
+            parts.append(b'\r\n')
+            parts.append(('--' + boundary + '\r\n').encode())
+            parts.append(b'Content-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n')
+            parts.append(('--' + boundary + '\r\n').encode())
+            parts.append(b'Content-Disposition: form-data; name="language"\r\n\r\npt\r\n')
+            parts.append(('--' + boundary + '\r\n').encode())
+            parts.append(b'Content-Disposition: form-data; name="response_format"\r\n\r\njson\r\n')
+            parts.append(('--' + boundary + '--\r\n').encode())
+            payload = b''.join(parts)
+            req = urllib.request.Request(
+                'https://api.groq.com/openai/v1/audio/transcriptions',
+                data=payload,
+                headers={
+                    'Content-Type': 'multipart/form-data; boundary=' + boundary,
+                    'Authorization': 'Bearer ' + groq_key,
+                    'User-Agent': 'VJoseph/1.0 Python/3.12',
+                }
+            )
+            with urllib.request.urlopen(req, timeout=30) as r:
+                d = json.loads(r.read())
+                self._ok({'text': d.get('text', '')})
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode('utf-8', 'ignore')
+            self._err(502, 'Whisper: ' + msg[:200])
+        except Exception as e:
+            self._err(500, str(e))
+
     def _ai(self):
         c = cfg()
-        groq_key      = c.get('groq_key', '').strip()
         anthropic_key = c.get('anthropic_key', '').strip()
 
-        if not groq_key and not anthropic_key:
+        # Coleta TODAS as chaves Groq disponíveis: groq_key, groq_key_2, groq_key_3 ...
+        groq_keys = []
+        for k in ['groq_key', 'groq_key_2', 'groq_key_3', 'groq_key_4']:
+            v = c.get(k, '').strip()
+            if v:
+                groq_keys.append(v)
+
+        if not groq_keys and not anthropic_key:
             return self._err(400, 'Nenhuma API key. Adicione groq_key em ai-config.json.')
 
         try:
@@ -108,32 +170,39 @@ class H(http.server.SimpleHTTPRequestHandler):
                 clean_msgs = [{'role': 'user', 'content': 'Olá'}]
 
             text = None
+            groq_model = c.get('groq_model_pipeline', 'llama-3.3-70b-versatile') if pipeline \
+                         else c.get('groq_model', 'llama-3.3-70b-versatile')
+            groq_msgs  = [{'role': 'system', 'content': system}] + clean_msgs
 
-            # ── Tenta Groq primeiro ──────────────────────────────────────────
-            if groq_key:
-                model = c.get('groq_model_pipeline', 'llama-3.3-70b-versatile') if pipeline \
-                        else c.get('groq_model', 'llama-3.3-70b-versatile')
-                groq_msgs = [{'role': 'system', 'content': system}] + clean_msgs
+            # ── Rotação de chaves Groq: NUNCA raise dentro do loop ──────────
+            # Qualquer erro (429, 500, timeout) -> tenta próxima chave
+            for idx, key in enumerate(groq_keys):
                 try:
-                    text = self._call_groq(groq_key, model, groq_msgs, maxtok)
-                    print(f'[Groq OK] {model} — {len(text)} chars', flush=True)
-                except Exception as groq_err:
-                    print(f'[Groq FAIL] {groq_err} — tentando Anthropic...', flush=True)
-                    # Cai no Anthropic se disponível
-                    if not anthropic_key:
-                        raise groq_err
+                    text = self._call_groq(key, groq_model, groq_msgs, maxtok)
+                    _log(f'[Groq OK] chave #{idx+1}')
+                    break
+                except urllib.error.HTTPError as e:
+                    err_body = e.read().decode('utf-8', 'ignore')
+                    safe = err_body.encode('ascii', 'replace').decode('ascii')[:60]
+                    _log(f'[Groq {e.code}] chave #{idx+1} falhou: {safe}')
+                    continue  # sempre tenta proxima chave, sem raise
+                except Exception as e:
+                    safe = str(e).encode('ascii', 'replace').decode('ascii')[:60]
+                    _log(f'[Groq ERR] chave #{idx+1}: {safe}')
+                    continue  # idem
 
-            # ── Anthropic como fallback (ou primário se sem Groq) ────────────
+            # ── Anthropic fallback: entra se TODAS as chaves Groq falharam ───
             if text is None and anthropic_key:
-                model = c.get('model_pipeline', 'claude-3-5-sonnet-20241022') if pipeline \
-                        else c.get('model', 'claude-3-5-haiku-20241022')
-                text = self._call_anthropic(anthropic_key, model, system, clean_msgs, maxtok)
-                print(f'[Anthropic OK] {model} — {len(text)} chars', flush=True)
+                ant_model = c.get('model_pipeline', 'claude-3-5-sonnet-20241022') if pipeline \
+                            else c.get('model', 'claude-3-5-haiku-20241022')
+                _log(f'[Groq exauriu -> Anthropic] usando {ant_model}...')
+                text = self._call_anthropic(anthropic_key, ant_model, system, clean_msgs, maxtok)
+                _log(f'[Anthropic OK] {ant_model}')
 
             if text is not None:
                 self._ok({'text': text})
             else:
-                self._err(500, 'Nenhum provider respondeu.')
+                self._err(503, 'Todas as chaves Groq falharam. Adicione groq_key_2/3 ou configure anthropic_key.')
 
         except urllib.error.HTTPError as e:
             msg = e.read().decode('utf-8', 'ignore')
@@ -158,7 +227,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, fmt, *a):
-        print(f'[{self.address_string()}] {fmt % a}', flush=True)
+        _log(f'[{self.address_string()}] {fmt % a}')
 
 with ThreadingHTTPServer(('', PORT), H) as s:
     print(f'VJoseph serve.py rodando na porta {PORT} (threaded + Groq retry + Anthropic fallback)', flush=True)

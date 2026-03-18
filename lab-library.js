@@ -326,11 +326,12 @@ function renderTemplateLibrary(category = 'minichat') {
 
   const minichatGrid = document.getElementById('lib-section-minichat');
   const landingGrid = document.getElementById('lib-section-landing');
-  
+
   // Initialize if empty
+  if (!state.templateLibrary) state.templateLibrary = {};
   if (!state.templateLibrary.minichat) state.templateLibrary.minichat = [];
   if (!state.templateLibrary.landing) state.templateLibrary.landing = [];
-  
+
   if (minichatGrid && landingGrid) {
     if (category === 'minichat') {
       minichatGrid.style.display = 'grid';
@@ -339,9 +340,64 @@ function renderTemplateLibrary(category = 'minichat') {
     } else {
       minichatGrid.style.display = 'none';
       landingGrid.style.display = 'grid';
-      renderLibraryGrid(landingGrid, state.templateLibrary.landing, 'landing');
+      // Landing page usa state.customTemplates (mesmo sistema do Gerador de Sites)
+      const landingItems = (state.customTemplates || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        type: t.type || null,
+        desc: 'Landing page personalizada',
+        vars: (t.html || '').match(/{{(.*?)}}/g)
+          ? [...new Set((t.html.match(/{{(.*?)}}/g)||[]).map(v=>v.replace(/{{|}}/g,'')))]
+          : [],
+        html: t.html
+      }));
+      renderLibraryGridLanding(landingGrid, landingItems);
     }
   }
+}
+
+function renderLibraryGridLanding(container, items) {
+  if (!items || items.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <div style="font-size:40px;margin-bottom:12px;">📄</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Nenhum template ainda</div>
+        <div style="font-size:13px;margin-bottom:20px;">Clique em "+ Novo Template" para adicionar seu primeiro template de landing page</div>
+        <button class="btn-primary" onclick="openNewTemplateModal()" style="margin:0 auto;">+ Adicionar primeiro template</button>
+      </div>`;
+    return;
+  }
+
+  // Resolve BUILTIN_TEMPLATE_TYPES if available
+  const _builtinTypes = (typeof BUILTIN_TEMPLATE_TYPES !== 'undefined' ? BUILTIN_TEMPLATE_TYPES : []);
+  const _customTypes  = (typeof state !== 'undefined' && Array.isArray(state.templateTypes) ? state.templateTypes : []);
+  const _allTypes = [..._builtinTypes, ..._customTypes];
+
+  container.innerHTML = items.map(item => {
+    const varsHtml = (item.vars || []).slice(0, 6).map(v =>
+      `<span style="background:rgba(124,58,237,.1);color:#a78bfa;padding:2px 7px;border-radius:4px;font-size:11px;font-family:monospace;">{{${v}}}</span>`
+    ).join('');
+
+    // Resolve type label
+    const typeObj  = _allTypes.find(t => t.name === item.type);
+    const typeLabel = typeObj ? typeObj.label : (item.type ? item.type.replace(/_/g,' ') : 'Landing Page');
+
+    return `
+      <div class="template-card" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .2s;">
+        <div style="height:140px;background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);display:flex;align-items:center;justify-content:center;color:white;position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;opacity:.8;"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.3);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${typeLabel}</span>
+        </div>
+        <div style="padding:16px;">
+          <h3 style="font-size:15px;font-weight:600;margin:0 0 6px;color:var(--text-primary);">${item.name}</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;min-height:22px;">${varsHtml || '<span style="color:var(--text-muted);font-size:12px;">Sem variáveis detectadas</span>'}</div>
+          <div style="display:flex;gap:7px;">
+            <button class="btn-secondary" onclick="editTemplateHtml('landing','${item.id}')" style="flex:1;justify-content:center;font-size:12px;">🖊️ Editar HTML</button>
+            <button class="btn-secondary" onclick="deleteCustomTemplate('${item.id}')" style="padding:7px 10px;justify-content:center;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#f87171;" title="Excluir template">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderLibraryGrid(container, items, type) {
@@ -384,7 +440,10 @@ function renderLibraryGrid(container, items, type) {
               ${varsHtml}
             </div>
           </div>
-          <button class="btn-secondary" onclick="editTemplate('${type}', '${item.id}')" style="width: 100%; justify-content: center;">Editar Template</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-secondary" onclick="editTemplate('${type}', '${item.id}')" style="flex:1; justify-content: center;">✏️ Editar Info</button>
+            <button class="btn-secondary" onclick="editTemplateHtml('${type}', '${item.id}')" style="flex:1; justify-content: center; background:rgba(59,130,246,.08); border-color:rgba(59,130,246,.3); color:#60a5fa;">🖊️ Editar HTML</button>
+          </div>
         </div>
       </div>
     `;
@@ -431,19 +490,102 @@ window.editTemplate = function(type, id) {
   }
 };
 
+window.editTemplateHtml = function(type, id) {
+  // Landing templates vivem em state.customTemplates; outros em state.templateLibrary
+  let item, itemList;
+  if (type === 'landing') {
+    itemList = state.customTemplates || [];
+    item = itemList.find(t => t.id === id);
+  } else {
+    const items = state.templateLibrary ? state.templateLibrary[type] : null;
+    if (!items) return;
+    item = items.find(t => t.id === id);
+    itemList = items;
+  }
+  if (!item) return;
+
+  // Cria modal de edição de HTML
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#13131f;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;';
+
+  modal.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:15px;font-weight:600;color:#e0e0e0;">🖊️ Editar HTML — ${item.name}</div>
+        <div style="font-size:12px;color:#6b6b80;margin-top:2px;">Variáveis: {{nome}}, {{bio}}, {{tagline}}, {{servico_1}}, {{servicos}}, {{foto}}, {{cta}}, {{whatsapp}}, {{instagram}}</div>
+      </div>
+      <button id="tpl-edit-close" style="background:transparent;border:none;color:#6b6b80;font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
+    </div>
+    <textarea id="tpl-edit-textarea" style="flex:1;padding:16px;background:#0a0a14;color:#c0c0d0;font-family:monospace;font-size:13px;border:none;outline:none;resize:none;overflow-y:auto;min-height:400px;">${(item.html||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;flex-shrink:0;">
+      <button id="tpl-edit-save" style="flex:1;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">💾 Salvar Alterações</button>
+      <button id="tpl-edit-cancel" style="padding:10px 20px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#9090a0;font-size:14px;cursor:pointer;">Cancelar</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const textarea = modal.querySelector('#tpl-edit-textarea');
+  // Decode HTML entities back to real HTML
+  textarea.value = item.html || '';
+
+  const close = () => overlay.remove();
+  modal.querySelector('#tpl-edit-close').onclick = close;
+  modal.querySelector('#tpl-edit-cancel').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+  modal.querySelector('#tpl-edit-save').onclick = () => {
+    const newHtml = textarea.value;
+    if (!newHtml.trim()) {
+      if (typeof toast === 'function') toast('O HTML não pode estar vazio!');
+      return;
+    }
+    item.html = newHtml;
+    // Atualiza variáveis detectadas
+    const varMatches = newHtml.match(/{{(.*?)}}/g);
+    if (varMatches) {
+      item.vars = [...new Set(varMatches.map(v => v.replace(/{{|}}/g, '')))];
+    }
+    if (typeof save === 'function') save();
+    // Para landing: re-renderiza biblioteca + seletor do gerador
+    if (type === 'landing') {
+      renderLibraryGridLanding(document.getElementById('lib-section-landing'),
+        (state.customTemplates||[]).map(t=>({id:t.id,name:t.name,type:t.type||null,desc:'',
+          vars:(t.html||'').match(/{{(.*?)}}/g)?[...new Set((t.html.match(/{{(.*?)}}/g)||[]).map(v=>v.replace(/{{|}}/g,'')))]:[], html:t.html})));
+      if (typeof renderGeneratorTemplates === 'function') renderGeneratorTemplates();
+    } else {
+      renderTemplateLibrary(type);
+    }
+    close();
+    if (typeof toast === 'function') toast('✅ Template HTML atualizado!');
+  };
+};
+
+// Expõe para outras partes do app (openNewTemplateModal, deleteCustomTemplate)
+window._labRenderTemplateLibrary = function(category) {
+  window._libCategory = category || 'landing';
+  renderTemplateLibrary(category || 'landing');
+};
+
 // Monkey Patching & Global Overrides
 const originalNavigate = window.navigate;
 window.navigate = function(view, activeNavEl) {
   if (originalNavigate) originalNavigate(view, activeNavEl);
-  
+
   if (view === 'lab-mensagens') {
     renderMessageLab();
   }
   if (view === 'biblioteca-templates') {
-    renderTemplateLibrary();
+    window._libCategory = window._libCategory || 'minichat';
+    renderTemplateLibrary(window._libCategory);
   }
   if (view === 'generator') {
-    renderTemplateLibrary();
+    // Atualiza o seletor de templates do gerador
+    if (typeof renderGeneratorTemplates === 'function') renderGeneratorTemplates();
   }
 };
 
@@ -645,6 +787,7 @@ document.addEventListener('click', (e) => {
   }
   if(e.target.matches('.library-tab')) {
     const cat = e.target.dataset.category;
+    window._libCategory = cat;
     renderTemplateLibrary(cat);
   }
 });
