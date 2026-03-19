@@ -11,6 +11,255 @@ const BUILTIN_TEMPLATE_TYPES = [
   { name: 'landing_completa', label: 'Landing Completa',      fields: ['nome','tagline','bio','servico_1','servico_2','servico_3','servico_4','foto','cta','whatsapp','instagram'] },
 ];
 
+// ---- SISTEMA DE BLOCOS ----
+
+const SECTIONS_BASE_CSS = `
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;color:#111;background:#fff;overflow-x:hidden}
+:root{--clr-primary:#7C3AED;--clr-accent:#06B6D4;--clr-dark:#0a0a10;--clr-gray:#6b7280;--clr-border:#e5e7eb}
+a{text-decoration:none}
+.sec-container{max-width:1100px;margin:0 auto;padding:0 24px}
+.site-section{width:100%;padding:64px 24px}
+.sec-h1{font-size:clamp(36px,5vw,56px);font-weight:900;line-height:1.1;letter-spacing:-2px}
+.sec-h2{font-size:clamp(28px,4vw,40px);font-weight:800;line-height:1.2;letter-spacing:-1px}
+.sec-h3{font-size:20px;font-weight:700;line-height:1.3}
+.sec-body{font-size:16px;line-height:1.75;color:var(--clr-gray)}
+.sec-small{font-size:13px}
+.sec-btn-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;padding:15px 32px;border-radius:12px;font-weight:700;font-size:16px;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.sec-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,.35)}
+.sec-btn-wa{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:15px 32px;border-radius:12px;font-weight:700;font-size:16px;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.sec-btn-wa:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(37,211,102,.35)}
+.sec-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.sec-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.sec-hover-lift{transition:transform .2s}.sec-hover-lift:hover{transform:translateY(-4px)}
+@media(max-width:640px){.site-section{padding:48px 16px}.sec-btn-primary,.sec-btn-wa{width:100%;justify-content:center}}
+`;
+
+const SECTION_LIBRARY = [
+  {
+    id: 'hero_dark',
+    category: 'hero',
+    name: 'Hero Escuro',
+    preview: 'Fundo dark · Gradiente · CTA destaque',
+    html: `<style>
+.hd-wrap{background:linear-gradient(135deg,#0a0a10 60%,#1a0a2e);color:#fff;text-align:center;padding:80px 24px 96px;position:relative;overflow:hidden}
+.hd-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.25) 0%,transparent 65%);pointer-events:none}
+.hd-badge{display:inline-block;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:24px;letter-spacing:.5px}
+.hd-photo{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid rgba(124,58,237,.5);box-shadow:0 0 0 6px rgba(124,58,237,.1);margin:0 auto 28px;display:block}
+.hd-photo-placeholder{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:900;color:#fff;margin:0 auto 28px}
+.hd-h1{font-size:clamp(34px,5vw,58px);font-weight:900;letter-spacing:-2px;line-height:1.08;margin-bottom:16px;background:linear-gradient(135deg,#fff 40%,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hd-tagline{font-size:18px;color:rgba(255,255,255,.65);max-width:560px;margin:0 auto 40px;line-height:1.6}
+.hd-city{font-size:13px;color:rgba(255,255,255,.35);margin-top:20px;letter-spacing:.5px}
+</style>
+<section class="site-section hd-wrap">
+  <div class="sec-container">
+    {{#photo}}<img src="{{photo}}" class="hd-photo" alt="{{name}}">{{/photo}}
+    {{^photo}}<div class="hd-photo-placeholder">{{initials}}</div>{{/photo}}
+    <div class="hd-badge">{{specialty}}</div>
+    <h1 class="hd-h1">{{name}}</h1>
+    <p class="hd-tagline">{{tagline}}</p>
+    <a href="https://wa.me/55{{whatsapp_clean}}" class="sec-btn-wa">💬 {{cta}}</a>
+    <p class="hd-city">{{city}}</p>
+  </div>
+</section>`
+  },
+  {
+    id: 'hero_light',
+    category: 'hero',
+    name: 'Hero Claro',
+    preview: 'Fundo branco · Foto circular · Minimalista',
+    html: `<style>
+.hl-wrap{background:#fff;padding:80px 24px 96px;text-align:center;border-bottom:1px solid #f0f0f0}
+.hl-photo{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #f3f0ff;margin:0 auto 24px;display:block;box-shadow:0 4px 20px rgba(124,58,237,.15)}
+.hl-photo-placeholder{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;color:#fff;margin:0 auto 24px}
+.hl-badge{display:inline-block;background:#f3f0ff;color:#7C3AED;padding:5px 16px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+.hl-h1{font-size:clamp(32px,5vw,52px);font-weight:900;color:#111;letter-spacing:-2px;line-height:1.1;margin-bottom:14px}
+.hl-tagline{font-size:17px;color:#6b7280;max-width:520px;margin:0 auto 36px;line-height:1.65}
+.hl-city{font-size:12px;color:#9ca3af;margin-top:16px;letter-spacing:.5px}
+</style>
+<section class="site-section hl-wrap">
+  <div class="sec-container">
+    {{#photo}}<img src="{{photo}}" class="hl-photo" alt="{{name}}">{{/photo}}
+    {{^photo}}<div class="hl-photo-placeholder">{{initials}}</div>{{/photo}}
+    <div class="hl-badge">{{specialty}}</div>
+    <h1 class="hl-h1">{{name}}</h1>
+    <p class="hl-tagline">{{tagline}}</p>
+    <a href="https://wa.me/55{{whatsapp_clean}}" class="sec-btn-primary">📅 {{cta}}</a>
+    <p class="hl-city">{{city}}</p>
+  </div>
+</section>`
+  },
+  {
+    id: 'bio_clean',
+    category: 'bio',
+    name: 'Bio Minimalista',
+    preview: 'Texto centralizado · Sem imagem · Clean',
+    html: `<style>
+.bc-wrap{background:#fafafa;text-align:center}
+.bc-title{font-size:13px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+.bc-h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#111;margin-bottom:20px;letter-spacing:-1px}
+.bc-text{font-size:17px;color:#6b7280;max-width:640px;margin:0 auto;line-height:1.8}
+</style>
+<section class="site-section bc-wrap">
+  <div class="sec-container">
+    <p class="bc-title">Sobre</p>
+    <h2 class="bc-h2">Quem é {{name}}?</h2>
+    <p class="bc-text">{{bio}}</p>
+  </div>
+</section>`
+  },
+  {
+    id: 'bio_split',
+    category: 'bio',
+    name: 'Bio com Foto',
+    preview: 'Foto à esquerda · Texto à direita · 50/50',
+    html: `<style>
+.bs-wrap{background:#fff}
+.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1000px;margin:0 auto}
+.bs-photo{width:100%;aspect-ratio:1;border-radius:20px;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,.1)}
+.bs-photo-placeholder{width:100%;aspect-ratio:1;border-radius:20px;background:linear-gradient(135deg,#f3f0ff,#e0e7ff);display:flex;align-items:center;justify-content:center;font-size:64px}
+.bs-label{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.bs-h2{font-size:clamp(22px,3vw,34px);font-weight:800;color:#111;margin-bottom:16px;letter-spacing:-1px}
+.bs-text{font-size:16px;color:#6b7280;line-height:1.8}
+@media(max-width:700px){.bs-grid{grid-template-columns:1fr;gap:32px}}
+</style>
+<section class="site-section bs-wrap">
+  <div class="sec-container">
+    <div class="bs-grid">
+      <div>
+        {{#photo}}<img src="{{photo}}" class="bs-photo" alt="{{name}}">{{/photo}}
+        {{^photo}}<div class="bs-photo-placeholder">👤</div>{{/photo}}
+      </div>
+      <div>
+        <p class="bs-label">Sobre</p>
+        <h2 class="bs-h2">{{name}}</h2>
+        <p class="bs-text">{{bio}}</p>
+      </div>
+    </div>
+  </div>
+</section>`
+  },
+  {
+    id: 'servicos_cards',
+    category: 'servicos',
+    name: 'Serviços em Cards',
+    preview: 'Grid de cards · Numerados · Visual',
+    html: `<style>
+.sc-wrap{background:#fff}
+.sc-header{text-align:center;margin-bottom:48px}
+.sc-label{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.sc-h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#111;letter-spacing:-1px}
+.sc-card{background:#fafafa;border:1px solid #f0f0f0;border-radius:16px;padding:28px 24px;transition:all .2s}
+.sc-card:hover{border-color:#7C3AED;box-shadow:0 8px 32px rgba(124,58,237,.1);transform:translateY(-4px)}
+.sc-num{font-size:32px;font-weight:900;color:#7C3AED;opacity:.3;margin-bottom:12px;line-height:1}
+.sc-name{font-size:16px;font-weight:700;color:#111;line-height:1.4}
+</style>
+<section class="site-section sc-wrap">
+  <div class="sec-container">
+    <div class="sc-header">
+      <p class="sc-label">O que ofereço</p>
+      <h2 class="sc-h2">Serviços</h2>
+    </div>
+    <div class="sec-grid-3">
+      {{services_cards_html}}
+    </div>
+  </div>
+</section>`
+  },
+  {
+    id: 'servicos_lista',
+    category: 'servicos',
+    name: 'Serviços em Lista',
+    preview: 'Lista com ícones · Uma coluna · Simples',
+    html: `<style>
+.sl-wrap{background:#fafafa}
+.sl-header{text-align:center;margin-bottom:48px}
+.sl-label{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.sl-h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#111;letter-spacing:-1px}
+.sl-list{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.sl-item{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #f0f0f0;border-radius:12px;padding:18px 20px}
+.sl-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#06B6D4);flex-shrink:0}
+.sl-name{font-size:16px;font-weight:600;color:#111}
+</style>
+<section class="site-section sl-wrap">
+  <div class="sec-container">
+    <div class="sl-header">
+      <p class="sl-label">O que ofereço</p>
+      <h2 class="sl-h2">Serviços</h2>
+    </div>
+    <div class="sl-list">
+      {{services_lista_html}}
+    </div>
+  </div>
+</section>`
+  },
+  {
+    id: 'cta_simples',
+    category: 'cta',
+    name: 'CTA Simples',
+    preview: 'Fundo claro · Texto + botão WhatsApp',
+    html: `<style>
+.cs-wrap{background:#fff;text-align:center;border-top:1px solid #f0f0f0}
+.cs-h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#111;letter-spacing:-1px;margin-bottom:12px}
+.cs-sub{font-size:16px;color:#6b7280;margin-bottom:36px;line-height:1.6}
+.cs-ig{display:inline-flex;align-items:center;gap:6px;margin-top:20px;color:#7C3AED;font-size:14px;font-weight:600}
+</style>
+<section class="site-section cs-wrap">
+  <div class="sec-container">
+    <h2 class="cs-h2">Vamos conversar?</h2>
+    <p class="cs-sub">Atendimento {{attendance}}{{#city}} em {{city}}{{/city}}</p>
+    <a href="https://wa.me/55{{whatsapp_clean}}" class="sec-btn-wa">💬 {{cta}}</a>
+    {{#instagram}}<div><a href="https://instagram.com/{{instagram_clean}}" class="cs-ig">📸 {{instagram}}</a></div>{{/instagram}}
+  </div>
+</section>
+<footer style="padding:20px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #f0f0f0">© 2025 {{name}} — {{specialty}}</footer>`
+  },
+  {
+    id: 'cta_premium',
+    category: 'cta',
+    name: 'CTA Premium',
+    preview: 'Fundo dark · Dois botões · Impacto máximo',
+    html: `<style>
+.cp-wrap{background:linear-gradient(135deg,#0a0a10,#1a0a2e);color:#fff;text-align:center;position:relative;overflow:hidden}
+.cp-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(124,58,237,.2) 0%,transparent 65%);pointer-events:none}
+.cp-h2{font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-1px;margin-bottom:12px;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.cp-sub{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:40px;line-height:1.6}
+.cp-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.cp-ig{display:inline-flex;align-items:center;gap:6px;margin-top:20px;color:rgba(255,255,255,.5);font-size:14px}
+</style>
+<section class="site-section cp-wrap">
+  <div class="sec-container">
+    <h2 class="cp-h2">Pronto para transformar<br>sua vida?</h2>
+    <p class="cp-sub">Atendimento {{attendance}}{{#city}} em {{city}}{{/city}}</p>
+    <div class="cp-btns">
+      <a href="https://wa.me/55{{whatsapp_clean}}" class="sec-btn-wa">💬 {{cta}}</a>
+    </div>
+    {{#instagram}}<div><a href="https://instagram.com/{{instagram_clean}}" class="cp-ig">📸 {{instagram}}</a></div>{{/instagram}}
+  </div>
+</section>
+<footer style="padding:16px;text-align:center;font-size:12px;color:rgba(255,255,255,.2);background:#0a0a10">© 2025 {{name}} — {{specialty}}</footer>`
+  }
+];
+
+const SECTION_RECIPES = {
+  dentista:      ['hero_dark',  'bio_split',  'servicos_cards', 'cta_premium'],
+  odonto:        ['hero_dark',  'bio_split',  'servicos_cards', 'cta_premium'],
+  nutricionista: ['hero_light', 'bio_clean',  'servicos_cards', 'cta_simples'],
+  nutri:         ['hero_light', 'bio_clean',  'servicos_cards', 'cta_simples'],
+  psicolog:      ['hero_light', 'bio_split',  'servicos_lista', 'cta_simples'],
+  terapeuta:     ['hero_light', 'bio_split',  'servicos_lista', 'cta_simples'],
+  clinica:       ['hero_dark',  'bio_split',  'servicos_lista', 'cta_premium'],
+  médico:        ['hero_dark',  'bio_split',  'servicos_lista', 'cta_premium'],
+  medico:        ['hero_dark',  'bio_split',  'servicos_lista', 'cta_premium'],
+  fisio:         ['hero_dark',  'bio_clean',  'servicos_cards', 'cta_premium'],
+  esteti:        ['hero_light', 'bio_split',  'servicos_cards', 'cta_premium'],
+  personal:      ['hero_dark',  'bio_clean',  'servicos_lista', 'cta_premium'],
+  _default:      ['hero_light', 'bio_clean',  'servicos_cards', 'cta_simples']
+};
+
+const SECTION_CATEGORIES = ['hero', 'bio', 'servicos', 'cta'];
+
 // ---- STATE ----
 let state = {
   leads: [],
@@ -29,6 +278,8 @@ let state = {
   selectedTemplate: 'minimal',
   customTemplates: [],
   templateTypes: [],
+  generatorMode: 'template',
+  selectedSections: [],
   generatedHTML: '',
   currentPreviewTemplate: '',
   currentMsgTemplate: 0,
@@ -341,7 +592,12 @@ function navigate(view, activeNavEl) {
   if (view === 'kpis') renderKPIs();
   if (view === 'dashboard2') renderDashboard2();
   if (view === 'leads') renderLeadsTable();
-  if (view === 'generator') { populateGenLeadSelect(); renderGeneratorTemplates(); }
+  if (view === 'generator') {
+    populateGenLeadSelect();
+    renderGeneratorModeToggle();
+    if (state.generatorMode === 'blocos') renderSectionPicker();
+    else renderGeneratorTemplates();
+  }
   if (view === 'messages') {
     renderProspectingBoard();
     renderMiniKanbanV2('k2m-', 'kanbanv2m-');
@@ -3608,6 +3864,235 @@ const BUILTIN_TEMPLATES = [
   { id: 'nutri', name: 'Nutri Premium ✦', generator: generateNutri }
 ];
 
+// ---- SISTEMA DE BLOCOS — funções ----
+
+function getRecipeForSpecialty(specialty) {
+  const s = (specialty || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const key of Object.keys(SECTION_RECIPES)) {
+    if (key === '_default') continue;
+    if (s.includes(key)) return SECTION_RECIPES[key];
+  }
+  return SECTION_RECIPES._default;
+}
+
+function applyRecipe() {
+  const specialty = (document.getElementById('genSpecialty') || {}).value || '';
+  state.selectedSections = [...getRecipeForSpecialty(specialty)];
+  renderSectionPicker();
+}
+
+function toggleSectionCategory(category, enabled) {
+  // Remove all of this category
+  state.selectedSections = state.selectedSections.filter(id => {
+    const sec = SECTION_LIBRARY.find(s => s.id === id);
+    return sec && sec.category !== category;
+  });
+  if (enabled) {
+    // Add first variant of that category
+    const first = SECTION_LIBRARY.find(s => s.category === category);
+    if (first) state.selectedSections.push(first.id);
+  }
+  renderSectionPicker();
+}
+
+function selectSectionVariant(category, newId) {
+  // Replace existing section of this category OR add if not present
+  const hasCategory = state.selectedSections.some(id => {
+    const sec = SECTION_LIBRARY.find(s => s.id === id);
+    return sec && sec.category === category;
+  });
+  if (hasCategory) {
+    state.selectedSections = state.selectedSections.map(id => {
+      const sec = SECTION_LIBRARY.find(s => s.id === id);
+      return sec && sec.category === category ? newId : id;
+    });
+  } else {
+    state.selectedSections.push(newId);
+  }
+  renderSectionPicker();
+}
+
+function renderSectionHtml(section, data) {
+  const wa = (data.whatsapp || '').replace(/\D/g, '');
+  const initials = (data.name || 'AA').split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+  const photo = (data.avatar || (data.images && data.images[0]) || '');
+  const igClean = (data.instagram || '').replace('@', '');
+
+  // Build services_cards_html
+  const services = data.services || [];
+  const servicesCardsHtml = services.map((s, i) =>
+    `<div class="sc-card sec-hover-lift"><div class="sc-num">0${i + 1}</div><div class="sc-name">${s}</div></div>`
+  ).join('');
+  const servicesListaHtml = services.map(s =>
+    `<div class="sl-item"><div class="sl-dot"></div><div class="sl-name">${s}</div></div>`
+  ).join('');
+
+  let html = section.html;
+
+  // Mustache-like conditionals
+  if (photo) {
+    html = html.replace(/{{#photo}}([\s\S]*?){{\/photo}}/g, '$1');
+    html = html.replace(/{{^photo}}([\s\S]*?){{\/photo}}/g, '');
+  } else {
+    html = html.replace(/{{#photo}}([\s\S]*?){{\/photo}}/g, '');
+    html = html.replace(/{{^photo}}([\s\S]*?){{\/photo}}/g, '$1');
+  }
+  if (data.instagram) {
+    html = html.replace(/{{#instagram}}([\s\S]*?){{\/instagram}}/g, '$1');
+  } else {
+    html = html.replace(/{{#instagram}}([\s\S]*?){{\/instagram}}/g, '');
+  }
+  if (data.city) {
+    html = html.replace(/{{#city}}([\s\S]*?){{\/city}}/g, '$1');
+  } else {
+    html = html.replace(/{{#city}}([\s\S]*?){{\/city}}/g, '');
+  }
+
+  // Replace all variables
+  html = html
+    .replace(/{{name}}/g, data.name || '')
+    .replace(/{{specialty}}/g, data.specialty || '')
+    .replace(/{{city}}/g, data.city || '')
+    .replace(/{{tagline}}/g, data.tagline || '')
+    .replace(/{{bio}}/g, data.bio || '')
+    .replace(/{{cta}}/g, data.cta || 'Agendar consulta')
+    .replace(/{{whatsapp}}/g, data.whatsapp || '')
+    .replace(/{{whatsapp_clean}}/g, wa)
+    .replace(/{{instagram}}/g, data.instagram || '')
+    .replace(/{{instagram_clean}}/g, igClean)
+    .replace(/{{attendance}}/g, data.attendance || 'presencial')
+    .replace(/{{photo}}/g, photo)
+    .replace(/{{initials}}/g, initials)
+    .replace(/{{services_cards_html}}/g, servicesCardsHtml)
+    .replace(/{{services_lista_html}}/g, servicesListaHtml);
+
+  return html;
+}
+
+function assembleFromSections(selectedIds, data) {
+  // Render sections in canonical category order
+  const orderedIds = [];
+  for (const cat of SECTION_CATEGORIES) {
+    const id = selectedIds.find(sid => {
+      const sec = SECTION_LIBRARY.find(s => s.id === sid);
+      return sec && sec.category === cat;
+    });
+    if (id) orderedIds.push(id);
+  }
+
+  const sectionsHtml = orderedIds.map(id => {
+    const sec = SECTION_LIBRARY.find(s => s.id === id);
+    if (!sec) return '';
+    return renderSectionHtml(sec, data);
+  }).join('\n');
+
+  const name = data.name || '';
+  const specialty = data.specialty || '';
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${name}${specialty ? ' | ' + specialty : ''}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>${SECTIONS_BASE_CSS}</style>
+</head>
+<body>
+${sectionsHtml}
+</body>
+</html>`;
+}
+
+function renderSectionPicker() {
+  const container = document.getElementById('templateSelectorContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:20px;padding:4px 0';
+
+  for (const cat of SECTION_CATEGORIES) {
+    const variants = SECTION_LIBRARY.filter(s => s.category === cat);
+    const activeId = state.selectedSections.find(id => {
+      const sec = SECTION_LIBRARY.find(s => s.id === id);
+      return sec && sec.category === cat;
+    });
+    const isEnabled = !!activeId;
+
+    const catLabels = { hero: 'Hero', bio: 'Bio / Sobre', servicos: 'Serviços', cta: 'CTA / Contato' };
+    const catLabel = catLabels[cat] || cat;
+
+    const catRow = document.createElement('div');
+
+    // Category header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px';
+    header.innerHTML = `
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">${catLabel}</span>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:${isEnabled ? '#c4b5fd' : 'var(--text-muted)'}">
+        <input type="checkbox" ${isEnabled ? 'checked' : ''} style="accent-color:#7C3AED;width:14px;height:14px"
+          onchange="toggleSectionCategory('${cat}', this.checked)">
+        ${isEnabled ? 'Ativo' : 'Inativo'}
+      </label>`;
+    catRow.appendChild(header);
+
+    // Variant thumbnails
+    const varRow = document.createElement('div');
+    varRow.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px';
+
+    for (const sec of variants) {
+      const isActive = activeId === sec.id;
+      const card = document.createElement('div');
+      card.style.cssText = `
+        padding:12px;border-radius:10px;cursor:pointer;border:2px solid ${isActive ? '#7C3AED' : 'rgba(255,255,255,.07)'};
+        background:${isActive ? 'rgba(124,58,237,.12)' : 'rgba(255,255,255,.03)'};transition:.15s;
+        ${!isEnabled ? 'opacity:.4;pointer-events:none' : ''}`;
+      card.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:${isActive ? '#c4b5fd' : 'var(--text-muted)'};margin-bottom:4px">${sec.name}</div>
+        <div style="font-size:10px;color:${isActive ? 'rgba(196,181,253,.7)' : 'rgba(255,255,255,.25)'};line-height:1.4">${sec.preview}</div>
+        ${isActive ? '<div style="margin-top:8px;font-size:9px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:1px">● Ativo</div>' : ''}`;
+      card.onclick = () => selectSectionVariant(cat, sec.id);
+      varRow.appendChild(card);
+    }
+    catRow.appendChild(varRow);
+    wrap.appendChild(catRow);
+  }
+
+  // Auto-recipe button
+  const autoBtn = document.createElement('button');
+  autoBtn.innerHTML = '🎯 Auto-selecionar por especialidade';
+  autoBtn.style.cssText = 'width:100%;padding:9px;border:1px dashed rgba(124,58,237,.3);border-radius:8px;background:transparent;color:#9b77e0;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;margin-top:4px';
+  autoBtn.onmouseover = () => { autoBtn.style.borderColor = 'rgba(124,58,237,.6)'; autoBtn.style.color = '#c4b5fd'; };
+  autoBtn.onmouseout = () => { autoBtn.style.borderColor = 'rgba(124,58,237,.3)'; autoBtn.style.color = '#9b77e0'; };
+  autoBtn.onclick = applyRecipe;
+  wrap.appendChild(autoBtn);
+
+  container.appendChild(wrap);
+}
+
+function renderGeneratorModeToggle() {
+  let el = document.getElementById('generatorModeToggle');
+  if (!el) return;
+  const isBlocos = state.generatorMode === 'blocos';
+  el.innerHTML = `
+    <button class="mode-btn ${!isBlocos ? 'active' : ''}" id="modeBtnTemplate" onclick="setGeneratorMode('template')">Template</button>
+    <button class="mode-btn ${isBlocos ? 'active' : ''}" id="modeBtnBlocos" onclick="setGeneratorMode('blocos')">Blocos</button>`;
+}
+
+function setGeneratorMode(mode) {
+  state.generatorMode = mode;
+  renderGeneratorModeToggle();
+  const container = document.getElementById('templateSelectorContainer');
+  if (!container) return;
+  if (mode === 'blocos') {
+    if (!state.selectedSections.length) applyRecipe();
+    else renderSectionPicker();
+  } else {
+    renderGeneratorTemplates();
+  }
+}
+
 function renderGeneratorTemplates() {
   const container = document.getElementById('templateSelector');
   if (!container) return;
@@ -4221,12 +4706,6 @@ Atendimento: ${data.attendance || 'presencial'}`;
 
 async function generateSite() {
   const data = getSiteFormData();
-  const template = state.selectedTemplate;
-  state.currentPreviewTemplate = template;
-
-  // Resolve template type for AI
-  const tplObj = state.customTemplates.find(t => t.id === template);
-  const templateType = tplObj ? tplObj.type : null;
 
   // Loading no botão
   const btn = document.querySelector('button[onclick="generateSite()"]');
@@ -4234,6 +4713,9 @@ async function generateSite() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span style="opacity:.7">⏳ Gerando com IA...</span>'; }
 
   // IA melhora o copy antes de gerar
+  const template = state.selectedTemplate;
+  const tplObj = state.customTemplates.find(t => t.id === template);
+  const templateType = tplObj ? tplObj.type : null;
   const aiCopy = await generateSiteWithAI(data, templateType);
   if (aiCopy) {
     data.tagline  = aiCopy.tagline;
@@ -4244,6 +4726,22 @@ async function generateSite() {
 
   if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
 
+  // ── MODO BLOCOS ──────────────────────────────────────────────
+  if (state.generatorMode === 'blocos') {
+    const ids = state.selectedSections.length ? state.selectedSections : getRecipeForSpecialty(data.specialty);
+    const html = assembleFromSections(ids, data);
+    state.generatedHTML = html;
+    const iframe = document.getElementById('sitePreview');
+    document.getElementById('previewPlaceholder').style.display = 'none';
+    iframe.srcdoc = html;
+    const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/dr[ao]-?/g, '');
+    document.querySelector('.preview-url').textContent = `leadflow.site/${slug}`;
+    toast(aiCopy ? '✨ Site gerado com blocos + IA!' : '✅ Site gerado com blocos!');
+    return;
+  }
+
+  // ── MODO TEMPLATE COMPLETO (comportamento original) ──────────
+  state.currentPreviewTemplate = template;
   const html = generateSiteHTML(data, template);
   state.generatedHTML = html;
 
