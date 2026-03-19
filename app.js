@@ -3929,23 +3929,23 @@ function renderSectionHtml(section, data) {
 
   let html = section.html;
 
-  // Mustache-like conditionals
+  // Mustache-like conditionals (use \^\^ to avoid ^ being treated as anchor)
   if (photo) {
-    html = html.replace(/{{#photo}}([\s\S]*?){{\/photo}}/g, '$1');
-    html = html.replace(/{{^photo}}([\s\S]*?){{\/photo}}/g, '');
+    html = html.replace(/\{\{#photo\}\}([\s\S]*?)\{\{\/photo\}\}/g, '$1');
+    html = html.replace(/\{\{\^photo\}\}([\s\S]*?)\{\{\/photo\}\}/g, '');
   } else {
-    html = html.replace(/{{#photo}}([\s\S]*?){{\/photo}}/g, '');
-    html = html.replace(/{{^photo}}([\s\S]*?){{\/photo}}/g, '$1');
+    html = html.replace(/\{\{#photo\}\}([\s\S]*?)\{\{\/photo\}\}/g, '');
+    html = html.replace(/\{\{\^photo\}\}([\s\S]*?)\{\{\/photo\}\}/g, '$1');
   }
   if (data.instagram) {
-    html = html.replace(/{{#instagram}}([\s\S]*?){{\/instagram}}/g, '$1');
+    html = html.replace(/\{\{#instagram\}\}([\s\S]*?)\{\{\/instagram\}\}/g, '$1');
   } else {
-    html = html.replace(/{{#instagram}}([\s\S]*?){{\/instagram}}/g, '');
+    html = html.replace(/\{\{#instagram\}\}([\s\S]*?)\{\{\/instagram\}\}/g, '');
   }
   if (data.city) {
-    html = html.replace(/{{#city}}([\s\S]*?){{\/city}}/g, '$1');
+    html = html.replace(/\{\{#city\}\}([\s\S]*?)\{\{\/city\}\}/g, '$1');
   } else {
-    html = html.replace(/{{#city}}([\s\S]*?){{\/city}}/g, '');
+    html = html.replace(/\{\{#city\}\}([\s\S]*?)\{\{\/city\}\}/g, '');
   }
 
   // Replace all variables
