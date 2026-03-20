@@ -6509,6 +6509,49 @@ function renderApiStatus(c) {
     </span>`).join('');
 }
 
+async function exportApiConfig() {
+  try {
+    const res = await fetch('/api/exportconfig');
+    if (!res.ok) throw new Error('Erro ' + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'vjoseph-api-keys.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('📤 Backup das chaves baixado!');
+  } catch(e) {
+    toast('❌ Erro ao exportar: ' + e.message);
+  }
+}
+
+async function importApiConfig(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    // Valida que é um arquivo de config válido
+    if (!data || typeof data !== 'object') throw new Error('Arquivo inválido');
+
+    const res = await fetch('/api/setconfig', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Erro ' + res.status);
+
+    await loadApiConfig(); // recarrega campos e badges
+    toast('✅ Chaves restauradas com sucesso!');
+  } catch(e) {
+    toast('❌ Erro ao restaurar: ' + e.message);
+  } finally {
+    // Limpa o input para permitir importar o mesmo arquivo novamente
+    if (input) input.value = '';
+  }
+}
+
 async function saveApiConfig() {
   const btn = document.getElementById('saveApiConfigBtn');
   const orig = btn ? btn.innerHTML : '';

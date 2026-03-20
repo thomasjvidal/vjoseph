@@ -72,8 +72,11 @@ class H(http.server.SimpleHTTPRequestHandler):
         self._cors(); self.end_headers()
 
     def do_GET(self):
-        if self.path.split('?')[0] == '/api/getconfig':
+        path = self.path.split('?')[0]
+        if path == '/api/getconfig':
             self._getconfig()
+        elif path == '/api/exportconfig':
+            self._exportconfig()
         else:
             super().do_GET()
 
@@ -110,6 +113,29 @@ class H(http.server.SimpleHTTPRequestHandler):
             'has_groq_3':          bool(c.get('groq_key_3', '').strip()),
             'has_anthropic':       bool(c.get('anthropic_key', '').strip()),
         })
+
+    def _exportconfig(self):
+        """Exporta config completo com chaves REAIS para backup local."""
+        c = cfg()
+        export = {
+            'groq_key':            c.get('groq_key', ''),
+            'groq_key_2':          c.get('groq_key_2', ''),
+            'groq_key_3':          c.get('groq_key_3', ''),
+            'anthropic_key':       c.get('anthropic_key', ''),
+            'groq_model':          c.get('groq_model', 'llama-3.3-70b-versatile'),
+            'groq_model_pipeline': c.get('groq_model_pipeline', 'llama-3.3-70b-versatile'),
+            'model':               c.get('model', 'claude-3-5-haiku-20241022'),
+            'model_pipeline':      c.get('model_pipeline', 'claude-3-5-sonnet-20241022'),
+        }
+        body = json.dumps(export, indent=2, ensure_ascii=False).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Content-Disposition', 'attachment; filename="vjoseph-api-keys.json"')
+        self._cors()
+        self.end_headers()
+        self.wfile.write(body)
+        _log('[Config] Backup de chaves exportado.')
 
     def _setconfig(self):
         """Salva config — nunca apaga chaves existentes com valor mascarado ou vazio."""
