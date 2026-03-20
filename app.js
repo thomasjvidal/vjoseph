@@ -579,6 +579,7 @@ function navigate(view, activeNavEl) {
     messages: ['Mensagens', 'Templates de prospecção e follow-up'],
     'lab-mensagens': ['Lab de Mensagens', 'Teste e otimize suas mensagens'],
     'biblioteca-templates': ['Biblioteca de Templates', 'Gerencie seus produtos e templates'],
+    stories: ['Stories Control', 'Estratégia de Stories integrada ao LeadFlow'],
     settings: ['Configurações', 'API, preços e configurações gerais']
   };
   if (titles[view]) {
@@ -604,6 +605,9 @@ function navigate(view, activeNavEl) {
     initKanbanDnd();
   }
 
+  if (view === 'stories') {
+    if (typeof renderStoriesView === 'function') renderStoriesView();
+  }
   if (view === 'settings') { loadSettingsForm(); loadApiConfig(); }
 
   // Recarrega Lab de Mensagens sempre que o usuário navegar para ela

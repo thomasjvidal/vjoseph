@@ -102,6 +102,14 @@
         </svg>
         <span>Office</span>
       </a>
+      <a href="#" class="nav-item" data-view="stories" id="nav-stories">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>Stories</span>
+      </a>
       <a href="#" class="nav-item" id="nav-pipeline-hq" onclick="navigatePipelineHQ(event)">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="4" width="5" height="20" rx="1"/><rect x="9.5" y="9" width="5" height="15" rx="1"/><rect x="17" y="6" width="5" height="18" rx="1"/>
@@ -1591,6 +1599,9 @@
         </div>
       </section>
 
+      <!-- STORIES CONTROL VIEW -->
+      <section class="view" id="view-stories" style="padding:0;overflow-y:auto"></section>
+
       <!-- SETTINGS VIEW -->
       <section class="view" id="view-settings">
         <div class="settings-layout">
@@ -2066,8 +2077,9 @@
     </div>
   </div>
 
-  <script src="app.js?v=apikeys1"></script>
+  <script src="app.js?v=stories1"></script>
   <script src="lab-library.js"></script>
+  <script src="stories.js?v=stories1"></script>
 </body>
 
 </html>
