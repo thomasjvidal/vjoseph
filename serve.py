@@ -13,10 +13,55 @@ PORT = int(os.environ.get("PORT", 3000))
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG  = os.path.join(BASE, 'ai-config.json')
 
+# Cria ai-config.json vazio se não existir (fresh clone)
+if not os.path.exists(CFG):
+    with open(CFG, 'w', encoding='utf-8') as f:
+        json.dump({
+            'groq_key': '',
+            'groq_key_2': '',
+            'groq_key_3': '',
+            'groq_model': 'llama-3.3-70b-versatile',
+            'groq_model_pipeline': 'llama-3.3-70b-versatile',
+            'anthropic_key': '',
+            'model': 'claude-3-5-haiku-20241022',
+            'model_pipeline': 'claude-3-5-sonnet-20241022'
+        }, f, indent=2, ensure_ascii=False)
+    _log('[Config] ai-config.json criado. Configure as chaves em Configuracoes no app.')
+
 def cfg():
     try:
         with open(CFG, encoding='utf-8') as f: return json.load(f)
     except: return {}
+
+def save_cfg(data):
+    """Salva config no disco de forma segura (nunca perde chaves existentes)."""
+    current = cfg()
+    secret_fields = ['groq_key', 'groq_key_2', 'groq_key_3', 'groq_key_4', 'anthropic_key']
+    plain_fields  = ['groq_model', 'groq_model_pipeline', 'model', 'model_pipeline']
+
+    for field in secret_fields:
+        val = str(data.get(field, '')).strip()
+        # Se vier mascarado (contém ****) ou vazio, mantém o valor já salvo
+        if val and '****' not in val:
+            current[field] = val
+        # Se vier vazio e campo não existia, deixa vazio (não cria)
+
+    for field in plain_fields:
+        if field in data and data[field]:
+            current[field] = data[field]
+
+    with open(CFG, 'w', encoding='utf-8') as f:
+        json.dump(current, f, indent=2, ensure_ascii=False)
+    return current
+
+def mask_key(k):
+    """Mascara uma chave: gsk_abcd...wxyz → gsk_ab****yz"""
+    if not k:
+        return ''
+    k = str(k).strip()
+    if len(k) <= 8:
+        return '****'
+    return k[:6] + '****' + k[-4:]
 
 class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
@@ -26,11 +71,19 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self._cors(); self.end_headers()
 
+    def do_GET(self):
+        if self.path.split('?')[0] == '/api/getconfig':
+            self._getconfig()
+        else:
+            super().do_GET()
+
     def do_POST(self):
         if self.path == '/api/chat':
             self._ai()
         elif self.path == '/api/transcribe':
             self._transcribe()
+        elif self.path == '/api/setconfig':
+            self._setconfig()
         else:
             self.send_error(404)
 
@@ -39,8 +92,44 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
+    def _getconfig(self):
+        """Retorna config atual com chaves mascaradas."""
+        c = cfg()
+        self._ok({
+            'groq_key':            mask_key(c.get('groq_key', '')),
+            'groq_key_2':          mask_key(c.get('groq_key_2', '')),
+            'groq_key_3':          mask_key(c.get('groq_key_3', '')),
+            'anthropic_key':       mask_key(c.get('anthropic_key', '')),
+            'groq_model':          c.get('groq_model', 'llama-3.3-70b-versatile'),
+            'groq_model_pipeline': c.get('groq_model_pipeline', 'llama-3.3-70b-versatile'),
+            'model':               c.get('model', 'claude-3-5-haiku-20241022'),
+            'model_pipeline':      c.get('model_pipeline', 'claude-3-5-sonnet-20241022'),
+            # Indica quais chaves estão preenchidas (sem expor o valor)
+            'has_groq':            bool(c.get('groq_key', '').strip()),
+            'has_groq_2':          bool(c.get('groq_key_2', '').strip()),
+            'has_groq_3':          bool(c.get('groq_key_3', '').strip()),
+            'has_anthropic':       bool(c.get('anthropic_key', '').strip()),
+        })
+
+    def _setconfig(self):
+        """Salva config — nunca apaga chaves existentes com valor mascarado ou vazio."""
+        try:
+            n = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(n))
+            saved = save_cfg(body)
+            _log('[Config] Chaves atualizadas via UI.')
+            self._ok({
+                'saved': True,
+                'has_groq':      bool(saved.get('groq_key', '').strip()),
+                'has_groq_2':    bool(saved.get('groq_key_2', '').strip()),
+                'has_groq_3':    bool(saved.get('groq_key_3', '').strip()),
+                'has_anthropic': bool(saved.get('anthropic_key', '').strip()),
+            })
+        except Exception as e:
+            self._err(500, str(e))
+
     def _call_groq(self, groq_key, model, groq_msgs, maxtok):
-        """Chama Groq com uma chave específica. Lança HTTPError 429 sem esperar (para rotação de chave)."""
+        """Chama Groq com uma chave específica."""
         payload = json.dumps({
             'model':      model,
             'max_tokens': maxtok,
@@ -83,7 +172,6 @@ class H(http.server.SimpleHTTPRequestHandler):
     def _transcribe(self):
         import base64
         c = cfg()
-        # Pega primeira chave Groq disponível
         groq_key = ''
         for k in ['groq_key', 'groq_key_2', 'groq_key_3']:
             v = c.get(k, '').strip()
@@ -91,7 +179,7 @@ class H(http.server.SimpleHTTPRequestHandler):
                 groq_key = v
                 break
         if not groq_key:
-            return self._err(400, 'Sem groq_key para transcrição')
+            return self._err(400, 'Sem groq_key. Configure em Configuracoes no app.')
         try:
             n = int(self.headers.get('Content-Length', 0))
             body = json.loads(self.rfile.read(n))
@@ -100,7 +188,6 @@ class H(http.server.SimpleHTTPRequestHandler):
             if not audio_b64:
                 return self._err(400, 'Sem audio')
             audio_bytes = base64.b64decode(audio_b64)
-            # Determina extensão
             if 'webm' in mime:
                 ext = 'webm'
             elif 'ogg' in mime:
@@ -109,7 +196,6 @@ class H(http.server.SimpleHTTPRequestHandler):
                 ext = 'mp4'
             else:
                 ext = 'webm'
-            # Monta multipart/form-data manualmente
             boundary = 'VJBoundary7x9z2k'
             parts = []
             parts.append(('--' + boundary + '\r\n').encode())
@@ -147,7 +233,6 @@ class H(http.server.SimpleHTTPRequestHandler):
         c = cfg()
         anthropic_key = c.get('anthropic_key', '').strip()
 
-        # Coleta TODAS as chaves Groq disponíveis: groq_key, groq_key_2, groq_key_3 ...
         groq_keys = []
         for k in ['groq_key', 'groq_key_2', 'groq_key_3', 'groq_key_4']:
             v = c.get(k, '').strip()
@@ -155,7 +240,7 @@ class H(http.server.SimpleHTTPRequestHandler):
                 groq_keys.append(v)
 
         if not groq_keys and not anthropic_key:
-            return self._err(400, 'Nenhuma API key. Adicione groq_key em ai-config.json.')
+            return self._err(400, 'Nenhuma API key configurada. Acesse Configuracoes no app e adicione sua chave Groq (gratuita).')
 
         try:
             n    = int(self.headers.get('Content-Length', 0))
@@ -174,8 +259,6 @@ class H(http.server.SimpleHTTPRequestHandler):
                          else c.get('groq_model', 'llama-3.3-70b-versatile')
             groq_msgs  = [{'role': 'system', 'content': system}] + clean_msgs
 
-            # ── Rotação de chaves Groq: NUNCA raise dentro do loop ──────────
-            # Qualquer erro (429, 500, timeout) -> tenta próxima chave
             for idx, key in enumerate(groq_keys):
                 try:
                     text = self._call_groq(key, groq_model, groq_msgs, maxtok)
@@ -185,13 +268,12 @@ class H(http.server.SimpleHTTPRequestHandler):
                     err_body = e.read().decode('utf-8', 'ignore')
                     safe = err_body.encode('ascii', 'replace').decode('ascii')[:60]
                     _log(f'[Groq {e.code}] chave #{idx+1} falhou: {safe}')
-                    continue  # sempre tenta proxima chave, sem raise
+                    continue
                 except Exception as e:
                     safe = str(e).encode('ascii', 'replace').decode('ascii')[:60]
                     _log(f'[Groq ERR] chave #{idx+1}: {safe}')
-                    continue  # idem
+                    continue
 
-            # ── Anthropic fallback: entra se TODAS as chaves Groq falharam ───
             if text is None and anthropic_key:
                 ant_model = c.get('model_pipeline', 'claude-3-5-sonnet-20241022') if pipeline \
                             else c.get('model', 'claude-3-5-haiku-20241022')
@@ -202,7 +284,7 @@ class H(http.server.SimpleHTTPRequestHandler):
             if text is not None:
                 self._ok({'text': text})
             else:
-                self._err(503, 'Todas as chaves Groq falharam. Adicione groq_key_2/3 ou configure anthropic_key.')
+                self._err(503, 'Todas as chaves Groq falharam. Adicione mais chaves ou configure a Anthropic Key em Configuracoes.')
 
         except urllib.error.HTTPError as e:
             msg = e.read().decode('utf-8', 'ignore')
@@ -230,5 +312,5 @@ class H(http.server.SimpleHTTPRequestHandler):
         _log(f'[{self.address_string()}] {fmt % a}')
 
 with ThreadingHTTPServer(('', PORT), H) as s:
-    print(f'VJoseph serve.py rodando na porta {PORT} (threaded + Groq retry + Anthropic fallback)', flush=True)
+    _log(f'VJoseph serve.py rodando na porta {PORT} (threaded + Groq retry + Anthropic fallback)')
     s.serve_forever()

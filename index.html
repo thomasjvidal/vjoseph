@@ -1594,6 +1594,75 @@
       <!-- SETTINGS VIEW -->
       <section class="view" id="view-settings">
         <div class="settings-layout">
+
+          <!-- ── CHAVES DE API ── -->
+          <div class="settings-section">
+            <h2>🤖 Chaves de API (IA)</h2>
+            <div class="settings-card">
+              <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;line-height:1.6">
+                As chaves ficam salvas <strong style="color:var(--text-secondary)">no servidor local</strong> — nunca vão para o GitHub.<br>
+                Se uma chave Groq der erro ou esgotar, o sistema troca automaticamente para a próxima. Anthropic é o fallback final.
+              </p>
+
+              <!-- Status badges -->
+              <div id="apiStatusBadges" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;min-height:28px"></div>
+
+              <div class="gen-form-grid">
+                <div class="form-group">
+                  <label>Groq Key 1 <span style="color:#10B981;font-size:11px">(principal)</span></label>
+                  <input type="password" id="cfgGroqKey1" placeholder="gsk_... (gratuito em console.groq.com)"
+                    class="form-input" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label>Groq Key 2 <span style="color:#6b7280;font-size:11px">(fallback automático)</span></label>
+                  <input type="password" id="cfgGroqKey2" placeholder="gsk_..."
+                    class="form-input" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label>Groq Key 3 <span style="color:#6b7280;font-size:11px">(fallback automático)</span></label>
+                  <input type="password" id="cfgGroqKey3" placeholder="gsk_..."
+                    class="form-input" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label>Anthropic Key <span style="color:#7C3AED;font-size:11px">(fallback final)</span></label>
+                  <input type="password" id="cfgAnthropicKey" placeholder="sk-ant-..."
+                    class="form-input" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label>Modelo Groq</label>
+                  <select id="cfgGroqModel" class="form-select">
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B — recomendado</option>
+                    <option value="llama-3.1-8b-instant">Llama 3.1 8B — mais rápido</option>
+                    <option value="gemma2-9b-it">Gemma 2 9B</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Modelo Anthropic (pipeline)</label>
+                  <select id="cfgAnthropicModel" class="form-select">
+                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku — rápido</option>
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet — melhor</option>
+                    <option value="claude-3-opus-20240229">Claude 3 Opus — máximo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">
+                <button class="btn-primary" id="saveApiConfigBtn" onclick="saveApiConfig()" style="flex:1;min-width:160px">
+                  💾 Salvar Chaves
+                </button>
+                <button class="btn-secondary" onclick="loadApiConfig()" style="padding:10px 18px">
+                  🔄 Recarregar
+                </button>
+              </div>
+              <p class="field-hint" style="margin-top:10px">
+                Crie chaves Groq gratuitas em <strong>console.groq.com</strong> → API Keys → Create API Key.
+                Adicione 2-3 chaves para nunca travar por limite de requisições.
+              </p>
+            </div>
+          </div>
+          <!-- ── FIM CHAVES DE API ── -->
+
           <div class="settings-section">
             <h2>Configurações do Negócio</h2>
             <div class="settings-card">
@@ -1990,7 +2059,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=blocos2"></script>
+  <script src="app.js?v=apikeys1"></script>
   <script src="lab-library.js"></script>
 </body>
 

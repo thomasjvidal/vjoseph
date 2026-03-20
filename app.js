@@ -604,7 +604,7 @@ function navigate(view, activeNavEl) {
     initKanbanDnd();
   }
 
-  if (view === 'settings') loadSettingsForm();
+  if (view === 'settings') { loadSettingsForm(); loadApiConfig(); }
 
   // Recarrega Lab de Mensagens sempre que o usuário navegar para ela
   if (view === 'lab-mensagens') {
@@ -6462,6 +6462,84 @@ function resolveMsg() {
 }
 
 
+
+// ---- API CONFIG (chaves de IA) ----
+
+async function loadApiConfig() {
+  try {
+    const res = await fetch('/api/getconfig');
+    if (!res.ok) { renderApiStatus(null); return; }
+    const c = await res.json();
+    // Preenche campos com valores mascarados
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('cfgGroqKey1',     c.groq_key);
+    set('cfgGroqKey2',     c.groq_key_2);
+    set('cfgGroqKey3',     c.groq_key_3);
+    set('cfgAnthropicKey', c.anthropic_key);
+    const gm = document.getElementById('cfgGroqModel');
+    if (gm) gm.value = c.groq_model || 'llama-3.3-70b-versatile';
+    const am = document.getElementById('cfgAnthropicModel');
+    if (am) am.value = c.model || 'claude-3-5-haiku-20241022';
+    renderApiStatus(c);
+  } catch(e) {
+    console.warn('[ApiConfig] Servidor não disponível:', e.message);
+    renderApiStatus(null);
+  }
+}
+
+function renderApiStatus(c) {
+  const el = document.getElementById('apiStatusBadges');
+  if (!el) return;
+  if (!c) {
+    el.innerHTML = `<span style="font-size:12px;color:#ef4444">⚠️ Servidor não encontrado — inicie o serve.py</span>`;
+    return;
+  }
+  const items = [
+    { label: 'Groq 1',    ok: c.has_groq,      color: '#10B981' },
+    { label: 'Groq 2',    ok: c.has_groq_2,    color: '#10B981' },
+    { label: 'Groq 3',    ok: c.has_groq_3,    color: '#10B981' },
+    { label: 'Anthropic', ok: c.has_anthropic,  color: '#7C3AED' },
+  ];
+  el.innerHTML = items.map(b => `
+    <span style="padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;
+      background:${b.ok ? b.color+'22' : 'rgba(255,255,255,.05)'};
+      color:${b.ok ? b.color : '#6b7280'};
+      border:1px solid ${b.ok ? b.color+'44' : 'rgba(255,255,255,.08)'}">
+      ${b.ok ? '✓' : '✗'} ${b.label}
+    </span>`).join('');
+}
+
+async function saveApiConfig() {
+  const btn = document.getElementById('saveApiConfigBtn');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Salvando...'; }
+  try {
+    const body = {
+      groq_key:       (document.getElementById('cfgGroqKey1')?.value || '').trim(),
+      groq_key_2:     (document.getElementById('cfgGroqKey2')?.value || '').trim(),
+      groq_key_3:     (document.getElementById('cfgGroqKey3')?.value || '').trim(),
+      anthropic_key:  (document.getElementById('cfgAnthropicKey')?.value || '').trim(),
+      groq_model:     document.getElementById('cfgGroqModel')?.value || 'llama-3.3-70b-versatile',
+      model:          document.getElementById('cfgAnthropicModel')?.value || 'claude-3-5-haiku-20241022',
+    };
+    const res = await fetch('/api/setconfig', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('Erro ' + res.status);
+    const result = await res.json();
+    // Atualiza badges com resultado real do servidor
+    renderApiStatus(result);
+    // Recarrega valores mascarados nos campos
+    await loadApiConfig();
+    toast('✅ Chaves salvas com sucesso!');
+  } catch(e) {
+    toast('❌ Erro ao salvar: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
 
 // ---- SETTINGS ----
 function loadSettingsForm() {
