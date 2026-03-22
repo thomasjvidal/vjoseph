@@ -264,13 +264,12 @@ const SECTION_CATEGORIES = ['hero', 'bio', 'servicos', 'cta'];
 let state = {
   leads: [],
   settings: {
-    geminiKey: '',
     vercelToken: '',
     servicePrice: 350,
     dailyLeadGoal: 100,
     monthlySiteGoal: 30,
-    yourName: 'MFS Studio',
-    yourInstagram: '@mfsstudio'
+    yourName: '',
+    yourInstagram: ''
   },
   currentView: 'dashboard',
   dashboardTab: 'metrics',
@@ -621,46 +620,33 @@ function navigate(view, activeNavEl) {
     }
   }
 
-  // Send LeadFlow data to HQ iframe when office view is active
+  // Render Pipeline HQ board
   if (view === 'office') {
-    setTimeout(() => {
-      const iframe = document.querySelector('#view-office iframe');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'lf_data', leads: state.leads, settings: state.settings }, '*');
-      }
-    }, 700);
+    setTimeout(() => renderProspectingBoard(), 50);
   }
 }
-
-// Recebe postMessage do HQ (iframe) quando um lead muda de etapa
-window.addEventListener('message', function(e) {
-  if (!e.data || !e.data.type) return;
-  // HQ confirmou envio e moveu lead → atualiza estado local
-  if (e.data.type === 'lf_leads_updated' && Array.isArray(e.data.leads)) {
-    state.leads = e.data.leads;
-    save();
-    if (state.currentView === 'dashboard') { renderDashboard(); syncDashboardTabsUI(); }
-    if (state.currentView === 'leads') renderLeadsTable();
-    if (state.currentView === 'dashboard2') renderDashboard2();
-    if (state.currentView === 'kpis') renderKPIs();
-  }
-});
 
 function navigatePipelineHQ(e) {
   if(e) e.preventDefault();
   navigate('office');
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('nav-pipeline-hq').classList.add('active');
+  const hqNav = document.getElementById('nav-pipeline-hq');
+  if (hqNav) hqNav.classList.add('active');
   document.getElementById('pageTitle').textContent = 'Pipeline HQ';
-  document.getElementById('breadcrumb').textContent = 'Funil IA completo do VJoseph HQ';
-  setTimeout(() => {
-    const iframe = document.querySelector('#view-office iframe');
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'lf_data', leads: state.leads, settings: state.settings }, '*');
-      iframe.contentWindow.postMessage({ type: 'open_pipeline' }, '*');
-    }
-  }, 700);
+  document.getElementById('breadcrumb').textContent = 'Funil completo de prospecção';
+  setTimeout(() => renderProspectingBoard(), 50);
 }
+
+// ---- DATA LAYER ----
+function getData() { return state; }
+function setData(newState) { Object.assign(state, newState); save(); }
+function updateLead(id, changes) {
+  const idx = state.leads.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  Object.assign(state.leads[idx], changes);
+  save();
+}
+function moveLead(leadId, stageId) { moveLeadToStage(leadId, stageId); }
 
 // ---- TOAST ----
 function toast(msg, icon = 'success') {
@@ -1571,7 +1557,9 @@ function renderKPIs() {
   };
 
   const funnelVisualEl = document.getElementById('kpiFunnelVisual');
-  if (funnelVisualEl) {
+  const funnelVisualEl2 = document.getElementById('kpiFunnelVisual2');
+  
+  if (funnelVisualEl || funnelVisualEl2) {
     const steps = [
       { label: 'Leads', count: totalLeads },
       { label: 'DM1 enviadas', count: dm1Sent },
@@ -1582,7 +1570,8 @@ function renderKPIs() {
     ];
     const base = Math.max(steps[0].count, 1);
     const hasBase = steps[0].count > 0;
-    funnelVisualEl.innerHTML = `
+    
+    const funnelHtml = `
       <div class="kpi-funnel-steps">
         ${steps.map((s, i) => {
           const pct = hasBase ? Math.round((s.count / base) * 100) : 0;
@@ -1604,6 +1593,9 @@ function renderKPIs() {
         }).join('')}
       </div>
     `;
+    
+    if (funnelVisualEl) funnelVisualEl.innerHTML = funnelHtml;
+    if (funnelVisualEl2) funnelVisualEl2.innerHTML = funnelHtml;
   }
 
   const funnelMiniTable = document.getElementById('kpiFunnelMiniTable');
@@ -3653,9 +3645,11 @@ async function analyzeBio() {
 
   try {
     let result;
-    if (state.settings.geminiKey) {
-      result = await analyzeWithGemini(bio);
-    } else {
+    // Análise local com Groq via /api/chat se disponível, senão fallback regex
+    try {
+      const groqResult = await analyzeWithGroq(bio);
+      result = groqResult;
+    } catch(groqErr) {
       result = analyzeLocal(bio);
     }
     renderAnalysisResult(result, resultPanel);
@@ -3667,14 +3661,14 @@ async function analyzeBio() {
   }
 }
 
-async function analyzeWithGemini(bio) {
-  const prompt = `Analise a bio de Instagram abaixo e extraia as seguintes informações em JSON puro (sem markdown, sem blocos de código):
+async function analyzeWithGroq(bio) {
+  const prompt = `Analise a bio de Instagram abaixo e extraia as seguintes informações em JSON puro (sem markdown, sem blocos de código, sem texto extra):
 {
   "nome": "nome completo ou nome de trabalho",
   "especialidade": "área de atuação principal",
   "cidade": "cidade/estado se mencionado",
-  "atendimento": "online/presencial/ambos",
-  "tom": "formal/informal/motivacional",
+  "atendimento": "Online e Presencial",
+  "tom": "formal",
   "servicos": ["lista", "de", "serviços"],
   "keywords": ["palavras", "chave"],
   "whatsapp": "número se mencionado ou vazio"
@@ -3682,15 +3676,19 @@ async function analyzeWithGemini(bio) {
 
 BIO: ${bio}`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.settings.geminiKey}`, {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    body: JSON.stringify({
+      system: 'Você é um extrator de dados de bios do Instagram. Retorne APENAS JSON puro, sem markdown.',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 400
+    })
   });
 
-  if (!res.ok) throw new Error(`API Error: ${res.status}`);
+  if (!res.ok) throw new Error('Groq indisponível');
   const data = await res.json();
-  const text = data.candidates[0].content.parts[0].text.trim();
+  const text = (data.text || '').trim().replace(/```json|```/g, '');
   return JSON.parse(text);
 }
 
@@ -3838,7 +3836,7 @@ document.getElementById('genAvatar').addEventListener('input', e => {
     const l = state.leads.find(x => x.id === leadId);
     if (l) {
       l.avatar = url;
-      saveState();
+      save();
       renderDashboard(); // Refresh Kanban cards
     }
   }
@@ -6476,14 +6474,11 @@ async function loadApiConfig() {
     const c = await res.json();
     // Preenche campos com valores mascarados
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    set('cfgGroqKey1',     c.groq_key);
-    set('cfgGroqKey2',     c.groq_key_2);
-    set('cfgGroqKey3',     c.groq_key_3);
-    set('cfgAnthropicKey', c.anthropic_key);
+    set('cfgGroqKey1', c.groq_key);
+    set('cfgGroqKey2', c.groq_key_2);
+    set('cfgGroqKey3', c.groq_key_3);
     const gm = document.getElementById('cfgGroqModel');
     if (gm) gm.value = c.groq_model || 'llama-3.3-70b-versatile';
-    const am = document.getElementById('cfgAnthropicModel');
-    if (am) am.value = c.model || 'claude-3-5-haiku-20241022';
     renderApiStatus(c);
   } catch(e) {
     console.warn('[ApiConfig] Servidor não disponível:', e.message);
@@ -6499,10 +6494,9 @@ function renderApiStatus(c) {
     return;
   }
   const items = [
-    { label: 'Groq 1',    ok: c.has_groq,      color: '#10B981' },
-    { label: 'Groq 2',    ok: c.has_groq_2,    color: '#10B981' },
-    { label: 'Groq 3',    ok: c.has_groq_3,    color: '#10B981' },
-    { label: 'Anthropic', ok: c.has_anthropic,  color: '#7C3AED' },
+    { label: 'Groq 1', ok: c.has_groq,   color: '#10B981' },
+    { label: 'Groq 2', ok: c.has_groq_2, color: '#10B981' },
+    { label: 'Groq 3', ok: c.has_groq_3, color: '#10B981' },
   ];
   el.innerHTML = items.map(b => `
     <span style="padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;
@@ -6562,12 +6556,10 @@ async function saveApiConfig() {
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Salvando...'; }
   try {
     const body = {
-      groq_key:       (document.getElementById('cfgGroqKey1')?.value || '').trim(),
-      groq_key_2:     (document.getElementById('cfgGroqKey2')?.value || '').trim(),
-      groq_key_3:     (document.getElementById('cfgGroqKey3')?.value || '').trim(),
-      anthropic_key:  (document.getElementById('cfgAnthropicKey')?.value || '').trim(),
-      groq_model:     document.getElementById('cfgGroqModel')?.value || 'llama-3.3-70b-versatile',
-      model:          document.getElementById('cfgAnthropicModel')?.value || 'claude-3-5-haiku-20241022',
+      groq_key:   (document.getElementById('cfgGroqKey1')?.value || '').trim(),
+      groq_key_2: (document.getElementById('cfgGroqKey2')?.value || '').trim(),
+      groq_key_3: (document.getElementById('cfgGroqKey3')?.value || '').trim(),
+      groq_model: document.getElementById('cfgGroqModel')?.value || 'llama-3.3-70b-versatile',
     };
     const res = await fetch('/api/setconfig', {
       method: 'POST',
@@ -6590,9 +6582,6 @@ async function saveApiConfig() {
 
 // ---- SETTINGS ----
 function loadSettingsForm() {
-  const geminiKeyEl = document.getElementById('geminiKey');
-  if (geminiKeyEl) geminiKeyEl.value = state.settings.geminiKey || '';
-
   const vercelTokenEl = document.getElementById('vercelToken');
   if (vercelTokenEl) vercelTokenEl.value = state.settings.vercelToken || '';
 
@@ -6604,20 +6593,27 @@ function loadSettingsForm() {
 }
 
 function saveSettings() {
-  const geminiKeyEl = document.getElementById('geminiKey');
-
   state.settings = {
-    geminiKey: geminiKeyEl ? geminiKeyEl.value.trim() : (state.settings.geminiKey || ''),
-    vercelToken: document.getElementById('vercelToken') ? document.getElementById('vercelToken').value.trim() : (state.settings.vercelToken || ''),
+    vercelToken: (document.getElementById('vercelToken') || {}).value?.trim() || (state.settings.vercelToken || ''),
     servicePrice: parseFloat(document.getElementById('servicePrice').value) || 350,
     dailyLeadGoal: parseInt(document.getElementById('dailyLeadGoal').value) || 100,
     monthlySiteGoal: parseInt(document.getElementById('monthlySiteGoal').value) || 30,
-    yourName: document.getElementById('yourName').value.trim(),
-    yourInstagram: document.getElementById('yourInstagram').value.trim()
+    yourName: (document.getElementById('yourName') || {}).value?.trim() || '',
+    yourInstagram: (document.getElementById('yourInstagram') || {}).value?.trim() || ''
   };
   save();
+  updateSidebarUser();
   renderDashboard();
   toast('Configurações salvas!');
+}
+
+function updateSidebarUser() {
+  const name = (state.settings && state.settings.yourName) || 'LeadFlow';
+  const initial = name.trim().charAt(0).toUpperCase() || 'L';
+  const avatarEl = document.getElementById('sidebarUserAvatar');
+  const nameEl = document.getElementById('sidebarUserName');
+  if (avatarEl) avatarEl.textContent = initial;
+  if (nameEl) nameEl.textContent = name;
 }
 
 // ---- BACKUP & RESTORE ----
@@ -6626,8 +6622,10 @@ function exportBackup() {
     leads: state.leads,
     settings: state.settings,
     customTemplates: state.customTemplates,
+    messageLab: state.messageLab || {},
+    templateLibrary: state.templateLibrary || {},
     timestamp: Date.now(),
-    version: '1.0'
+    version: '2.0'
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -6755,12 +6753,12 @@ function importBackup(event) {
         };
 
         const ensurePipeline = (lead) => {
-          if (!lead.pipelineStage) {
-            if (lead.status === 'fechado') lead.pipelineStage = 'fechado';
-            else if (lead.status === 'contatado') lead.pipelineStage = 'dm_enviada';
-            else if (lead.status === 'site_pronto') lead.pipelineStage = 'engajar';
-            else lead.pipelineStage = 'engajar';
+          if (!lead.pipelineStageV2) {
+            if (lead.status === 'fechado') lead.pipelineStageV2 = 'fechado';
+            else if (lead.status === 'contatado') lead.pipelineStageV2 = 'dm1_enviada';
+            else lead.pipelineStageV2 = 'coletados';
           }
+          if (!lead.pipelineStage) lead.pipelineStage = lead.pipelineStageV2 === 'coletados' ? 'engajar' : (lead.pipelineStageV2 || 'engajar');
           if (!lead.history) lead.history = [];
           if (!lead.createdAt) lead.createdAt = Date.now();
           if (!lead.id) lead.id = genId();
@@ -6824,6 +6822,8 @@ function importBackup(event) {
         state.leads = data.leads;
         if (data.settings) state.settings = { ...state.settings, ...data.settings };
         if (data.customTemplates) state.customTemplates = data.customTemplates;
+        if (data.messageLab) { state.messageLab = data.messageLab; try { localStorage.setItem('lf_messageLab', JSON.stringify(state.messageLab)); } catch(e) {} }
+        if (data.templateLibrary) { state.templateLibrary = data.templateLibrary; try { localStorage.setItem('lf_templateLibrary', JSON.stringify(state.templateLibrary)); } catch(e) {} }
 
         save();
         renderDashboard();
@@ -6870,7 +6870,9 @@ function doImport() {
       state.leads.push({
         id: genId(), createdAt: Date.now(),
         name: parts[0], instagram: parts[1] || '', specialty: parts[2] || '',
-        city: parts[3] || '', whatsapp: '', bio: '', status: 'coletado', siteLink: '', notes: ''
+        city: parts[3] || '', whatsapp: '', bio: '', status: 'coletado',
+        pipelineStage: 'engajar', pipelineStageV2: 'coletados',
+        history: [], siteLink: '', notes: ''
       });
       count++;
     }
@@ -6897,6 +6899,12 @@ document.addEventListener('DOMContentLoaded', () => {
   load();
   renderDashboard();
   syncDashboardTabsUI();
+  updateSidebarUser();
+
+  // Autosave every 30 seconds
+  setInterval(() => {
+    save();
+  }, 30000);
 
   // Sidebar toggle
   document.getElementById('sidebarToggle').addEventListener('click', () => {
@@ -7154,8 +7162,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const idx = state.leads.findIndex(x => x.id === leadId);
       if (idx !== -1 && state.leads[idx].status !== 'fechado') {
         state.leads[idx].status = 'contatado';
+        state.leads[idx].pipelineStageV2 = 'dm1_enviada';
+        state.leads[idx].pipelineStage = 'dm_enviada';
+        if (!state.leads[idx].history) state.leads[idx].history = [];
+        state.leads[idx].history.push({ date: new Date().toISOString(), action: 'DM enviada via Lab de Mensagens', user: (state.settings && state.settings.yourName) || 'Usuário' });
         save();
-        toast('Lead marcado como contatado!');
+        renderDashboard();
+        toast('Lead marcado como DM enviada!');
       }
     });
   }
@@ -7262,7 +7275,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modalAvatarImg.referrerPolicy = 'no-referrer';
 
     modalAvatarImg.addEventListener('load', () => {
-      console.log('Imagem carregada com sucesso:', modalAvatarImg.src);
       modalAvatarImg.style.display = 'block';
       leadImageInput.style.borderColor = ''; // Reset border
       leadImageInput.title = '';
@@ -7611,41 +7623,92 @@ window.drop = function (ev, stageId) {
   moveLeadToStage(leadId, stageId);
 }
 
+let _pendingMove = null;
+
 window.moveLeadToStage = function (leadId, stageId) {
   const idx = state.leads.findIndex(l => l.id === leadId);
-  if (idx > -1) {
-    const lead = state.leads[idx];
-    const oldStage = lead.pipelineStage || 'engajar';
-    const oldStatus = lead.status || '';
-    lead.pipelineStage = stageId;
+  if (idx === -1) return;
+  const lead = state.leads[idx];
+  const oldStage = lead.pipelineStage || 'engajar';
+  const stageName = (PROSPECT_STAGES.find(s => s.id === stageId) || {}).label || stageId;
+  const oldStageName = (PROSPECT_STAGES.find(s => s.id === oldStage) || {}).label || oldStage;
 
-    if (stageId === 'fechado') {
-      lead.status = 'fechado';
-      if (!lead.closedAt) lead.closedAt = Date.now();
-    } else if (oldStatus === 'fechado') {
-      lead.status = 'contatado';
-      if (lead.closedAt) delete lead.closedAt;
-    } else if (stageId !== 'engajar' && oldStatus !== 'arquivado') {
-      if (!['contatado', 'site_pronto', 'cobrado', 'fechado'].includes(oldStatus)) {
-        lead.status = 'contatado';
-      }
-    }
+  _pendingMove = { leadId, stageId, idx, oldStage };
 
-    // Add to history
-    if (!lead.history) lead.history = [];
-    lead.history.push({
-      date: new Date().toISOString(),
-      action: `Moved: ${oldStage} -> ${stageId}`,
-      user: 'user'
-    });
-
-    save();
-    renderProspectingBoard();
-    renderDashboard();
-    renderLeadsTable();
-    renderPipelineStats();
-    toast(`Lead movido para ${PROSPECT_STAGES.find(s => s.id === stageId).label}`);
+  const modal = document.getElementById('moveLeadModal');
+  if (modal) {
+    document.getElementById('moveLeadModalTitle').textContent = lead.name + ' → ' + stageName;
+    document.getElementById('moveLeadModalDesc').textContent = 'De: "' + oldStageName + '" para "' + stageName + '"';
+    document.getElementById('moveLeadMsgInput').value = '';
+    modal.classList.add('open');
+  } else {
+    _applyLeadMove(idx, stageId, oldStage, '');
   }
+}
+
+window.confirmMoveLeadModal = function() {
+  if (!_pendingMove) return;
+  const { stageId, idx, oldStage } = _pendingMove;
+  const msg = (document.getElementById('moveLeadMsgInput') || {}).value || '';
+  _applyLeadMove(idx, stageId, oldStage, msg.trim());
+  document.getElementById('moveLeadModal').classList.remove('open');
+  _pendingMove = null;
+}
+
+window.skipMoveLeadModal = function() {
+  if (!_pendingMove) return;
+  const { stageId, idx, oldStage } = _pendingMove;
+  _applyLeadMove(idx, stageId, oldStage, '');
+  document.getElementById('moveLeadModal').classList.remove('open');
+  _pendingMove = null;
+}
+
+function _applyLeadMove(idx, stageId, oldStage, message) {
+  const lead = state.leads[idx];
+  const oldStatus = lead.status || '';
+  lead.pipelineStage = stageId;
+  lead.pipelineStageV2 = stageId;
+
+  if (stageId === 'fechado') {
+    lead.status = 'fechado';
+    if (!lead.closedAt) lead.closedAt = Date.now();
+  } else if (oldStatus === 'fechado') {
+    lead.status = 'contatado';
+    if (lead.closedAt) delete lead.closedAt;
+  } else if (stageId !== 'engajar' && oldStatus !== 'arquivado') {
+    if (!['contatado', 'site_pronto', 'cobrado', 'fechado'].includes(oldStatus)) {
+      lead.status = 'contatado';
+    }
+  }
+
+  if (!lead.history) lead.history = [];
+  const entry = {
+    date: new Date().toISOString(),
+    action: oldStage + ' → ' + stageId,
+    user: (state.settings && state.settings.yourName) || 'Usuário'
+  };
+  if (message) entry.message = message;
+  lead.history.push(entry);
+
+  if (message) {
+    if (!state.messageLab) state.messageLab = {};
+    if (!state.messageLab[stageId]) state.messageLab[stageId] = [];
+    state.messageLab[stageId].push({
+      id: genId(),
+      leadId: lead.id,
+      leadName: lead.name,
+      text: message,
+      date: new Date().toISOString()
+    });
+    try { localStorage.setItem('lf_messageLab', JSON.stringify(state.messageLab)); } catch(e) {}
+  }
+
+  save();
+  renderProspectingBoard();
+  renderDashboard();
+  renderLeadsTable();
+  const stageLabelFinal = (PROSPECT_STAGES.find(s => s.id === stageId) || {}).label || stageId;
+  toast('Lead movido para ' + stageLabelFinal);
 }
 
 window.prospectAction = function (leadId, action) {

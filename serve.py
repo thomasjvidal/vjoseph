@@ -21,10 +21,7 @@ if not os.path.exists(CFG):
             'groq_key_2': '',
             'groq_key_3': '',
             'groq_model': 'llama-3.3-70b-versatile',
-            'groq_model_pipeline': 'llama-3.3-70b-versatile',
-            'anthropic_key': '',
-            'model': 'claude-3-5-haiku-20241022',
-            'model_pipeline': 'claude-3-5-sonnet-20241022'
+            'groq_model_pipeline': 'llama-3.3-70b-versatile'
         }, f, indent=2, ensure_ascii=False)
     _log('[Config] ai-config.json criado. Configure as chaves em Configuracoes no app.')
 
@@ -36,8 +33,8 @@ def cfg():
 def save_cfg(data):
     """Salva config no disco de forma segura (nunca perde chaves existentes)."""
     current = cfg()
-    secret_fields = ['groq_key', 'groq_key_2', 'groq_key_3', 'groq_key_4', 'anthropic_key']
-    plain_fields  = ['groq_model', 'groq_model_pipeline', 'model', 'model_pipeline']
+    secret_fields = ['groq_key', 'groq_key_2', 'groq_key_3']
+    plain_fields  = ['groq_model', 'groq_model_pipeline']
 
     for field in secret_fields:
         val = str(data.get(field, '')).strip()
@@ -102,16 +99,12 @@ class H(http.server.SimpleHTTPRequestHandler):
             'groq_key':            mask_key(c.get('groq_key', '')),
             'groq_key_2':          mask_key(c.get('groq_key_2', '')),
             'groq_key_3':          mask_key(c.get('groq_key_3', '')),
-            'anthropic_key':       mask_key(c.get('anthropic_key', '')),
             'groq_model':          c.get('groq_model', 'llama-3.3-70b-versatile'),
             'groq_model_pipeline': c.get('groq_model_pipeline', 'llama-3.3-70b-versatile'),
-            'model':               c.get('model', 'claude-3-5-haiku-20241022'),
-            'model_pipeline':      c.get('model_pipeline', 'claude-3-5-sonnet-20241022'),
             # Indica quais chaves estão preenchidas (sem expor o valor)
             'has_groq':            bool(c.get('groq_key', '').strip()),
             'has_groq_2':          bool(c.get('groq_key_2', '').strip()),
             'has_groq_3':          bool(c.get('groq_key_3', '').strip()),
-            'has_anthropic':       bool(c.get('anthropic_key', '').strip()),
         })
 
     def _exportconfig(self):
@@ -121,11 +114,8 @@ class H(http.server.SimpleHTTPRequestHandler):
             'groq_key':            c.get('groq_key', ''),
             'groq_key_2':          c.get('groq_key_2', ''),
             'groq_key_3':          c.get('groq_key_3', ''),
-            'anthropic_key':       c.get('anthropic_key', ''),
             'groq_model':          c.get('groq_model', 'llama-3.3-70b-versatile'),
             'groq_model_pipeline': c.get('groq_model_pipeline', 'llama-3.3-70b-versatile'),
-            'model':               c.get('model', 'claude-3-5-haiku-20241022'),
-            'model_pipeline':      c.get('model_pipeline', 'claude-3-5-sonnet-20241022'),
         }
         body = json.dumps(export, indent=2, ensure_ascii=False).encode('utf-8')
         self.send_response(200)
@@ -146,10 +136,9 @@ class H(http.server.SimpleHTTPRequestHandler):
             _log('[Config] Chaves atualizadas via UI.')
             self._ok({
                 'saved': True,
-                'has_groq':      bool(saved.get('groq_key', '').strip()),
-                'has_groq_2':    bool(saved.get('groq_key_2', '').strip()),
-                'has_groq_3':    bool(saved.get('groq_key_3', '').strip()),
-                'has_anthropic': bool(saved.get('anthropic_key', '').strip()),
+                'has_groq':   bool(saved.get('groq_key', '').strip()),
+                'has_groq_2': bool(saved.get('groq_key_2', '').strip()),
+                'has_groq_3': bool(saved.get('groq_key_3', '').strip()),
             })
         except Exception as e:
             self._err(500, str(e))
@@ -173,27 +162,6 @@ class H(http.server.SimpleHTTPRequestHandler):
         with urllib.request.urlopen(req, timeout=45) as r:
             d = json.loads(r.read())
             return d['choices'][0]['message']['content'].strip()
-
-    def _call_anthropic(self, anthropic_key, model, system, clean_msgs, maxtok):
-        """Chama Anthropic Claude."""
-        payload = json.dumps({
-            'model':      model,
-            'max_tokens': maxtok,
-            'system':     system,
-            'messages':   clean_msgs
-        }).encode()
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type':      'application/json',
-                'x-api-key':         anthropic_key,
-                'anthropic-version': '2023-06-01'
-            }
-        )
-        with urllib.request.urlopen(req, timeout=45) as r:
-            d = json.loads(r.read())
-            return d['content'][0]['text'].strip()
 
     def _transcribe(self):
         import base64
@@ -257,15 +225,14 @@ class H(http.server.SimpleHTTPRequestHandler):
 
     def _ai(self):
         c = cfg()
-        anthropic_key = c.get('anthropic_key', '').strip()
 
         groq_keys = []
-        for k in ['groq_key', 'groq_key_2', 'groq_key_3', 'groq_key_4']:
+        for k in ['groq_key', 'groq_key_2', 'groq_key_3']:
             v = c.get(k, '').strip()
             if v:
                 groq_keys.append(v)
 
-        if not groq_keys and not anthropic_key:
+        if not groq_keys:
             return self._err(400, 'Nenhuma API key configurada. Acesse Configuracoes no app e adicione sua chave Groq (gratuita).')
 
         try:
@@ -300,17 +267,10 @@ class H(http.server.SimpleHTTPRequestHandler):
                     _log(f'[Groq ERR] chave #{idx+1}: {safe}')
                     continue
 
-            if text is None and anthropic_key:
-                ant_model = c.get('model_pipeline', 'claude-3-5-sonnet-20241022') if pipeline \
-                            else c.get('model', 'claude-3-5-haiku-20241022')
-                _log(f'[Groq exauriu -> Anthropic] usando {ant_model}...')
-                text = self._call_anthropic(anthropic_key, ant_model, system, clean_msgs, maxtok)
-                _log(f'[Anthropic OK] {ant_model}')
-
             if text is not None:
                 self._ok({'text': text})
             else:
-                self._err(503, 'Todas as chaves Groq falharam. Adicione mais chaves ou configure a Anthropic Key em Configuracoes.')
+                self._err(503, 'Todas as chaves Groq falharam. Adicione mais chaves Groq em Configuracoes.')
 
         except urllib.error.HTTPError as e:
             msg = e.read().decode('utf-8', 'ignore')
@@ -338,5 +298,5 @@ class H(http.server.SimpleHTTPRequestHandler):
         _log(f'[{self.address_string()}] {fmt % a}')
 
 with ThreadingHTTPServer(('', PORT), H) as s:
-    _log(f'VJoseph serve.py rodando na porta {PORT} (threaded + Groq retry + Anthropic fallback)')
+    _log(f'VJoseph serve.py rodando na porta {PORT} (threaded + Groq retry)')
     s.serve_forever()

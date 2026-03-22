@@ -6,15 +6,24 @@
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 
 const SC_STAGE_MAP = {
-  coletados:        'Coletados',
-  dm1_enviada:      'DM1 enviada',
-  respondeu:        'Respondeu',
-  follow_up_1:      'Follow-up 1',
-  chat_gerado:      'Engajados',
-  proposta_enviada: 'Proposta',
-  fechado:          'Fechado',
-  arquivado:        'Arquivado',
-  dm2_enviada:      'Follow-up 1',
+  coletados:          'Coletados',
+  perfil_engajado:    'Perfil Engajado',
+  dm1_enviada:        'DM1 enviada',
+  nao_respondeu:      'Não Respondeu',
+  respondeu:          'Respondeu',
+  follow_up_1:        'Follow-up 1',
+  chat_gerado:        'Em Chat',
+  dm2_enviada:        'DM2 enviada',
+  proposta_enviada:   'Proposta enviada',
+  follow_up_2:        'Follow-up 2',
+  fechado:            'Fechado',
+  arquivado:          'Arquivado',
+  // Legacy pipeline stages mapping
+  engajar:            'Coletados',
+  dm_enviada:         'DM1 enviada',
+  follow_up:          'Follow-up 1',
+  whatsapp:           'Em Chat',
+  proposta:           'Proposta enviada',
 };
 
 const SC_STAGES = ['Coletados','Engajados','DM1 enviada','Respondeu','Não respondeu','Follow-up 1','Proposta','Fechado','Arquivado'];
@@ -171,7 +180,7 @@ function _scAv(initials, color) {
 function scGetLeads() {
   const raw = (typeof state !== 'undefined' && Array.isArray(state.leads)) ? state.leads : [];
   return raw.map(l => {
-    const mapped = SC_STAGE_MAP[l.pipelineStageV2 || 'coletados'] || 'Coletados';
+    const mapped = SC_STAGE_MAP[(l.pipelineStageV2 || l.pipelineStage || 'coletados')] || 'Coletados';
     const flags  = SC.storyFlags[l.id] || {};
     const parts  = (l.name || '').trim().split(/\s+/);
     const initials = parts.slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
