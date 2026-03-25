@@ -5256,6 +5256,19 @@ img{filter:none!important}
 .lf-sec-resize-bar:hover{background:rgba(124,58,237,.35)}
 /* Drag grid */
 #lf-drag-grid{display:none;position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2147483640;background-image:linear-gradient(rgba(124,58,237,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.12) 1px,transparent 1px);background-size:24px 24px}
+/* Imagens dentro de seções sempre clicáveis */
+.lf-edit-wrapper img{pointer-events:auto!important;cursor:pointer!important}
+/* Multi-seleção com Shift */
+.lf-multi-sel{outline:2px solid #0891b2!important;outline-offset:1px}
+/* Gradiente em imagem — popup */
+#lf-img-grad-pop{position:fixed;z-index:2147483648;display:none;flex-direction:column;gap:6px;background:#1e1b4b;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
+#lf-img-grad-pop label{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
+#lf-img-grad-pop input[type=color]{width:28px;height:20px;border:none;border-radius:3px;cursor:pointer;padding:0}
+#lf-img-grad-pop input[type=range]{width:80px}
+#lf-img-grad-pop select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,.1)}
+#lf-img-grad-pop button{all:unset;cursor:pointer;display:block;padding:4px 0;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:#7C3AED;text-align:center;width:100%;box-sizing:border-box;margin-top:2px}
+#lf-img-grad-pop .igp-rem{background:rgba(220,38,38,.7)!important}
+#lf-img-grad-pop .igp-close{background:rgba(255,255,255,.14)!important;font-size:11px}
 </style>
 <div id="lf-fmt-bar">
   <label>Texto<input type="color" id="lf-tc" value="#000000" oninput="lfTC(this.value)"></label>
@@ -5279,8 +5292,19 @@ img{filter:none!important}
   <button onclick="lfCloseAll()" class="lf-done">✅ Fechar</button>
 </div>
 <div id="lf-img-overlay">
-  <button id="lf-img-sub-btn">📷 Substituir imagem</button>
-  <button id="lf-img-cancel-btn" class="lf-cancel-img">✕ Cancelar</button>
+  <button id="lf-img-sub-btn">📷 Substituir</button>
+  <button id="lf-img-grad-btn">🎨 Gradiente</button>
+  <button id="lf-img-bg-btn">📐 Fundo da Seção</button>
+  <button id="lf-img-cancel-btn" class="lf-cancel-img">✕</button>
+</div>
+<div id="lf-img-grad-pop">
+  <label>Cor 1<input type="color" id="igp-c1" value="#000000"></label>
+  <label>Cor 2<input type="color" id="igp-c2" value="#7C3AED"></label>
+  <label>Opac.<input type="range" id="igp-op" min="0" max="100" value="70"></label>
+  <label>Dir.<select id="igp-dir"><option value="to bottom">↓ Baixo</option><option value="to top">↑ Cima</option><option value="to right">→ Dir.</option><option value="to left">← Esq.</option><option value="135deg">↘ Diag.</option></select></label>
+  <button id="igp-apply">Aplicar</button>
+  <button id="igp-rem" class="igp-rem">Remover</button>
+  <button id="igp-close" class="igp-close">✕ Fechar</button>
 </div>
 <div id="lf-resize-wrap">
   <div class="lf-resize-handle" id="lf-rh-nw" style="top:-5px;left:-5px;cursor:nwse-resize"></div>
@@ -5296,6 +5320,7 @@ img{filter:none!important}
 <script id="lf-canva-script">
 (function() {
   var _sel = null;
+  var _multiSel = []; // multi-seleção com Shift
   var _secEditing = null;
   var _fmtVisible = false;
   var _history = [];
@@ -5417,7 +5442,8 @@ img{filter:none!important}
       '<label>Opac.<input type="range" class="lf-gop" min="0" max="100" value="70" style="width:80px"></label>' +
       '<label>Dir.<select class="lf-gdir"><option value="to bottom">↓ Baixo</option><option value="to top">↑ Cima</option><option value="to right">→ Dir.</option><option value="to left">← Esq.</option><option value="135deg">↘ Diag.</option></select></label>' +
       '<button class="lf-gp-btn lf-gp-apply">Aplicar</button>' +
-      '<button class="lf-gp-btn lf-gp-rem">Remover</button>';
+      '<button class="lf-gp-btn lf-gp-rem">Remover</button>' +
+      '<button class="lf-gp-btn" style="background:rgba(255,255,255,.14);margin-top:2px" data-close="1">✕ Fechar</button>';
     gradBtn.onclick = function(e) {
       e.preventDefault(); e.stopPropagation();
       gradPop.style.display = gradPop.style.display === 'flex' ? 'none' : 'flex';
@@ -5440,6 +5466,10 @@ img{filter:none!important}
       e.preventDefault(); e.stopPropagation();
       snapshotHistory();
       sec.style.backgroundImage = '';
+      gradPop.style.display = 'none';
+    };
+    gradPop.querySelector('[data-close]').onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
       gradPop.style.display = 'none';
     };
     ctrl.appendChild(editBtn);
@@ -5576,8 +5606,9 @@ img{filter:none!important}
     if (!overlay) return;
     var rect = img.getBoundingClientRect();
     overlay.style.display = 'flex';
-    overlay.style.left = Math.max(4, rect.left + rect.width/2 - 90) + 'px';
-    overlay.style.top = Math.max(4, rect.top + rect.height/2 - 36) + 'px';
+    overlay.style.left = Math.max(4, rect.left + rect.width/2 - 80) + 'px';
+    overlay.style.top = Math.max(4, rect.top + rect.height/2 - 52) + 'px';
+
     document.getElementById('lf-img-sub-btn').onclick = function() {
       overlay.style.display = 'none';
       var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
@@ -5589,19 +5620,87 @@ img{filter:none!important}
       };
       inp.click();
     };
+
+    // Gradiente na imagem
+    document.getElementById('lf-img-grad-btn').onclick = function(ev) {
+      ev.stopPropagation();
+      overlay.style.display = 'none';
+      var gp = document.getElementById('lf-img-grad-pop');
+      if (!gp) return;
+      var r2 = img.getBoundingClientRect();
+      gp.style.display = 'flex';
+      gp.style.left = Math.max(4, r2.left + r2.width/2 - 80) + 'px';
+      gp.style.top = Math.max(4, r2.top + 10) + 'px';
+      document.getElementById('igp-apply').onclick = function() {
+        var c1 = document.getElementById('igp-c1').value;
+        var c2 = document.getElementById('igp-c2').value;
+        var op = document.getElementById('igp-op').value / 100;
+        var dir = document.getElementById('igp-dir').value;
+        function hexRgba(h, a) { var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
+        snapshotHistory();
+        // Envolve img em wrapper se necessário e aplica overlay de gradiente
+        var par = img.parentElement;
+        if (!par.classList.contains('lf-img-grad-wrap')) {
+          var wrap = document.createElement('div');
+          wrap.className = 'lf-img-grad-wrap';
+          wrap.style.cssText = 'position:relative;display:inline-block;line-height:0;width:' + img.offsetWidth + 'px;';
+          par.insertBefore(wrap, img);
+          wrap.appendChild(img);
+        }
+        var existOv = img.parentElement.querySelector('.lf-grad-ov');
+        if (existOv) existOv.remove();
+        var ov = document.createElement('div');
+        ov.className = 'lf-grad-ov';
+        ov.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:linear-gradient(' + dir + ',' + hexRgba(c1,op) + ',' + hexRgba(c2,op) + ');';
+        img.parentElement.appendChild(ov);
+        gp.style.display = 'none';
+        showResizeHandles(img);
+      };
+      document.getElementById('igp-rem').onclick = function() {
+        var ov2 = img.closest('.lf-img-grad-wrap');
+        if (ov2) { var gr = ov2.querySelector('.lf-grad-ov'); if (gr) gr.remove(); }
+        gp.style.display = 'none';
+      };
+      document.getElementById('igp-close').onclick = function() { gp.style.display = 'none'; };
+    };
+
+    // Usar imagem como fundo da seção
+    document.getElementById('lf-img-bg-btn').onclick = function() {
+      overlay.style.display = 'none';
+      snapshotHistory();
+      var sec = img.closest('.lf-edit-wrapper');
+      if (sec) {
+        sec.style.backgroundImage = 'url("' + img.src + '")';
+        sec.style.backgroundSize = 'cover';
+        sec.style.backgroundPosition = 'center';
+        sec.style.backgroundRepeat = 'no-repeat';
+        img.style.display = 'none'; // esconde o img original; não remove para preservar no export
+      }
+    };
+
     document.getElementById('lf-img-cancel-btn').onclick = function() { overlay.style.display = 'none'; };
   }
+
+  /* ---------- rAF: resize wrap sempre segue o elemento selecionado ---------- */
+  (function rafSync() {
+    var rw = document.getElementById('lf-resize-wrap');
+    if (rw && _sel && rw.style.display !== 'none') {
+      var r = _sel.getBoundingClientRect();
+      rw.style.left = r.left + 'px'; rw.style.top = r.top + 'px';
+      rw.style.width = r.width + 'px'; rw.style.height = r.height + 'px';
+    }
+    requestAnimationFrame(rafSync);
+  })();
 
   /* ---------- global mousedown: select + sync + drag ---------- */
   document.addEventListener('mousedown', function(e) {
     var t = e.target;
     if (!t) return;
     // Ignorar controles internos do editor
-    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap') || t.closest('.lf-grad-pop'))) return;
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap') || t.closest('.lf-grad-pop') || t.closest('#lf-img-grad-pop'))) return;
     // Whitelist: só elementos de conteúdo são selecionáveis (tipo Canva)
     var ALLOW_TAGS = {IMG:1, P:1, H1:1, H2:1, H3:1, H4:1, H5:1, H6:1, SPAN:1, A:1, BUTTON:1, LI:1, STRONG:1, EM:1, B:1, I:1, LABEL:1, TD:1, TH:1, FIGCAPTION:1, BLOCKQUOTE:1, SVG:1};
     if (!ALLOW_TAGS[t.tagName]) {
-      // DIV/FIGURE: aceitar só se tem contenteditable ou texto direto no nó
       if (t.tagName === 'DIV' || t.tagName === 'FIGURE') {
         var isEditable = t.getAttribute('contenteditable') === 'true';
         var hasDirectText = Array.from(t.childNodes).some(function(n) { return n.nodeType === 3 && n.textContent.trim().length > 0; });
@@ -5611,9 +5710,25 @@ img{filter:none!important}
       }
     }
 
-    // Hide img overlay when clicking elsewhere
-    var ov = document.getElementById('lf-img-overlay');
-    if (ov && !t.closest('#lf-img-overlay')) ov.style.display = 'none';
+    // Hide img overlays when clicking elsewhere
+    var ov = document.getElementById('lf-img-overlay'); if (ov) ov.style.display = 'none';
+    var gp = document.getElementById('lf-img-grad-pop'); if (gp) gp.style.display = 'none';
+
+    // --- Shift multi-select ---
+    if (e.shiftKey && t !== _sel) {
+      if (_multiSel.indexOf(t) === -1) {
+        _multiSel.push(t);
+        t.classList.add('lf-multi-sel');
+      } else {
+        _multiSel.splice(_multiSel.indexOf(t), 1);
+        t.classList.remove('lf-multi-sel');
+      }
+      // Não muda _sel principal nem resize wrap em shift-click
+      return;
+    }
+    // Sem shift: limpar multi-sel anterior
+    _multiSel.forEach(function(el) { el.classList.remove('lf-multi-sel'); });
+    _multiSel = [];
 
     // Remove previous highlight
     if (_sel && _sel !== t) { _sel.classList.remove('lf-selected-el'); }
@@ -5638,6 +5753,10 @@ img{filter:none!important}
     var _dragStartX = e.clientX; var _dragStartY = e.clientY;
     var _dragging = false;
     var _grid = document.getElementById('lf-drag-grid');
+    // Captura posições iniciais dos multi-sel para drag em grupo
+    var _multiStartPos = _multiSel.map(function(el) {
+      return { el: el, l: parseInt(el.style.left) || 0, t2: parseInt(el.style.top) || 0 };
+    });
     function onDragMove(em) {
       var dx = em.clientX - _dragStartX; var dy = em.clientY - _dragStartY;
       if (!_dragging && Math.abs(dx) + Math.abs(dy) > 5) {
@@ -5645,20 +5764,24 @@ img{filter:none!important}
         snapshotHistory();
         var pos = window.getComputedStyle(_dragEl).position;
         if (pos === 'static') _dragEl.style.position = 'relative';
+        // Garante posição relativa para elementos multi-sel
+        _multiSel.forEach(function(el) {
+          if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        });
         if (_grid) _grid.style.display = 'block';
       }
       if (_dragging) {
+        var dx2 = em.clientX - _dragStartX; var dy2 = em.clientY - _dragStartY;
         var curL = parseInt(_dragEl.style.left) || 0; var curT = parseInt(_dragEl.style.top) || 0;
-        _dragEl.style.left = (curL + (em.clientX - _dragStartX)) + 'px';
-        _dragEl.style.top = (curT + (em.clientY - _dragStartY)) + 'px';
+        _dragEl.style.left = (curL + dx2) + 'px';
+        _dragEl.style.top  = (curT + dy2) + 'px';
+        // Mover também os elementos multi-selecionados juntos
+        _multiSel.forEach(function(el) {
+          var ml = parseInt(el.style.left) || 0; var mt2 = parseInt(el.style.top) || 0;
+          el.style.left = (ml + dx2) + 'px'; el.style.top = (mt2 + dy2) + 'px';
+        });
         _dragStartX = em.clientX; _dragStartY = em.clientY;
-        // Resize wrap segue o elemento durante o drag
-        var rw = document.getElementById('lf-resize-wrap');
-        if (rw && rw.style.display !== 'none') {
-          var r3 = _dragEl.getBoundingClientRect();
-          rw.style.left = r3.left + 'px'; rw.style.top = r3.top + 'px';
-          rw.style.width = r3.width + 'px'; rw.style.height = r3.height + 'px';
-        }
+        // rAF loop já cuida de atualizar o resize wrap — nada a fazer aqui
       }
     }
     function onDragUp() {
