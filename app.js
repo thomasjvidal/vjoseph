@@ -5273,6 +5273,7 @@ img{filter:none!important}
     <option value="64px">64</option><option value="72px">72</option>
   </select>
   <div class="lf-sep"></div>
+  <button onmousedown="event.preventDefault();lfPadZero()" title="Zerar espaçamento (remove whitespace)">↕0</button>
   <button onmousedown="event.preventDefault();lfUndo()" title="Desfazer">↩</button>
   <button onmousedown="event.preventDefault();lfDelEl()" style="background:rgba(220,38,38,.6)">🗑</button>
   <button onclick="lfCloseAll()" class="lf-done">✅ Fechar</button>
@@ -5548,6 +5549,8 @@ img{filter:none!important}
         snapshotHistory();
         var pos = window.getComputedStyle(el).position;
         if (pos === 'static') el.style.position = 'relative';
+        // Overflow hidden = comportamento de crop (igual Canva)
+        el.style.overflow = 'hidden';
         var startX = ev.clientX; var startY = ev.clientY;
         var startW = el.offsetWidth; var startH = el.offsetHeight;
         var startLeft = parseInt(el.style.left) || 0;
@@ -5595,13 +5598,18 @@ img{filter:none!important}
     if (!t) return;
     // Ignorar controles internos do editor
     if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap') || t.closest('.lf-grad-pop'))) return;
-    // Ignorar tags estruturais de layout
-    var SKIP_TAGS = {SECTION:1, HEADER:1, FOOTER:1, MAIN:1, NAV:1, ARTICLE:1, ASIDE:1, BODY:1, HTML:1, UL:1, OL:1};
-    if (SKIP_TAGS[t.tagName]) { hideResizeWrap(); return; }
-    // Ignorar divs marcadas como seção pelo editor
-    if (t.classList && t.classList.contains('lf-edit-wrapper')) { hideResizeWrap(); return; }
-    // Ignorar divs de seção detectadas pelo Elementor
-    if (t.tagName === 'DIV' && t.getAttribute('data-element_type') === 'section') { hideResizeWrap(); return; }
+    // Whitelist: só elementos de conteúdo são selecionáveis (tipo Canva)
+    var ALLOW_TAGS = {IMG:1, P:1, H1:1, H2:1, H3:1, H4:1, H5:1, H6:1, SPAN:1, A:1, BUTTON:1, LI:1, STRONG:1, EM:1, B:1, I:1, LABEL:1, TD:1, TH:1, FIGCAPTION:1, BLOCKQUOTE:1, SVG:1};
+    if (!ALLOW_TAGS[t.tagName]) {
+      // DIV/FIGURE: aceitar só se tem contenteditable ou texto direto no nó
+      if (t.tagName === 'DIV' || t.tagName === 'FIGURE') {
+        var isEditable = t.getAttribute('contenteditable') === 'true';
+        var hasDirectText = Array.from(t.childNodes).some(function(n) { return n.nodeType === 3 && n.textContent.trim().length > 0; });
+        if (!isEditable && !hasDirectText) { hideResizeWrap(); return; }
+      } else {
+        hideResizeWrap(); return;
+      }
+    }
 
     // Hide img overlay when clicking elsewhere
     var ov = document.getElementById('lf-img-overlay');
@@ -5704,6 +5712,25 @@ img{filter:none!important}
       var el = _sel; _sel = null;
       el.remove(); hideResizeWrap();
     }
+  };
+  window.lfPadZero = function() {
+    if (!_sel) return; snapshotHistory();
+    // Zera padding/margin do elemento selecionado
+    _sel.style.padding = '0'; _sel.style.margin = '0';
+    // Sobe até 4 níveis zerando padding-top/bottom dos ancestrais para remover whitespace
+    var node = _sel.parentElement;
+    var levels = 0;
+    while (node && node !== document.body && levels < 4) {
+      var cs = window.getComputedStyle(node);
+      // só zero se tiver padding/margin significativo (>4px)
+      if (parseInt(cs.paddingTop) > 4)    node.style.paddingTop = '0';
+      if (parseInt(cs.paddingBottom) > 4) node.style.paddingBottom = '0';
+      if (parseInt(cs.marginTop) > 4)     node.style.marginTop = '0';
+      if (parseInt(cs.marginBottom) > 4)  node.style.marginBottom = '0';
+      node = node.parentElement; levels++;
+    }
+    // Atualiza resize wrap para nova posição
+    if (_sel) showResizeHandles(_sel);
   };
   window.lfUndo = function() {
     if (!_history.length) return;
