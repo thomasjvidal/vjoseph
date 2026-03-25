@@ -5215,8 +5215,18 @@ function injectEditor(html, data) {
 .lf-sec-btn-ai{background:#0891b2}
 .lf-sec-btn-del{background:#DC2626}
 .lf-sec-btn:hover{filter:brightness(1.2)}
-/* Selected element highlight */
-.lf-selected-el{outline:2px solid #7C3AED!important;outline-offset:1px;border-radius:2px}
+/* Gradient popover */
+.lf-grad-pop{position:absolute;top:4px;right:124px;z-index:2147483648;background:#1e1b4b;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;display:none;flex-direction:column;gap:6px;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
+.lf-grad-pop label{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
+.lf-grad-pop input[type=color]{width:28px;height:20px;border:none;border-radius:3px;cursor:pointer;padding:0}
+.lf-grad-pop select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,.1)}
+.lf-grad-pop .lf-gp-btn{all:unset;cursor:pointer;display:block;padding:4px 0;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:#7C3AED;text-align:center;width:100%;box-sizing:border-box;margin-top:2px}
+.lf-grad-pop .lf-gp-rem{background:rgba(220,38,38,.7)!important;margin-top:2px}
+/* Section top resize bar */
+.lf-sec-resize-bar-top{position:absolute;top:0;left:0;right:0;height:6px;cursor:n-resize;background:transparent;z-index:2147483644}
+.lf-sec-resize-bar-top:hover{background:rgba(124,58,237,.35)}
+/* Selected element highlight — visual dado pelo resize wrap, sem outline duplo */
+.lf-selected-el{border-radius:2px}
 /* Edit mode */
 .lf-editing>.lf-edit-wrapper,.lf-editing{outline:2px solid #7C3AED!important}
 [contenteditable=true]{cursor:text}
@@ -5288,6 +5298,7 @@ img{filter:none!important}
   var _secEditing = null;
   var _fmtVisible = false;
   var _history = [];
+  var _activeDragCleanup = null; // garante só 1 drag ativo por vez
 
   function snapshotHistory() {
     try { _history.push(document.body.innerHTML); if (_history.length > 20) _history.shift(); } catch(e) {}
@@ -5392,10 +5403,66 @@ img{filter:none!important}
     delBtn.textContent = '🗑 Excluir';
     delBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); if(confirm('Excluir esta seção?')) sec.remove(); };
 
+    // Gradient button + popover
+    var gradBtn = document.createElement('button');
+    gradBtn.className = 'lf-sec-btn';
+    gradBtn.style.background = '#6d28d9';
+    gradBtn.textContent = '🎨 Grad.';
+    var gradPop = document.createElement('div');
+    gradPop.className = 'lf-grad-pop';
+    gradPop.innerHTML =
+      '<label>Cor 1<input type="color" class="lf-gc1" value="#000000"></label>' +
+      '<label>Cor 2<input type="color" class="lf-gc2" value="#7C3AED"></label>' +
+      '<label>Opac.<input type="range" class="lf-gop" min="0" max="100" value="70" style="width:80px"></label>' +
+      '<label>Dir.<select class="lf-gdir"><option value="to bottom">↓ Baixo</option><option value="to top">↑ Cima</option><option value="to right">→ Dir.</option><option value="to left">← Esq.</option><option value="135deg">↘ Diag.</option></select></label>' +
+      '<button class="lf-gp-btn lf-gp-apply">Aplicar</button>' +
+      '<button class="lf-gp-btn lf-gp-rem">Remover</button>';
+    gradBtn.onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
+      gradPop.style.display = gradPop.style.display === 'flex' ? 'none' : 'flex';
+    };
+    gradPop.querySelector('.lf-gp-apply').onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
+      snapshotHistory();
+      var c1 = gradPop.querySelector('.lf-gc1').value;
+      var c2 = gradPop.querySelector('.lf-gc2').value;
+      var op = gradPop.querySelector('.lf-gop').value / 100;
+      var dir = gradPop.querySelector('.lf-gdir').value;
+      function hexToRgba(hex, a) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return 'rgba('+r+','+g+','+b+','+a+')';
+      }
+      sec.style.backgroundImage = 'linear-gradient(' + dir + ',' + hexToRgba(c1,op) + ',' + hexToRgba(c2,op) + ')';
+      gradPop.style.display = 'none';
+    };
+    gradPop.querySelector('.lf-gp-rem').onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
+      snapshotHistory();
+      sec.style.backgroundImage = '';
+      gradPop.style.display = 'none';
+    };
     ctrl.appendChild(editBtn);
     ctrl.appendChild(aiBtn);
+    ctrl.appendChild(gradBtn);
     ctrl.appendChild(delBtn);
     sec.appendChild(ctrl);
+    sec.appendChild(gradPop);
+
+    // Top resize bar
+    var resizeBarTop = document.createElement('div');
+    resizeBarTop.className = 'lf-sec-resize-bar-top';
+    resizeBarTop.addEventListener('mousedown', function(ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var startY = ev.clientY; var startH = sec.offsetHeight;
+      function onMove(em) {
+        var dy = em.clientY - startY;
+        var newH = Math.max(40, startH - dy);
+        sec.style.height = newH + 'px'; sec.style.minHeight = newH + 'px';
+      }
+      function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    });
+    sec.appendChild(resizeBarTop);
 
     // Bottom resize bar for section height
     var resizeBar = document.createElement('div');
@@ -5403,7 +5470,10 @@ img{filter:none!important}
     resizeBar.addEventListener('mousedown', function(ev) {
       ev.preventDefault(); ev.stopPropagation();
       var startY = ev.clientY; var startH = sec.offsetHeight;
-      function onMove(em) { sec.style.minHeight = Math.max(40, startH + (em.clientY - startY)) + 'px'; }
+      function onMove(em) {
+        var newH = Math.max(40, startH + (em.clientY - startY));
+        sec.style.height = newH + 'px'; sec.style.minHeight = newH + 'px';
+      }
       function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
       document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
     });
@@ -5523,7 +5593,15 @@ img{filter:none!important}
   document.addEventListener('mousedown', function(e) {
     var t = e.target;
     if (!t) return;
-    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap'))) return;
+    // Ignorar controles internos do editor
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap') || t.closest('.lf-grad-pop'))) return;
+    // Ignorar tags estruturais de layout
+    var SKIP_TAGS = {SECTION:1, HEADER:1, FOOTER:1, MAIN:1, NAV:1, ARTICLE:1, ASIDE:1, BODY:1, HTML:1, UL:1, OL:1};
+    if (SKIP_TAGS[t.tagName]) { hideResizeWrap(); return; }
+    // Ignorar divs marcadas como seção pelo editor
+    if (t.classList && t.classList.contains('lf-edit-wrapper')) { hideResizeWrap(); return; }
+    // Ignorar divs de seção detectadas pelo Elementor
+    if (t.tagName === 'DIV' && t.getAttribute('data-element_type') === 'section') { hideResizeWrap(); return; }
 
     // Hide img overlay when clicking elsewhere
     var ov = document.getElementById('lf-img-overlay');
@@ -5566,13 +5644,23 @@ img{filter:none!important}
         _dragEl.style.left = (curL + (em.clientX - _dragStartX)) + 'px';
         _dragEl.style.top = (curT + (em.clientY - _dragStartY)) + 'px';
         _dragStartX = em.clientX; _dragStartY = em.clientY;
+        // Resize wrap segue o elemento durante o drag
+        var rw = document.getElementById('lf-resize-wrap');
+        if (rw && rw.style.display !== 'none') {
+          var r3 = _dragEl.getBoundingClientRect();
+          rw.style.left = r3.left + 'px'; rw.style.top = r3.top + 'px';
+          rw.style.width = r3.width + 'px'; rw.style.height = r3.height + 'px';
+        }
       }
     }
     function onDragUp() {
-      document.removeEventListener('mousemove', onDragMove); document.removeEventListener('mouseup', onDragUp);
-      if (_grid) _grid.style.display = 'none'; _dragging = false;
+      document.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragUp);
+      if (_grid) _grid.style.display = 'none'; _dragging = false; _activeDragCleanup = null;
     }
-    document.addEventListener('mousemove', onDragMove); document.addEventListener('mouseup', onDragUp);
+    // Cancela qualquer drag anterior antes de iniciar novo
+    if (_activeDragCleanup) { _activeDragCleanup(); }
+    _activeDragCleanup = onDragUp;
+    document.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragUp);
   }, true);
 
   /* ---------- toolbar actions ---------- */
