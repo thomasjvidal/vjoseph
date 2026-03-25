@@ -876,9 +876,12 @@ const DASHBOARD_CAROUSEL_STAGE_FLOW = {
   follow_up_1: { next: 'chat_gerado' },
   respondeu: { next: 'chat_gerado' },
   chat_gerado: { next: 'dm2_enviada' },
-  dm2_enviada: { next: 'proposta_enviada' },
-  proposta_enviada: { next: 'follow_up_2' },
-  follow_up_2: { next: 'fechado' }
+  dm2_enviada: { next: 'ainda_nao_respondeu', alt: [{ id: 'proposta_enviada', label: 'Proposta Enviada' }] },
+  ainda_nao_respondeu: { next: 'follow_up_2', alt: [{ id: 'proposta_enviada', label: 'Proposta Enviada' }] },
+  follow_up_2: { next: 'proposta_enviada' },
+  proposta_enviada: { next: 'nao_respondeu_proposta', alt: [{ id: 'fechado', label: 'Fechado' }] },
+  nao_respondeu_proposta: { next: 'follow_up_3', alt: [{ id: 'fechado', label: 'Fechado' }] },
+  follow_up_3: { next: 'fechado' }
 };
 
 const DASHBOARD_STAGE_CHECKLISTS = {
@@ -922,15 +925,30 @@ const DASHBOARD_STAGE_CHECKLISTS = {
     { id: 'qualificar', label: 'Qualificar $' },
     { id: 'proposta_prep', label: 'Proposta pronta' }
   ],
-  proposta_enviada: [
-    { id: 'condicoes', label: 'Preço & prazo' },
-    { id: 'follow', label: 'Follow-up' },
-    { id: 'proximo', label: 'Próximo passo' }
+  ainda_nao_respondeu: [
+    { id: 'verificar', label: 'Verificar visualização' },
+    { id: 'aguardar48', label: 'Aguardar 48h' },
+    { id: 'fu2_prep', label: 'Follow-up 2 pronto' }
   ],
   follow_up_2: [
-    { id: 'final', label: 'Follow-up final' },
-    { id: 'obje', label: 'Objeções' },
-    { id: 'decisao', label: 'Decidir' }
+    { id: 'reengajar', label: 'Reengajar' },
+    { id: 'novo_angulo', label: 'Novo ângulo' },
+    { id: 'proposta_ok', label: 'Proposta pronta' }
+  ],
+  proposta_enviada: [
+    { id: 'condicoes', label: 'Preço & prazo' },
+    { id: 'follow', label: 'Aguardar resposta' },
+    { id: 'proximo', label: 'Próximo passo' }
+  ],
+  nao_respondeu_proposta: [
+    { id: 'checar', label: 'Checar última msg' },
+    { id: 'objecoes', label: 'Levantar objeções' },
+    { id: 'fu3_prep', label: 'Follow-up 3 pronto' }
+  ],
+  follow_up_3: [
+    { id: 'ultimo_fu', label: 'Último follow-up' },
+    { id: 'valor', label: 'Reforçar valor' },
+    { id: 'decisao_final', label: 'Decisão final' }
   ],
   fechado: [
     { id: 'pagamento', label: 'Pagamento ok' },
@@ -1256,7 +1274,7 @@ function renderDashboard() {
   const now = new Date();
   const total = state.leads.length;
   const stageOf = (l) => l.pipelineStageV2 || 'coletados';
-  const siteStages = new Set(['dm2_enviada', 'proposta_enviada', 'follow_up_2', 'fechado']);
+  const siteStages = new Set(['dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado']);
   const sites = state.leads.filter(l => siteStages.has(stageOf(l))).length;
   const msgs = state.leads.filter(l => !['coletados', 'perfil_engajado'].includes(stageOf(l))).length;
   const closed = state.leads.filter(l => l.status === 'fechado').length;
@@ -1419,7 +1437,7 @@ function renderKPIs() {
   const totalLeads = state.leads.length;
   const leadsToday = state.leads.filter(l => isToday(toTs(l.createdAt))).length;
 
-  const v2StageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'proposta_enviada', 'follow_up_2', 'fechado', 'arquivado'];
+  const v2StageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado', 'arquivado'];
   const v2RankOf = (st) => v2StageOrder.indexOf(st);
   const v2AtOrAfter = (st, min) => v2RankOf(st) >= v2RankOf(min) && v2RankOf(min) !== -1;
   const v2HasEntry = (l, stageId) => Array.isArray(l?.v2StageEntries) && l.v2StageEntries.some(e => String(e?.stageId || '').toLowerCase() === stageId);
@@ -1432,7 +1450,7 @@ function renderKPIs() {
   }).length;
   const dm1SentToday = state.leads.filter(l => isToday(toTs(l.dm1SentAt))).length;
 
-  const responseStageSet = new Set(['respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'proposta_enviada', 'follow_up_2', 'fechado']);
+  const responseStageSet = new Set(['respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado']);
   const hasResponded = (l) => {
     const st = stageOf(l);
     if (responseStageSet.has(st)) return true;
@@ -1453,7 +1471,7 @@ function renderKPIs() {
   }).length;
   const sitesGeneratedToday = state.leads.filter(l => isToday(toTs(l.siteGeneratedAt))).length;
 
-  const proposalStageSet = new Set(['proposta_enviada', 'follow_up_2', 'fechado']);
+  const proposalStageSet = new Set(['proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado']);
   const proposals = state.leads.filter(l => proposalStageSet.has(stageOf(l))).length;
   const proposalsWeek = (() => {
     const now = new Date();
@@ -1505,12 +1523,12 @@ function renderKPIs() {
   }).length;
   const projectedRevenuePerDay = (closedThisMonth / dayOfMonth) * price;
   const targetRevenuePerDay = (goal / Math.max(1, Math.round((nextMonthStart.getTime() - monthStart.getTime()) / 86400000))) * price;
-  const followOnlyStages = new Set(['follow_up_1', 'follow_up_2']);
+  const followOnlyStages = new Set(['follow_up_1', 'follow_up_2', 'follow_up_3']);
   const followOnlyCount = state.leads.filter(l => stageOf(l) !== 'arquivado' && followOnlyStages.has(stageOf(l))).length;
   const followOnlyValue = followOnlyCount * price;
   const followOnlyShare = pct(followOnlyValue, pipelineValue);
 
-  const followUpPendingStages = new Set(['nao_respondeu', 'follow_up_1', 'dm2_enviada', 'proposta_enviada', 'follow_up_2']);
+  const followUpPendingStages = new Set(['nao_respondeu', 'follow_up_1', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3']);
   const followUpPendingCount = state.leads.filter(l => stageOf(l) !== 'arquivado' && followUpPendingStages.has(stageOf(l))).length;
   const avgFunnelDaysForCard = (() => {
     const diffs = state.leads
@@ -2404,10 +2422,13 @@ const DASH2_STAGES = [
   { id: 'follow_up_1', label: 'Follow-up 1', color: '#fb923c' },
   { id: 'chat_gerado', label: 'Gerar Site', color: '#ec4899' },
   { id: 'dm2_enviada', label: 'DM2 Enviada', color: '#db2777' },
-  { id: 'proposta_enviada', label: 'Proposta Enviada', color: '#f59e0b' },
+  { id: 'ainda_nao_respondeu', label: 'Ainda Não Respondeu', color: '#0891b2' },
   { id: 'follow_up_2', label: 'Follow-up 2', color: '#f97316' },
+  { id: 'proposta_enviada', label: 'Proposta Enviada', color: '#f59e0b' },
+  { id: 'nao_respondeu_proposta', label: 'Não Respondeu - Proposta', color: '#b91c1c' },
+  { id: 'follow_up_3', label: 'Follow-up 3', color: '#c2410c' },
   { id: 'fechado', label: 'Fechado', color: '#22c55e' },
-  { id: 'arquivado', label: 'Arquivado / Sem Interesse', color: '#94a3b8' }
+  { id: 'arquivado', label: 'Arquivado / Sem Interesse / Remarketing', color: '#94a3b8' }
 ];
 
 function formatBRL(value) {
@@ -2418,9 +2439,9 @@ function formatBRL(value) {
 function dash2ComputeStats() {
   const stageOf = (l) => l.pipelineStageV2 || 'coletados';
   const isArchived = (l) => stageOf(l) === 'arquivado';
-  const conversationStages = new Set(['dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'proposta_enviada', 'follow_up_2']);
-  const siteStages = new Set(['dm2_enviada', 'proposta_enviada', 'follow_up_2', 'fechado']);
-  const stageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'proposta_enviada', 'follow_up_2', 'fechado', 'arquivado'];
+  const conversationStages = new Set(['dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3']);
+  const siteStages = new Set(['dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado']);
+  const stageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado', 'arquivado'];
   const stageIndex = (st) => {
     const i = stageOrder.indexOf(st);
     return i >= 0 ? i : -1;
