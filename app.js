@@ -5271,7 +5271,16 @@ img{filter:none!important}
   <button id="lf-img-sub-btn">📷 Substituir imagem</button>
   <button id="lf-img-cancel-btn" class="lf-cancel-img">✕ Cancelar</button>
 </div>
-<div id="lf-resize-wrap"><div class="lf-resize-handle" id="lf-rh-se" style="bottom:-5px;right:-5px"></div></div>
+<div id="lf-resize-wrap">
+  <div class="lf-resize-handle" id="lf-rh-nw" style="top:-5px;left:-5px;cursor:nwse-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-n"  style="top:-5px;left:calc(50% - 5px);cursor:ns-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-ne" style="top:-5px;right:-5px;cursor:nesw-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-e"  style="top:calc(50% - 5px);right:-5px;cursor:ew-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-se" style="bottom:-5px;right:-5px;cursor:nwse-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-s"  style="bottom:-5px;left:calc(50% - 5px);cursor:ns-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-sw" style="bottom:-5px;left:-5px;cursor:nesw-resize"></div>
+  <div class="lf-resize-handle" id="lf-rh-w"  style="top:calc(50% - 5px);left:-5px;cursor:ew-resize"></div>
+</div>
 <div id="lf-drag-grid"></div>
 <script id="lf-canva-script">
 (function() {
@@ -5443,29 +5452,51 @@ img{filter:none!important}
     var w = document.getElementById('lf-resize-wrap');
     if (w) w.style.display = 'none';
   }
-  function showResizeHandles(img) {
+  function showResizeHandles(el) {
     var wrap = document.getElementById('lf-resize-wrap');
     if (!wrap) return;
-    var rect = img.getBoundingClientRect();
+    var rect = el.getBoundingClientRect();
     wrap.style.display = 'block';
     wrap.style.left = rect.left + 'px'; wrap.style.top = rect.top + 'px';
     wrap.style.width = rect.width + 'px'; wrap.style.height = rect.height + 'px';
-    var rh = document.getElementById('lf-rh-se');
-    if (!rh) return;
-    rh.onmousedown = function(ev) {
-      ev.preventDefault(); ev.stopPropagation();
-      var startX = ev.clientX; var startW = img.offsetWidth; var startH = img.offsetHeight;
-      var ratio = startH / (startW || 1);
-      function onMove(em) {
-        var newW = Math.max(20, startW + (em.clientX - startX));
-        img.style.width = newW + 'px'; img.style.height = (newW * ratio) + 'px';
-        var r2 = img.getBoundingClientRect();
-        wrap.style.width = r2.width + 'px'; wrap.style.height = r2.height + 'px';
-        wrap.style.left = r2.left + 'px'; wrap.style.top = r2.top + 'px';
-      }
-      function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
-      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-    };
+    // [id, affectsW, affectsH, xSign, ySign, affectsLeft, affectsTop]
+    var handles = [
+      ['lf-rh-nw', true,  true,  -1, -1, true,  true],
+      ['lf-rh-n',  false, true,   0, -1, false, true],
+      ['lf-rh-ne', true,  true,   1, -1, false, true],
+      ['lf-rh-e',  true,  false,  1,  0, false, false],
+      ['lf-rh-se', true,  true,   1,  1, false, false],
+      ['lf-rh-s',  false, true,   0,  1, false, false],
+      ['lf-rh-sw', true,  true,  -1,  1, true,  false],
+      ['lf-rh-w',  true,  false, -1,  0, true,  false]
+    ];
+    handles.forEach(function(h) {
+      var rh = document.getElementById(h[0]);
+      if (!rh) return;
+      rh.onmousedown = function(ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        snapshotHistory();
+        var pos = window.getComputedStyle(el).position;
+        if (pos === 'static') el.style.position = 'relative';
+        var startX = ev.clientX; var startY = ev.clientY;
+        var startW = el.offsetWidth; var startH = el.offsetHeight;
+        var startLeft = parseInt(el.style.left) || 0;
+        var startTop  = parseInt(el.style.top)  || 0;
+        var affW = h[1], affH = h[2], xSign = h[3], ySign = h[4], affL = h[5], affT = h[6];
+        function onMove(em) {
+          var dx = em.clientX - startX; var dy = em.clientY - startY;
+          if (affW) { var newW = Math.max(20, startW + dx * xSign); el.style.width = newW + 'px'; }
+          if (affH) { var newH = Math.max(20, startH + dy * ySign); el.style.height = newH + 'px'; }
+          if (affL) el.style.left = (startLeft + dx) + 'px';
+          if (affT) el.style.top  = (startTop  + dy) + 'px';
+          var r2 = el.getBoundingClientRect();
+          wrap.style.width = r2.width + 'px'; wrap.style.height = r2.height + 'px';
+          wrap.style.left = r2.left + 'px'; wrap.style.top = r2.top + 'px';
+        }
+        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+      };
+    });
   }
   function showImgOverlay(img) {
     var overlay = document.getElementById('lf-img-overlay');
@@ -5499,23 +5530,21 @@ img{filter:none!important}
     if (ov && !t.closest('#lf-img-overlay')) ov.style.display = 'none';
 
     // Remove previous highlight
-    if (_sel && _sel !== t) { _sel.classList.remove('lf-selected-el'); if (_sel.tagName !== 'IMG') hideResizeWrap(); }
+    if (_sel && _sel !== t) { _sel.classList.remove('lf-selected-el'); }
 
     _sel = t;
     _sel.classList.add('lf-selected-el');
     showFmt();
     syncFmt(t);
 
-    // IMG: show overlay + resize handles
+    // IMG: mostrar overlay; previne drag nativo do browser
     if (t.tagName === 'IMG') {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
       showImgOverlay(t);
-      showResizeHandles(t);
-      return;
     }
 
-    // Non-IMG: hide resize wrap
-    hideResizeWrap();
+    // TODOS os elementos: mostrar resize handles
+    showResizeHandles(t);
 
     // Drag-to-move watcher (skip lf-sec-resize-bar)
     if (t.classList && t.classList.contains('lf-sec-resize-bar')) return;
