@@ -277,6 +277,7 @@ let state = {
   selectedTemplate: 'minimal',
   customTemplates: [],
   templateTypes: [],
+  sectionLibrary: [],
   generatorMode: 'template',
   selectedSections: [],
   generatedHTML: '',
@@ -347,6 +348,7 @@ function save() {
     localStorage.setItem('lf_leads', JSON.stringify(state.leads));
     localStorage.setItem('lf_settings', JSON.stringify(state.settings));
     localStorage.setItem('lf_custom_templates', JSON.stringify(state.customTemplates));
+    localStorage.setItem('lf_section_library', JSON.stringify(state.sectionLibrary));
     localStorage.setItem('lf_template_types', JSON.stringify(state.templateTypes));
     localStorage.setItem('lf_preview_settings', JSON.stringify(state.previewSettings));
     localStorage.setItem('lf_dashboard_tab', state.dashboardTab === 'pipeline' ? 'pipeline' : 'metrics');
@@ -422,14 +424,27 @@ function load() {
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
     if (customTemplates) state.customTemplates = JSON.parse(customTemplates) || [];
     if (!Array.isArray(state.customTemplates)) state.customTemplates = [];
+    const sectionLibrary = localStorage.getItem('lf_section_library');
+    if (sectionLibrary) state.sectionLibrary = JSON.parse(sectionLibrary) || [];
+    if (!Array.isArray(state.sectionLibrary)) state.sectionLibrary = [];
     if (templateTypes) state.templateTypes = JSON.parse(templateTypes) || [];
     if (!Array.isArray(state.templateTypes)) state.templateTypes = [];
     state.dashboardTab = 'metrics';
 
     renderGeneratorTemplates();
-    // Start sidebar collapsed
-    const sb = document.getElementById('sidebar');
-    if (sb) sb.classList.add('collapsed');
+    // Auto-extract sections from built-in templates
+    setTimeout(initBuiltinSections, 0);
+    // Sidebar: restore user's last state, default always collapsed
+    const sbEl = document.getElementById('sidebar');
+    const sbCollapsed = localStorage.getItem('lf_sidebar_collapsed');
+    if (sbEl) {
+      // Default: collapsed. Only expand if user explicitly opened it
+      if (sbCollapsed === '0') {
+        sbEl.classList.remove('collapsed');
+      } else {
+        sbEl.classList.add('collapsed');
+      }
+    }
   } catch (e) { console.warn('Load error', e); }
 }
 
@@ -594,9 +609,15 @@ function navigate(view, activeNavEl) {
   if (view === 'leads') renderLeadsTable();
   if (view === 'generator') {
     populateGenLeadSelect();
-    renderGeneratorModeToggle();
-    if (state.generatorMode === 'blocos') renderSectionPicker();
-    else renderGeneratorTemplates();
+    genInitCarouselDrag();
+    genGoSlide(1);
+    genRenderPalette();
+    // Always reset preview to placeholder when entering generator
+    const _siteIframe = document.getElementById('sitePreview');
+    const _ph = document.getElementById('previewPlaceholder');
+    if (_siteIframe) { _siteIframe.srcdoc = 'about:blank'; _siteIframe.style.display = 'none'; }
+    if (_ph) _ph.style.display = '';
+    state.generatedHTML = '';
   }
   if (view === 'messages') {
     renderProspectingBoard();
@@ -620,20 +641,11 @@ function navigate(view, activeNavEl) {
     }
   }
 
-  // Render Pipeline HQ board
-  if (view === 'office') {
-    setTimeout(() => renderProspectingBoard(), 50);
-  }
 }
 
 function navigatePipelineHQ(e) {
   if(e) e.preventDefault();
-  navigate('office');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const hqNav = document.getElementById('nav-pipeline-hq');
-  if (hqNav) hqNav.classList.add('active');
-  document.getElementById('pageTitle').textContent = 'Pipeline HQ';
-  document.getElementById('breadcrumb').textContent = 'Funil completo de prospecção';
+  navigate('messages');
   setTimeout(() => renderProspectingBoard(), 50);
 }
 
@@ -714,7 +726,7 @@ function renderMiniKanban(countPrefix, colPrefix) {
       const initial = (l.name || '?').trim().charAt(0).toUpperCase();
       const imgTag = l.avatar ? `<img src="${l.avatar}" alt="${l.name || ''}" referrerpolicy="no-referrer" onload="this.parentElement.classList.add('has-img')" onerror="this.remove();this.parentElement.classList.remove('has-img')">` : '';
       const ageText = leadCurrentStageAgeText(l, nowTs);
-      return `<div class="kanban-card" draggable="true" data-id="${l.id}" onclick="openLeadTimeline('${l.id}')">
+      return `<div class="kanban-card" draggable="true" data-id="${l.id}" onclick="openLeadInUnicoTab('${l.id}')">
         <span class="avatar avatar-sm">${imgTag}<span class="avatar-fallback">${initial}</span></span>
         <span>
           <div class="kanban-card-name">${l.name}</div>
@@ -764,7 +776,7 @@ function renderMiniKanbanV2(countPrefix = 'k2-', colPrefix = 'kanbanv2-') {
       const initial = (l.name || '?').trim().charAt(0).toUpperCase();
       const imgTag = l.avatar ? `<img src="${l.avatar}" alt="${l.name || ''}" referrerpolicy="no-referrer" onload="this.parentElement.classList.add('has-img')" onerror="this.remove();this.parentElement.classList.remove('has-img')">` : '';
       const ageText = leadCurrentStageAgeText(l, nowTs);
-      return `<div class="kanban-card" draggable="true" data-id="${l.id}" onclick="openLeadTimeline('${l.id}')">
+      return `<div class="kanban-card" draggable="true" data-id="${l.id}" onclick="openLeadInUnicoTab('${l.id}')">
         <span class="avatar avatar-sm">${imgTag}<span class="avatar-fallback">${initial}</span></span>
         <span>
           <div class="kanban-card-name">${l.name || ''}</div>
@@ -818,7 +830,7 @@ function renderProspectMiniKanban(countPrefix = 'k3-', colPrefix = 'kanbanv3-') 
         : '';
       
       return `
-      <div class="kanban-card mini" onclick="openLeadTimeline('${l.id}')" style="cursor:pointer; background: var(--bg-surface); padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border);">
+      <div class="kanban-card mini" onclick="openLeadInUnicoTab('${l.id}')" style="cursor:pointer; background: var(--bg-surface); padding: 8px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border);">
         <div class="kanban-card-header" style="display: flex; align-items: center; gap: 8px;">
           <span class="avatar avatar-xs" style="width: 24px; height: 24px; font-size: 10px;">${imgTag}<span class="avatar-fallback">${initial}</span></span>
           <div class="kanban-card-name" style="font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${l.name}</div>
@@ -962,39 +974,42 @@ function dashboardCarouselAllDone(lead, stageId) {
 
 function dashboardCarouselRender() {
   const body = document.getElementById('leadCarouselBody');
-  const counter = document.getElementById('leadCarouselCounter');
-  const filterSelect = document.getElementById('leadCarouselFilter');
-  if (!body || !counter) return;
-
-  // Populate filter options
-  if (filterSelect && filterSelect.children.length <= 1) {
-    const stages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
-    stages.forEach(stage => {
-      const option = document.createElement('option');
-      option.value = stage.id;
-      option.textContent = stage.label;
-      if (stage.color) option.style.color = stage.color;
-      filterSelect.appendChild(option);
-    });
-  }
-  
-  if (filterSelect) {
-    filterSelect.value = dashboardCarouselFilterValue;
-  }
+  if (!body) return;
 
   const leads = dashboardCarouselGetLeads();
+  if (!Number.isFinite(dashboardCarouselIndex)) dashboardCarouselIndex = 0;
+  if (dashboardCarouselIndex < 0) dashboardCarouselIndex = leads.length - 1;
+  if (dashboardCarouselIndex >= leads.length && leads.length > 0) dashboardCarouselIndex = 0;
+
   if (!leads.length) {
-    counter.textContent = '0/0';
-    body.innerHTML = `<div class="lead-carousel-empty">Nenhum lead ativo</div>`;
+    const counterStr = '0/0';
+    body.innerHTML = `
+      <div class="lead-carousel-card">
+        <div class="lead-carousel-card-head">
+          <div class="lead-carousel-card-title">
+            <div class="lead-carousel-lead-name">Nenhum lead ativo</div>
+            <div class="lead-carousel-lead-sub">—</div>
+          </div>
+          <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;">
+            <div class="lead-carousel-nav">
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="lead-carousel-empty">Nenhum lead ativo</div>
+      </div>
+    `;
     return;
   }
 
-  if (!Number.isFinite(dashboardCarouselIndex)) dashboardCarouselIndex = 0;
-  if (dashboardCarouselIndex < 0) dashboardCarouselIndex = leads.length - 1;
-  if (dashboardCarouselIndex >= leads.length) dashboardCarouselIndex = 0;
-
   const lead = leads[dashboardCarouselIndex];
-  counter.textContent = `${dashboardCarouselIndex + 1}/${leads.length}`;
+  const counterStr = `${dashboardCarouselIndex + 1}/${leads.length}`;
 
   const stageId = lead.pipelineStageV2 || 'coletados';
   const meta = dashboardCarouselStageMeta(stageId);
@@ -1023,6 +1038,11 @@ function dashboardCarouselRender() {
     return `<button class="lead-action-btn" type="button" onclick="dashboardCarouselSetStage('${lead.id}','${target.id}')">${escapeXml(a.label || target.label)}</button>`;
   }).join('') : '';
 
+  const allStages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+  const stageSelectOptions = allStages.map(s => 
+    `<option value="${s.id}" ${s.id === stageId ? 'selected' : ''}>${escapeXml(s.label)}</option>`
+  ).join('');
+
   body.innerHTML = `
     <div class="lead-carousel-card">
       <div class="lead-carousel-card-head">
@@ -1030,9 +1050,19 @@ function dashboardCarouselRender() {
           <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
           <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
         </div>
-        <div class="lead-carousel-stage" title="${escapeXml(meta.label)}">
-          <span class="lead-carousel-stage-dot" style="background:${escapeXml(meta.color)}"></span>
-          <span>${escapeXml(meta.label)}</span>
+        <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;">
+          <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardCarouselSetStage('${lead.id}', this.value)">
+            ${stageSelectOptions}
+          </select>
+          <div class="lead-carousel-nav">
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1049,6 +1079,21 @@ function dashboardCarouselRender() {
       </div>
     </div>
   `;
+
+  const fs = document.getElementById('leadCarouselFilter');
+  if (fs && fs.children.length <= 1) {
+    const stages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+    stages.forEach(stage => {
+      const option = document.createElement('option');
+      option.value = stage.id;
+      option.textContent = stage.label;
+      if (stage.color) option.style.color = stage.color;
+      fs.appendChild(option);
+    });
+  }
+  if (fs) fs.value = dashboardCarouselFilterValue;
+  const cEl = document.getElementById('leadCarouselCounter');
+  if (cEl) cEl.textContent = counterStr;
 }
 
 window.dashboardCarouselPrev = function () {
@@ -1073,6 +1118,8 @@ window.dashboardToggleChecklist = function (leadId, stageId, itemId, checked) {
 
 window.dashboardCarouselSetStage = function (leadId, stageId) {
   if (typeof moveLeadToStageDash2 === 'function') moveLeadToStageDash2(leadId, stageId);
+  dashboardCarouselFilterValue = stageId;
+  dashboardCarouselIndex = 0;
   renderDashboard();
 };
 
@@ -1189,6 +1236,7 @@ window.dashboardCarouselQuickAction = function (leadId, action) {
 
 // ---- DASHBOARD ----
 function renderDashboard() {
+  try {
   const now = new Date();
   const total = state.leads.length;
   const stageOf = (l) => l.pipelineStageV2 || 'coletados';
@@ -1306,13 +1354,15 @@ function renderDashboard() {
   renderMiniKanbanV2('k2m-', 'kanbanv2m-');
   if (typeof renderProspectMiniKanban === 'function') renderProspectMiniKanban('k3-', 'kanbanv3-');
   dashboardCarouselRender();
+  
+  // Render KPI components that were moved to the Dashboard view
+  renderKPIs();
+  } catch (e) { console.error("Error rendering dashboard:", e); }
 }
 
 function renderKPIs() {
-  const wrap = document.getElementById('view-kpis');
-  if (!wrap) return;
-
-  setTodayDateText('kpiDate');
+  try {
+    setTodayDateText('kpiDate');
 
   const stageOf = (l) => l.pipelineStageV2 || 'coletados';
   const price = Number(state.settings?.servicePrice || 350);
@@ -1517,6 +1567,10 @@ function renderKPIs() {
   const cardsPrimaryEl = document.getElementById('kpiCardsPrimary');
   if (cardsPrimaryEl) {
     cardsPrimaryEl.innerHTML = cards.map(cardHtml).join('');
+  }
+  const cardsPrimaryEl2 = document.getElementById('kpiCardsPrimary2');
+  if (cardsPrimaryEl2) {
+    cardsPrimaryEl2.innerHTML = cards.map(cardHtml).join('');
   }
 
   const summaryPill = document.getElementById('kpiSummaryPill');
@@ -2322,6 +2376,7 @@ function renderKPIs() {
       </tbody>
     `;
   }
+  } catch (e) { console.error("Error rendering KPIs:", e); }
 }
 
 const DASH2_STAGES = [
@@ -3359,6 +3414,24 @@ function openEditLead(id) {
   document.getElementById('leadModal').classList.add('open');
 }
 
+function openLeadInUnicoTab(id) {
+  if (typeof switchLeadTab === 'function') {
+    switchLeadTab('unico');
+  }
+  
+  if (typeof dashboardCarouselGetLeads === 'function') {
+    const leads = dashboardCarouselGetLeads();
+    const idx = leads.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      dashboardCarouselIndex = idx;
+    }
+  }
+  
+  if (typeof dashboardCarouselRender === 'function') {
+    dashboardCarouselRender();
+  }
+}
+
 function openLeadTimeline(id) {
   const lead = state.leads.find(x => x.id === id);
   if (!lead) return;
@@ -3857,6 +3930,38 @@ document.getElementById('genAvatar').addEventListener('input', e => {
 
 // ---- CUSTOM TEMPLATES ----
 
+
+// ========== AUTO-EXTRACT SECTIONS FROM BUILTIN TEMPLATES ==========
+function initBuiltinSections() {
+  if (!state.sectionLibrary) state.sectionLibrary = [];
+  // Force re-extract if sections are in old format (no <!DOCTYPE>)
+  const formatOk = state.sectionLibrary.length === 0 || (state.sectionLibrary[0] && state.sectionLibrary[0].html && state.sectionLibrary[0].html.indexOf('<!DOCTYPE') === 0);
+  if (!formatOk) {
+    state.sectionLibrary = [];
+    console.log('Section library cleared for format upgrade');
+  }
+  const previewData = {
+    name: 'Dra. Ana Lima', specialty: 'Nutricionista Esportiva', city: 'São Paulo, SP',
+    attendance: 'Online e Presencial', tagline: 'Transforme sua saúde com nutrição de alta performance',
+    bio: 'Especialista em nutrição esportiva com mais de 10 anos de experiência.', initials: 'DA',
+    services: ['Consulta Nutricional', 'Plano Alimentar', 'Acompanhamento Esportivo', 'Suplementação'],
+    whatsapp: '11999999999', whatsapp_clean: '11999999999', instagram: '@draanalima',
+    cta: 'Agendar Consulta', photo: '', images: {}
+  };
+
+  for (const tpl of BUILTIN_TEMPLATES) {
+    const alreadyHas = state.sectionLibrary.some(s => s.fromTemplate === tpl.name);
+    if (alreadyHas) continue;
+    try {
+      const html = tpl.generator(previewData);
+      const extracted = extractSectionsFromHTML(html, tpl.name);
+      state.sectionLibrary.push(...extracted);
+    } catch(e) { console.warn('Section extraction failed for', tpl.name, e); }
+  }
+  save();
+}
+// ========== END AUTO-EXTRACT ==========
+
 const BUILTIN_TEMPLATES = [
   { id: 'minimal', name: 'Minimal', generator: generateMinimal },
   { id: 'premium', name: 'Premium', generator: generatePremium },
@@ -4006,71 +4111,334 @@ ${sectionsHtml}
 </html>`;
 }
 
+// ========== GENERATOR CAROUSEL ==========
+const GEN_PALETTES = [
+  { id: 'roxo',    name: 'Roxo Premium',    primary: '#7C3AED', bg: '#0f0a1a' },
+  { id: 'verde',   name: 'Verde Saude',     primary: '#10B981', bg: '#0a1a12' },
+  { id: 'azul',    name: 'Azul Confianca',  primary: '#3B82F6', bg: '#0a1228' },
+  { id: 'rosa',    name: 'Rosa Elegante',   primary: '#EC4899', bg: '#1a0a14' },
+  { id: 'laranja', name: 'Laranja Energia', primary: '#F97316', bg: '#1a0e0a' },
+  { id: 'ciano',   name: 'Ciano Tech',      primary: '#06B6D4', bg: '#0a1820' },
+];
+
+let _genCurrentSlide = 0;
+let _genDragInit = false;
+
+function genGoSlide(idx) {
+  _genCurrentSlide = idx;
+  const track = document.getElementById('genCarouselTrack');
+  if (track) track.style.transform = 'translateX(calc(-' + idx + ' * 380px))';
+  document.querySelectorAll('.gen-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  if (idx === 1) { renderGeneratorTemplates(); }
+  if (idx === 2) { renderSectionPicker(); }
+  if (idx === 3) { rebuildPreviewImagesList('sitePreview'); }
+  if (idx === 4) { renderButtonsList('sitePreview'); }
+}
+
+function genInitCarouselDrag() {
+  if (_genDragInit) return;
+  _genDragInit = true;
+  const vp = document.querySelector('.gen-carousel-viewport');
+  if (!vp) return;
+  let startX = 0, isDragging = false;
+
+  vp.addEventListener('mousedown', e => {
+    isDragging = true;
+    startX = e.clientX;
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transition = 'none';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transform = 'translateX(calc(-' + _genCurrentSlide + ' * 380px + ' + dx + 'px))';
+  });
+  window.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transition = '';
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 60) {
+      genGoSlide(dx < 0 ? Math.min(_genCurrentSlide + 1, 3) : Math.max(_genCurrentSlide - 1, 0));
+    } else {
+      const track = document.getElementById('genCarouselTrack');
+      if (track) track.style.transform = 'translateX(calc(-' + _genCurrentSlide + ' * 380px))';
+    }
+  });
+  vp.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transition = 'none';
+  }, { passive: true });
+  vp.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transform = 'translateX(calc(-' + _genCurrentSlide + ' * 380px + ' + dx + 'px))';
+  }, { passive: true });
+  vp.addEventListener('touchend', e => {
+    const track = document.getElementById('genCarouselTrack');
+    if (track) track.style.transition = '';
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 60) {
+      genGoSlide(dx < 0 ? Math.min(_genCurrentSlide + 1, 3) : Math.max(_genCurrentSlide - 1, 0));
+    } else {
+      if (track) track.style.transform = 'translateX(calc(-' + _genCurrentSlide + ' * 380px))';
+    }
+  });
+}
+
+function genRenderPalette() {
+  const grid = document.getElementById('genPaletteGrid');
+  if (!grid) return;
+  const active = state.genPalette || 'roxo';
+  grid.innerHTML = GEN_PALETTES.map(p => {
+    const cls = active === p.id ? ' active' : '';
+    return '<div class="gen-palette-card' + cls + '" data-pid="' + p.id + '" onclick="genSelectPalette(this.dataset.pid)">' +
+      '<div class="gen-palette-swatch" style="background:' + p.primary + '"></div>' +
+      '<span>' + p.name + '</span></div>';
+  }).join('');
+}
+
+function genSelectPalette(id) {
+  state.genPalette = id;
+  genRenderPalette();
+}
+// ========== END GENERATOR CAROUSEL ==========
+
+
+// ========== SECTION EXTRACTION ==========
+function extractSectionsFromHTML(html, templateName) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const extracted = [];
+
+  // Collect all head resources (fonts + styles) for context
+  let headContent = '';
+  doc.querySelectorAll('link[rel="stylesheet"], style').forEach(function(el) { headContent += el.outerHTML; });
+  // Find major section blocks
+  const blocks = Array.from(doc.querySelectorAll('section, .section, [class*="-section"], [class*="section-"]'));
+  // Fallback: direct children of body with substantial content
+  if (!blocks.length) {
+    Array.from(doc.body.children).forEach(el => {
+      if (el.textContent.trim().length > 30) blocks.push(el);
+    });
+  }
+
+  blocks.forEach((block, i) => {
+    const cls = (block.className || '').toLowerCase();
+    const txt = block.textContent.toLowerCase().substring(0, 300);
+    const combined = cls + ' ' + txt;
+
+    let category = 'outros';
+    const catKeywords = {
+      hero: ['hero', 'header', 'capa', 'topo', 'banner'],
+      bio: ['bio', 'sobre', 'about', 'quem'],
+      servicos: ['servic', 'service', 'oferec', 'tratam', 'procedim'],
+      faq: ['faq', 'pergunta', 'duvida'],
+      cta: ['cta', 'contato', 'agendar', 'whatsapp', 'footer', 'rodape'],
+      prova_social: ['depo', 'testim', 'avalia', 'review'],
+      localizacao: ['mapa', 'local', 'endere'],
+    };
+    for (const [cat, kws] of Object.entries(catKeywords)) {
+      if (kws.some(kw => combined.includes(kw))) { category = cat; break; }
+    }
+    if (category === 'outros' && i === 0) category = 'hero';
+
+    const catLabels = { hero: 'Hero', bio: 'Bio/Sobre', servicos: 'Servicos', faq: 'FAQ', cta: 'CTA', prova_social: 'Prova Social', localizacao: 'Localizacao', outros: 'Outros' };
+    const sectionName = templateName + ' — ' + (catLabels[category] || 'Secao ' + (i + 1));
+    const previewText = block.textContent.trim().replace(/\s+/g, ' ').substring(0, 80);
+
+    extracted.push({
+      id: 'ext_' + Date.now() + '_' + i,
+      name: sectionName,
+      category,
+      html: '<!DOCTYPE html><html><head>' + headContent + '<style>body{margin:0;padding:0}</style></head><body>' + block.outerHTML + '</body></html>',
+      fromTemplate: templateName,
+      preview: previewText
+    });
+  });
+
+  return extracted;
+}
+// ========== END SECTION EXTRACTION ==========
+
 function renderSectionPicker() {
-  const container = document.getElementById('templateSelectorContainer');
+  var container = document.getElementById('blocosContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-direction:column;gap:20px;padding:4px 0';
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:4px 0';
 
-  for (const cat of SECTION_CATEGORIES) {
-    const variants = SECTION_LIBRARY.filter(s => s.category === cat);
-    const activeId = state.selectedSections.find(id => {
-      const sec = SECTION_LIBRARY.find(s => s.id === id);
-      return sec && sec.category === cat;
-    });
-    const isEnabled = !!activeId;
+  var allSections = state.sectionLibrary || [];
 
-    const catLabels = { hero: 'Hero', bio: 'Bio / Sobre', servicos: 'Serviços', cta: 'CTA / Contato' };
-    const catLabel = catLabels[cat] || cat;
+  if (!allSections.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;">Nenhuma sessao ainda.<br><br>Adicione um template na Biblioteca para extrair sessoes automaticamente.</div>';
+    container.appendChild(wrap);
+    return;
+  }
 
-    const catRow = document.createElement('div');
+  var cats = {};
+  for (var si = 0; si < allSections.length; si++) {
+    var sec0 = allSections[si];
+    var c = sec0.category || 'outros';
+    if (!cats[c]) cats[c] = [];
+    cats[c].push(sec0);
+  }
 
-    // Category header
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px';
-    header.innerHTML = `
-      <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">${catLabel}</span>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:${isEnabled ? '#c4b5fd' : 'var(--text-muted)'}">
-        <input type="checkbox" ${isEnabled ? 'checked' : ''} style="accent-color:#7C3AED;width:14px;height:14px"
-          onchange="toggleSectionCategory('${cat}', this.checked)">
-        ${isEnabled ? 'Ativo' : 'Inativo'}
-      </label>`;
+  var catLabels = { hero: 'Hero', bio: 'Bio / Sobre', servicos: 'Servicos', faq: 'FAQ', cta: 'CTA / Contato', prova_social: 'Prova Social', localizacao: 'Localizacao', outros: 'Outros' };
+  var catOrder = ['hero', 'bio', 'servicos', 'faq', 'cta', 'prova_social', 'localizacao', 'outros'];
+  var sortedCats = catOrder.filter(function(c){return !!cats[c];}).concat(Object.keys(cats).filter(function(c){return catOrder.indexOf(c) === -1;}));
+
+  for (var ci = 0; ci < sortedCats.length; ci++) {
+    var cat = sortedCats[ci];
+    var sections = cats[cat];
+    if (!sections || !sections.length) continue;
+
+    var catRow = document.createElement('div');
+    catRow.style.cssText = 'background:rgba(255,255,255,.03);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06)';
+
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;';
+    var labelSpan = document.createElement('span');
+    labelSpan.textContent = (catLabels[cat] || cat) + ' (' + sections.length + ')';
+    var arrow = document.createElement('span');
+    arrow.textContent = '▶';
+    arrow.style.cssText = 'font-size:9px;transition:transform .2s;transform:rotate(0deg)';
+    header.appendChild(labelSpan);
+    header.appendChild(arrow);
+
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:none;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;padding:0 14px 14px';
+
+    header.addEventListener('click', function(g, a) {
+      return function() {
+        var open = g.style.display === 'grid';
+        g.style.display = open ? 'none' : 'grid';
+        a.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+      };
+    }(grid, arrow));
+
     catRow.appendChild(header);
 
-    // Variant thumbnails
-    const varRow = document.createElement('div');
-    varRow.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px';
+    (function(sections) {
+      for (var ii = 0; ii < sections.length; ii++) {
+        (function(sec) {
+          var isActive = state._previewSection === sec.id;
+          var card = document.createElement('div');
+          card.style.cssText = 'border-radius:10px;cursor:pointer;border:2px solid ' + (isActive ? '#7C3AED' : 'rgba(255,255,255,.07)') + ';background:' + (isActive ? 'rgba(124,58,237,.1)' : 'rgba(255,255,255,.03)') + ';overflow:hidden;transition:.15s;position:relative;';
+          card.draggable = true;
+          card.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('text/plain', sec.id);
+            e.dataTransfer.effectAllowed = 'copy';
+          });
 
-    for (const sec of variants) {
-      const isActive = activeId === sec.id;
-      const card = document.createElement('div');
-      card.style.cssText = `
-        padding:12px;border-radius:10px;cursor:pointer;border:2px solid ${isActive ? '#7C3AED' : 'rgba(255,255,255,.07)'};
-        background:${isActive ? 'rgba(124,58,237,.12)' : 'rgba(255,255,255,.03)'};transition:.15s;
-        ${!isEnabled ? 'opacity:.4;pointer-events:none' : ''}`;
-      card.innerHTML = `
-        <div style="font-size:11px;font-weight:700;color:${isActive ? '#c4b5fd' : 'var(--text-muted)'};margin-bottom:4px">${sec.name}</div>
-        <div style="font-size:10px;color:${isActive ? 'rgba(196,181,253,.7)' : 'rgba(255,255,255,.25)'};line-height:1.4">${sec.preview}</div>
-        ${isActive ? '<div style="margin-top:8px;font-size:9px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:1px">● Ativo</div>' : ''}`;
-      card.onclick = () => selectSectionVariant(cat, sec.id);
-      varRow.appendChild(card);
-    }
-    catRow.appendChild(varRow);
+          var previewWrap = document.createElement('div');
+          previewWrap.style.cssText = 'position:relative;overflow:hidden;height:90px;background:#f0f0f0;';
+          var iframe = document.createElement('iframe');
+          iframe.scrolling = 'no';
+          iframe.loading = 'lazy';
+          iframe.style.cssText = 'width:400%;height:400%;transform:scale(0.25);transform-origin:0 0;border:none;pointer-events:none;';
+          var srcHtml = sec.html || '';
+          if (srcHtml && srcHtml.indexOf('<!DOCTYPE') !== 0) {
+            srcHtml = '<!DOCTYPE html><html><head><style>body{margin:0;padding:0}</style></head><body>' + srcHtml + '</body></html>';
+          }
+          iframe.srcdoc = srcHtml;
+          previewWrap.appendChild(iframe);
+
+          // Hover overlay
+          var overlay = document.createElement('div');
+          overlay.style.cssText = 'position:absolute;inset:0;background:rgba(124,58,237,.82);display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s;z-index:5';
+          overlay.innerHTML = '<span style="color:#fff;font-size:11px;font-weight:700;text-align:center;padding:4px">▶ Ver Previa</span>';
+          previewWrap.appendChild(overlay);
+
+          card.addEventListener('mouseenter', function() {
+            overlay.style.opacity = '1';
+            if (!isActive) card.style.borderColor = 'rgba(124,58,237,.5)';
+          });
+          card.addEventListener('mouseleave', function() {
+            overlay.style.opacity = '0';
+            if (!isActive) card.style.borderColor = 'rgba(255,255,255,.07)';
+          });
+
+          if (isActive) {
+            var badge = document.createElement('div');
+            badge.style.cssText = 'position:absolute;top:4px;right:4px;background:#7C3AED;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;z-index:6';
+            badge.textContent = 'Ativo';
+            previewWrap.appendChild(badge);
+          }
+
+          var info = document.createElement('div');
+          info.style.cssText = 'padding:8px 10px';
+          var secLabel = sec.name.replace(sec.fromTemplate ? sec.fromTemplate + ' — ' : '', '');
+          info.innerHTML = '<div style="font-size:11px;font-weight:700;color:' + (isActive ? '#c4b5fd' : 'var(--text-secondary)') + ';margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + (sec.name||'') + '">' + secLabel + '</div>' +
+            '<div style="font-size:10px;color:rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (sec.fromTemplate || '') + '</div>';
+
+          card.appendChild(previewWrap);
+          card.appendChild(info);
+          card.onclick = function() { addExtractedSectionToSite(sec); };
+          grid.appendChild(card);
+        })(sections[ii]);
+      }
+    })(sections);
+
+    catRow.appendChild(grid);
     wrap.appendChild(catRow);
   }
 
-  // Auto-recipe button
-  const autoBtn = document.createElement('button');
-  autoBtn.innerHTML = '🎯 Auto-selecionar por especialidade';
-  autoBtn.style.cssText = 'width:100%;padding:9px;border:1px dashed rgba(124,58,237,.3);border-radius:8px;background:transparent;color:#9b77e0;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;margin-top:4px';
-  autoBtn.onmouseover = () => { autoBtn.style.borderColor = 'rgba(124,58,237,.6)'; autoBtn.style.color = '#c4b5fd'; };
-  autoBtn.onmouseout = () => { autoBtn.style.borderColor = 'rgba(124,58,237,.3)'; autoBtn.style.color = '#9b77e0'; };
-  autoBtn.onclick = applyRecipe;
-  wrap.appendChild(autoBtn);
-
   container.appendChild(wrap);
+
+  // Drag-and-drop onto preview panel (setup once)
+  var previewPanel = document.querySelector('.preview-panel');
+  if (previewPanel && !previewPanel._sectionDropSetup) {
+    previewPanel._sectionDropSetup = true;
+    previewPanel.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      previewPanel.style.outline = '3px dashed #7C3AED';
+    });
+    previewPanel.addEventListener('dragleave', function() {
+      previewPanel.style.outline = '';
+    });
+    previewPanel.addEventListener('drop', function(e) {
+      e.preventDefault();
+      previewPanel.style.outline = '';
+      var secId = e.dataTransfer.getData('text/plain');
+      var dropped = (state.sectionLibrary || []).find(function(s){ return s.id === secId; });
+      if (!dropped) return;
+      if (state.generatedHTML) {
+        var insert = dropped.html || '';
+        if (insert.indexOf('<!DOCTYPE') === 0) {
+          var bodyMatch = insert.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          insert = bodyMatch ? bodyMatch[1] : insert;
+        }
+        var newHtml = state.generatedHTML.replace('</body>', insert + '</body>');
+        state.generatedHTML = newHtml;
+        var ifr = document.getElementById('sitePreview');
+        if (ifr) ifr.srcdoc = newHtml;
+        toast('Secao adicionada ao site!');
+      } else {
+        addExtractedSectionToSite(dropped);
+      }
+    });
+  }
+}
+
+function addExtractedSectionToSite(sec) {
+  // Show section preview in right panel
+  var iframe = document.getElementById('sitePreview');
+  var ph = document.getElementById('previewPlaceholder');
+  if (iframe) {
+    iframe.srcdoc = sec.html || '';
+    if (ph) ph.style.display = 'none';
+    iframe.style.display = 'block';
+    state.generatedHTML = sec.html;
+  }
+  // Highlight selected
+  state._previewSection = sec.id;
+  renderSectionPicker();
 }
 
 function renderGeneratorModeToggle() {
@@ -4084,15 +4452,29 @@ function renderGeneratorModeToggle() {
 
 function setGeneratorMode(mode) {
   state.generatorMode = mode;
-  renderGeneratorModeToggle();
-  const container = document.getElementById('templateSelectorContainer');
-  if (!container) return;
-  if (mode === 'blocos') {
-    if (!state.selectedSections.length) applyRecipe();
-    else renderSectionPicker();
-  } else {
-    renderGeneratorTemplates();
-  }
+  genGoSlide(mode === 'template' ? 1 : 2);
+}
+
+
+function updateQuickPreview(tpl) {
+  try {
+    // Use real form data if available, otherwise placeholders
+    const data = (typeof getSiteFormData === 'function') ? getSiteFormData() : {
+      name: "Dra. Ana Lima", specialty: "Nutricionista", city: "Sao Paulo",
+      attendance: "Online", tagline: "Nutricao personalizada", bio: "Especialista em nutricao.",
+      services: ["Consulta"], whatsapp: "11999999999", whatsapp_clean: "11999999999",
+      instagram: "@draana", cta: "Agendar Consulta", photo: "", initials: "DA", images: {}
+    };
+    var html = tpl.isCustom ? generateCustomTemplate(tpl.html, data) : tpl.generator(data);
+    var iframe = document.getElementById('sitePreview');
+    var ph = document.getElementById('previewPlaceholder');
+    if (iframe && html) {
+      iframe.srcdoc = html;
+      if (ph) ph.style.display = 'none';
+      iframe.style.display = 'block';
+      state.generatedHTML = html;
+    }
+  } catch(e) { console.warn('updateQuickPreview failed', e); }
 }
 
 function renderGeneratorTemplates() {
@@ -4156,6 +4538,7 @@ function renderGeneratorTemplates() {
       document.querySelectorAll('.template-option').forEach(o => o.classList.remove('selected'));
       el.classList.add('selected');
       state.selectedTemplate = t.id;
+      // Preview only on 'Gerar Site' click
     });
 
     if (state.selectedTemplate === t.id) el.classList.add('selected');
@@ -4184,6 +4567,18 @@ function addCustomTemplate(nameVal, htmlVal, typeVal, onSuccess) {
   };
 
   state.customTemplates.push(newTemplate);
+
+  // Extract and save sections from this template
+  try {
+    const extracted = extractSectionsFromHTML(html, name);
+    if (extracted.length) {
+      // Remove any previous sections from this same template name
+      state.sectionLibrary = state.sectionLibrary.filter(s => s.fromTemplate !== name);
+      state.sectionLibrary.push(...extracted);
+      toast('✅ Template salvo — ' + extracted.length + ' seção(ões) extraída(s)!');
+    }
+  } catch(e) { /* extraction is optional */ }
+
   save();
   renderGeneratorTemplates();
 
@@ -4557,6 +4952,12 @@ function generateCustomTemplate(html, data) {
   output = output.replace(/{{foto_hero}}/g, data.avatar || '');
   // Legacy support for {{avatar}} if used
   output = output.replace(/{{avatar}}/g, data.avatar || '');
+  // Support {{foto_1}} through {{foto_9}} (assigned by auto-convert)
+  var imgArr = Array.isArray(data.images) ? data.images : [];
+  for (var fi = 0; fi < 9; fi++) {
+    var fSrc = imgArr[fi] || (fi === 0 ? data.avatar || '' : '');
+    output = output.replace(new RegExp('\\{\\{foto_' + (fi+1) + '\\}\\}', 'g'), fSrc);
+  }
   return output;
 }
 
@@ -4728,20 +5129,6 @@ async function generateSite() {
 
   if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
 
-  // ── MODO BLOCOS ──────────────────────────────────────────────
-  if (state.generatorMode === 'blocos') {
-    const ids = state.selectedSections.length ? state.selectedSections : getRecipeForSpecialty(data.specialty);
-    const html = assembleFromSections(ids, data);
-    state.generatedHTML = html;
-    const iframe = document.getElementById('sitePreview');
-    document.getElementById('previewPlaceholder').style.display = 'none';
-    iframe.srcdoc = html;
-    const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/dr[ao]-?/g, '');
-    document.querySelector('.preview-url').textContent = `leadflow.site/${slug}`;
-    toast(aiCopy ? '✨ Site gerado com blocos + IA!' : '✅ Site gerado com blocos!');
-    return;
-  }
-
   // ── MODO TEMPLATE COMPLETO (comportamento original) ──────────
   state.currentPreviewTemplate = template;
   const html = generateSiteHTML(data, template);
@@ -4751,8 +5138,12 @@ async function generateSite() {
   const editableHtml = injectEditor(html, data);
 
   const iframe = document.getElementById('sitePreview');
-  document.getElementById('previewPlaceholder').style.display = 'none';
-  iframe.srcdoc = editableHtml;
+  if (!iframe) { console.error('sitePreview iframe not found'); toast('Erro: preview não encontrado'); return; }
+  var _ph = document.getElementById('previewPlaceholder');
+  if (_ph) _ph.style.display = 'none';
+  iframe.removeAttribute('srcdoc');
+  iframe.style.cssText = 'display:block;visibility:visible;opacity:1;width:100%;height:100%;border:none;';
+  setTimeout(function(){ iframe.srcdoc = editableHtml; }, 20);
 
   const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/dr[ao]-?/g, '');
   document.querySelector('.preview-url').textContent = `leadflow.site/${slug}`;
@@ -4762,352 +5153,515 @@ async function generateSite() {
 
 function sanitizeGeneratedHtml(html, data) {
   let out = String(html || '');
-  out = out.replace(/<script\b[^>]*\bsrc=["']https?:\/\/[^"']*(?:cdnjs\.cloudflare\.com\/ajax\/libs\/lucide|googletagmanager\.com\/gtm\.js|googletagmanager\.com\/gtag\/js|google-analytics\.com)[^"']*["'][^>]*>\s*<\/script>/gi, '');
-  out = out.replace(/<script\b[^>]*>\s*[\s\S]*?(?:googletagmanager|gtm\.start|gtag\(|google_tag_manager)[\s\S]*?<\/script>/gi, '');
-  let idx = 1000;
-  out = out.replace(/(<img\b[^>]*\bsrc=["'])(https?:\/\/[^"']+)(["'][^>]*>)/gi, (m, p1, _url, p3) => `${p1}${getTemplateImage(data || {}, idx++, '')}${p3}`);
-  out = out.replace(/url\(\s*(['"]?)(https?:\/\/[^'")]+)\1\s*\)/gi, () => `url("${getTemplateImage(data || {}, idx++, '')}")`);
+  // Remove external tracking/analytics scripts (CDN sources)
+  out = out.replace(/<script\b[^>]*\bsrc=["']https?:\/\/[^"']*(?:googletagmanager\.com\/gtm\.js|googletagmanager\.com\/gtag\/js|google-analytics\.com)[^"']*["'][^>]*>\s*<\/script>/gi, '');
+  // Remove inline analytics scripts.
+  // Use (?:(?!<\/script>)[\s\S])* so the match never crosses a </script> boundary.
+  // This prevents accidentally consuming multiple script blocks.
+  out = out.replace(/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*(?:googletagmanager|gtm\.start|gtag\(|google_tag_manager)(?:(?!<\/script>)[\s\S])*<\/script>/gi, '');
   return out;
 }
 
 function injectEditor(html, data) {
   html = sanitizeGeneratedHtml(html, data);
-  // If no body tag, append to end
   const insertPos = html.indexOf('</body>');
-  const code = `
-    <style id="lf-editor-style">
-      .lf-edit-wrapper { position: relative; transition: all 0.2s; box-sizing: border-box; isolation: isolate; }
-      .lf-edit-wrapper:hover { outline: 2px dashed #7C3AED; outline-offset: -2px; }
-      .lf-edit-btn {
-        all: unset;
-        position: absolute !important; top: 0 !important; right: 0 !important;
-        z-index: 2147483647 !important;
-        display: inline-flex !important; align-items: center !important; gap: 6px !important;
-        padding: 6px 10px !important;
-        border-bottom-left-radius: 6px !important;
-        background: #7C3AED !important;
-        color: #fff !important;
-        font-size: 12px !important;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
-        font-weight: 700 !important;
-        cursor: pointer !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.25) !important;
+
+  const editorCode = `
+<style id="lf-canva-style">
+/* Per-section wrapper */
+.lf-edit-wrapper{position:relative}
+.lf-sec-controls{position:absolute;top:4px;right:4px;z-index:2147483647;display:none;gap:2px;flex-direction:column;pointer-events:auto}
+.lf-edit-wrapper:hover>.lf-sec-controls{display:flex}
+.lf-edit-wrapper:hover{outline:2px dashed rgba(124,58,237,.4);outline-offset:1px}
+.lf-sec-btn{all:unset;display:flex!important;align-items:center;gap:4px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;font-family:system-ui,sans-serif;white-space:nowrap;border-radius:4px;margin-bottom:1px}
+.lf-sec-btn-edit{background:#7C3AED}
+.lf-sec-btn-ai{background:#0891b2}
+.lf-sec-btn-del{background:#DC2626}
+.lf-sec-btn:hover{filter:brightness(1.2)}
+/* Selected element highlight */
+.lf-selected-el{outline:2px solid #7C3AED!important;outline-offset:1px;border-radius:2px}
+/* Edit mode */
+.lf-editing>.lf-edit-wrapper,.lf-editing{outline:2px solid #7C3AED!important}
+[contenteditable=true]{cursor:text}
+[contenteditable=true]:focus{outline:2px dashed #7C3AED!important;background:rgba(124,58,237,.06)!important}
+/* Remove grayscale from images */
+img{filter:none!important}
+/* Format bar */
+#lf-fmt-bar{display:none;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:2147483647;background:linear-gradient(90deg,#1e1b4b,#312e81);color:#fff;border-radius:12px;padding:7px 12px;gap:7px;align-items:center;box-shadow:0 4px 24px rgba(0,0,0,.6);font-family:system-ui,sans-serif;font-size:12px;flex-wrap:wrap;max-width:96vw;justify-content:center}
+#lf-fmt-bar button{all:unset;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:12px;font-weight:700;background:rgba(255,255,255,.12);color:#fff;transition:.12s}
+#lf-fmt-bar button:hover{background:rgba(255,255,255,.28)}
+#lf-fmt-bar input[type=color]{width:24px;height:24px;border:2px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer;padding:0;background:none;flex-shrink:0}
+#lf-fmt-bar label{font-size:10px;display:flex;align-items:center;gap:3px;color:rgba(255,255,255,.8);white-space:nowrap}
+#lf-fmt-bar .lf-sep{width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;flex-shrink:0}
+#lf-fmt-bar .lf-done{background:rgba(5,150,105,.8)}
+#lf-fmt-bar .lf-done:hover{background:rgba(5,150,105,1)}
+#lf-fmt-bar select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:4px 7px;border-radius:5px;font-size:11px;cursor:pointer}
+/* Image overlay */
+#lf-img-overlay{position:fixed;z-index:2147483646;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(0,0,0,.6);border-radius:8px;padding:10px 14px;pointer-events:auto}
+#lf-img-overlay button{all:unset;cursor:pointer;background:#7C3AED;color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;font-family:system-ui,sans-serif}
+#lf-img-overlay button:hover{filter:brightness(1.2)}
+#lf-img-overlay .lf-cancel-img{background:rgba(255,255,255,.18)!important;font-size:11px!important;padding:4px 10px!important}
+/* Resize wrap */
+#lf-resize-wrap{position:fixed;pointer-events:none;z-index:2147483645;display:none;border:2px solid #7C3AED;box-sizing:border-box}
+.lf-resize-handle{position:absolute;width:10px;height:10px;background:#7C3AED;border:2px solid #fff;border-radius:2px;z-index:2147483647;cursor:nwse-resize;pointer-events:auto}
+/* Section bottom resize bar */
+.lf-sec-resize-bar{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;background:transparent;z-index:2147483644}
+.lf-sec-resize-bar:hover{background:rgba(124,58,237,.35)}
+/* Drag grid */
+#lf-drag-grid{display:none;position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2147483640;background-image:linear-gradient(rgba(124,58,237,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.12) 1px,transparent 1px);background-size:24px 24px}
+</style>
+<div id="lf-fmt-bar">
+  <label>Texto<input type="color" id="lf-tc" value="#000000" oninput="lfTC(this.value)"></label>
+  <label>Fundo<input type="color" id="lf-bc" value="#ffffff" oninput="lfBC(this.value)"></label>
+  <label>Seção<input type="color" id="lf-sc" value="#ffffff" oninput="lfSC(this.value)"></label>
+  <div class="lf-sep"></div>
+  <button onmousedown="event.preventDefault();lfBold()"><b>N</b></button>
+  <button onmousedown="event.preventDefault();lfItalic()"><i>I</i></button>
+  <select id="lf-fs" onchange="lfFS(this.value)">
+    <option value="">Tam.</option>
+    <option value="12px">12</option><option value="14px">14</option><option value="16px">16</option>
+    <option value="18px">18</option><option value="20px">20</option><option value="24px">24</option>
+    <option value="28px">28</option><option value="32px">32</option><option value="36px">36</option>
+    <option value="40px">40</option><option value="48px">48</option><option value="56px">56</option>
+    <option value="64px">64</option><option value="72px">72</option>
+  </select>
+  <div class="lf-sep"></div>
+  <button onmousedown="event.preventDefault();lfUndo()" title="Desfazer">↩</button>
+  <button onmousedown="event.preventDefault();lfDelEl()" style="background:rgba(220,38,38,.6)">🗑</button>
+  <button onclick="lfCloseAll()" class="lf-done">✅ Fechar</button>
+</div>
+<div id="lf-img-overlay">
+  <button id="lf-img-sub-btn">📷 Substituir imagem</button>
+  <button id="lf-img-cancel-btn" class="lf-cancel-img">✕ Cancelar</button>
+</div>
+<div id="lf-resize-wrap"><div class="lf-resize-handle" id="lf-rh-se" style="bottom:-5px;right:-5px"></div></div>
+<div id="lf-drag-grid"></div>
+<script id="lf-canva-script">
+(function() {
+  var _sel = null;
+  var _secEditing = null;
+  var _fmtVisible = false;
+  var _history = [];
+
+  function snapshotHistory() {
+    try { _history.push(document.body.innerHTML); if (_history.length > 20) _history.shift(); } catch(e) {}
+  }
+
+  /* ---------- helpers ---------- */
+  function toHex(rgb) {
+    if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return null;
+    var m = rgb.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
+    if (!m) return null;
+    return '#' + [m[1],m[2],m[3]].map(function(x){return ('0'+parseInt(x).toString(16)).slice(-2);}).join('');
+  }
+
+  function showFmt() {
+    var b = document.getElementById('lf-fmt-bar');
+    if (b) { b.style.display = 'flex'; _fmtVisible = true; }
+  }
+
+  function syncFmt(el) {
+    if (!el) return;
+    var cs = window.getComputedStyle(el);
+    var tc = document.getElementById('lf-tc');
+    var bc = document.getElementById('lf-bc');
+    if (tc) tc.value = toHex(cs.color) || '#000000';
+    if (bc) bc.value = toHex(cs.backgroundColor) || '#ffffff';
+    // find nearest section bg
+    var sc = document.getElementById('lf-sc');
+    if (sc) {
+      var node = el;
+      while (node && node !== document.body) {
+        var bg = toHex(window.getComputedStyle(node).backgroundColor);
+        if (bg) { sc.value = bg; break; }
+        node = node.parentElement;
       }
-      .lf-del-btn {
-        all: unset;
-        position: absolute !important; top: 34px !important; right: 0 !important;
-        z-index: 2147483647 !important;
-        display: inline-flex !important; align-items: center !important; gap: 6px !important;
-        padding: 6px 10px !important;
-        border-bottom-left-radius: 6px !important;
-        background: #DC2626 !important;
-        color: #fff !important;
-        font-size: 12px !important;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
-        font-weight: 700 !important;
-        cursor: pointer !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.25) !important;
-      }
-      .lf-edit-btn:hover { filter: brightness(1.06); }
-      .lf-del-btn:hover { filter: brightness(1.06); }
-      .lf-edit-btn:focus-visible, .lf-del-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.9) !important; outline-offset: 2px !important; }
-      .lf-editable-active { outline: 2px solid #7C3AED !important; }
-      [contenteditable="true"]:focus { outline: 2px dashed #7C3AED; background: rgba(124, 58, 237, 0.05); }
-    </style>
-    <script id="lf-editor-script">
-      document.addEventListener('DOMContentLoaded', () => {
-        const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-        const LF_IMAGE_TITLE = 'Clique para alterar a imagem';
-
-        function pickAndApplyImage(applyFn) {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
-          input.onchange = (ev) => {
-            const file = ev.target.files && ev.target.files[0];
-            if (!file) return;
-            if (file.size > MAX_IMAGE_SIZE) {
-              alert('A imagem deve ter no máximo 5MB.');
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = (loadEv) => {
-              const dataUrl = loadEv.target && loadEv.target.result;
-              if (!dataUrl) return;
-              applyFn(String(dataUrl));
-            };
-            reader.readAsDataURL(file);
-          };
-          input.click();
-        }
-
-        function findBackgroundTarget(startEl) {
-          let el = startEl;
-          while (el && el !== document.body && el !== document.documentElement) {
-            if (el.classList && (el.classList.contains('lf-edit-btn') || el.classList.contains('lf-del-btn'))) return null;
-            const style = window.getComputedStyle(el);
-            const bg = style && style.backgroundImage;
-            if (bg && bg !== 'none' && bg.includes('url(')) return el;
-            el = el.parentElement;
-          }
-          return null;
-        }
-
-        function markClickableImage(el) {
-          if (!el || !el.style) return;
-          if (!el.getAttribute('title')) el.setAttribute('title', LF_IMAGE_TITLE);
-          if (el.style.cursor !== 'pointer') {
-            el.style.cursor = 'pointer';
-            el.setAttribute('data-lf-editor-cursor', '1');
-          }
-        }
-
-        document.querySelectorAll('img').forEach(markClickableImage);
-        document.querySelectorAll('[style*="background-image"]').forEach(markClickableImage);
-
-        document.addEventListener('click', (e) => {
-          const target = e.target;
-          if (!target || (target.closest && target.closest('.lf-edit-btn, .lf-del-btn'))) return;
-
-          if (target.tagName === 'IMG') {
-            e.preventDefault();
-            e.stopPropagation();
-            markClickableImage(target);
-            pickAndApplyImage((dataUrl) => { target.src = dataUrl; });
-            return;
-          }
-
-          const bgTarget = findBackgroundTarget(target);
-          if (!bgTarget) return;
-          e.preventDefault();
-          e.stopPropagation();
-          markClickableImage(bgTarget);
-          pickAndApplyImage((dataUrl) => { bgTarget.style.backgroundImage = 'url(\"' + dataUrl + '\")'; });
-        }, true);
-
-        function getEditableContainers() {
-          const out = [];
-          const seen = new Set();
-          const push = (el) => {
-            if (!el || !el.tagName) return;
-            if (seen.has(el)) return;
-            const tag = el.tagName.toUpperCase();
-            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'LINK' || tag === 'META') return;
-            if (el.id === 'lf-editor-ui') return;
-            if (el.classList && el.classList.contains('lf-edit-wrapper')) return;
-            seen.add(el);
-            out.push(el);
-          };
-
-          document.querySelectorAll('header, section, main, footer').forEach(push);
-
-          const hasSections = document.querySelectorAll('section').length > 0;
-          if (!hasSections) {
-            const main = document.querySelector('main');
-            if (main) {
-              Array.from(main.children || [])
-                .filter(el => el && el.tagName && !['SCRIPT', 'STYLE', 'LINK', 'META'].includes(el.tagName))
-                .forEach(push);
-            }
-          }
-
-          if (out.length > 0) return out;
-
-          let top = Array.from(document.body ? document.body.children : []);
-          top = top.filter(el => el && el.tagName && !['SCRIPT', 'STYLE', 'LINK', 'META'].includes(el.tagName));
-
-          if (top.length === 1) {
-            const only = top[0];
-            const inner = Array.from(only.children || []).filter(el => el && el.tagName && !['SCRIPT', 'STYLE', 'LINK', 'META'].includes(el.tagName));
-            if (inner.length > 1) top = inner;
-          }
-
-          top.forEach(push);
-          return out;
-        }
-
-        const containers = getEditableContainers();
-        
-        containers.forEach(el => {
-          if(el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
-          if (el.id === 'lf-editor-ui') return;
-          if (el.classList && el.classList.contains('lf-edit-wrapper')) return;
-          el.classList.add('lf-edit-wrapper');
-          
-          const btn = document.createElement('button');
-          btn.className = 'lf-edit-btn';
-          btn.innerHTML = '✏️ Editar';
-          btn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleEdit(el, btn);
-          };
-
-          const del = document.createElement('button');
-          del.className = 'lf-del-btn';
-          del.innerHTML = '🗑 Excluir';
-          del.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (confirm('Excluir esta seção do site?')) {
-              el.remove();
-            }
-          };
-          
-          // Ensure positioning context
-          const style = window.getComputedStyle(el);
-          if(style.position === 'static') el.style.position = 'relative';
-          
-          el.appendChild(btn);
-          el.appendChild(del);
-        });
-
-        document.addEventListener('click', (e) => {
-          const target = e.target;
-          if (!target || !target.closest) return;
-          if (target.closest('.lf-edit-btn, .lf-del-btn')) return;
-          const editingScope = target.closest('.lf-editable-active');
-          if (!editingScope) return;
-          const link = target.closest('a');
-          const btn = target.closest('button');
-          if (link || btn) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }, true);
-
-        document.addEventListener('dblclick', (e) => {
-          const target = e.target;
-          if (!target || !target.closest) return;
-          if (target.closest('.lf-edit-btn, .lf-del-btn')) return;
-          const editingScope = target.closest('.lf-editable-active');
-          if (!editingScope) return;
-
-          const link = target.closest('a');
-          if (link) {
-            e.preventDefault();
-            e.stopPropagation();
-            const current = link.getAttribute('href') || '';
-            const next = prompt('URL do botão/link:', current);
-            if (next === null) return;
-            const cleaned = String(next).trim();
-            link.setAttribute('href', cleaned || '#');
-            return;
-          }
-
-          const btn = target.closest('button');
-          if (btn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const current = btn.getAttribute('data-lf-href') || '';
-            const next = prompt('URL do botão:', current);
-            if (next === null) return;
-            const cleaned = String(next).trim();
-            btn.setAttribute('data-lf-href', cleaned);
-            if (!btn.getAttribute('type')) btn.setAttribute('type', 'button');
-            if (!btn.getAttribute('data-lf-href-hooked')) {
-              btn.setAttribute('data-lf-href-hooked', '1');
-              btn.addEventListener('click', (ev) => {
-                if (btn.closest('.lf-editable-active')) {
-                  ev.preventDefault();
-                  ev.stopPropagation();
-                  return;
-                }
-                const href = btn.getAttribute('data-lf-href') || '';
-                if (href) window.location.href = href;
-              }, true);
-            }
-          }
-        }, true);
-
-        function toggleEdit(container, btn) {
-          const isEditing = btn.innerHTML.includes('Salvar');
-          
-          if (isEditing) {
-            // Save Mode -> View Mode
-            btn.innerHTML = '✏️ Editar';
-            btn.style.background = '#7C3AED';
-            container.classList.remove('lf-editable-active');
-            
-            // Disable text editing
-            container.querySelectorAll('[contenteditable]').forEach(child => {
-              child.contentEditable = 'false';
-            });
-          } else {
-            // View Mode -> Edit Mode
-            btn.innerHTML = '💾 Salvar';
-            btn.style.background = '#059669'; // Green for save
-            container.classList.add('lf-editable-active');
-            
-            // Enable text editing for safe elements
-            const textSelector = 'h1, h2, h3, h4, h5, h6, p, span, a, li, b, strong, i, em, small, button, .btn, [role="button"], [class*="btn"], [class*="cta"], [class*="button"]';
-            container.querySelectorAll(textSelector).forEach(child => {
-               // Only edit if it has direct text or is a leaf node
-               if (child.children.length === 0 || child.innerText.trim().length > 0) {
-                 child.contentEditable = 'true';
-               }
-            });
-          }
-        }
+    }
+    // Font size: show computed size in selector
+    var fsEl = document.getElementById('lf-fs');
+    if (fsEl && el) {
+      var computedPx = parseInt(window.getComputedStyle(el).fontSize) || 0;
+      var opts = Array.from(fsEl.options);
+      var best = ''; var bestDiff = Infinity;
+      opts.forEach(function(o) {
+        if (o.value) { var diff = Math.abs(parseInt(o.value) - computedPx); if (diff < bestDiff) { bestDiff = diff; best = o.value; } }
       });
-    </script>
-  `;
+      fsEl.value = bestDiff <= 4 ? best : '';
+      opts[0].text = computedPx ? (computedPx + 'px') : 'Tam.';
+    }
+  }
+
+  /* ---------- section detection ---------- */
+  function getSections() {
+    var seen = new Set();
+    var results = [];
+    // Elementor parent containers first
+    var sels = [
+      '[data-element_type="container"].e-parent',
+      'section[data-element_type="section"]',
+      '.elementor-section.elementor-top-section',
+      'header', 'footer'
+    ];
+    sels.forEach(function(s) {
+      try {
+        document.querySelectorAll(s).forEach(function(el) {
+          if (!seen.has(el) && el.id !== 'lf-fmt-bar') { seen.add(el); results.push(el); }
+        });
+      } catch(e) {}
+    });
+    // Fallback: generic top-level blocks
+    if (!results.length) {
+      document.querySelectorAll('header,section,footer,main>*,body>div,body>nav').forEach(function(el) {
+        var t = el.tagName.toUpperCase();
+        if (['SCRIPT','STYLE','LINK','META'].includes(t)) return;
+        if (el.id === 'lf-fmt-bar') return;
+        if (!seen.has(el)) { seen.add(el); results.push(el); }
+      });
+    }
+    return results;
+  }
+
+  /* ---------- setup section buttons ---------- */
+  function setupSection(sec) {
+    if (sec._lfSetup) return;
+    sec._lfSetup = true;
+    sec.classList.add('lf-edit-wrapper');
+    if (window.getComputedStyle(sec).position === 'static') sec.style.position = 'relative';
+
+    var ctrl = document.createElement('div');
+    ctrl.className = 'lf-sec-controls';
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'lf-sec-btn lf-sec-btn-edit';
+    editBtn.textContent = '✏️ Editar';
+    editBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); toggleEdit(sec, editBtn); };
+
+    var aiBtn = document.createElement('button');
+    aiBtn.className = 'lf-sec-btn lf-sec-btn-ai';
+    aiBtn.textContent = '🤖 IA';
+    aiBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); fillWithAI(sec, aiBtn); };
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'lf-sec-btn lf-sec-btn-del';
+    delBtn.textContent = '🗑 Excluir';
+    delBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); if(confirm('Excluir esta seção?')) sec.remove(); };
+
+    ctrl.appendChild(editBtn);
+    ctrl.appendChild(aiBtn);
+    ctrl.appendChild(delBtn);
+    sec.appendChild(ctrl);
+
+    // Bottom resize bar for section height
+    var resizeBar = document.createElement('div');
+    resizeBar.className = 'lf-sec-resize-bar';
+    resizeBar.addEventListener('mousedown', function(ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var startY = ev.clientY; var startH = sec.offsetHeight;
+      function onMove(em) { sec.style.minHeight = Math.max(40, startH + (em.clientY - startY)) + 'px'; }
+      function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    });
+    sec.appendChild(resizeBar);
+  }
+
+  /* ---------- edit toggle ---------- */
+  function toggleEdit(sec, btn) {
+    if (_secEditing && _secEditing !== sec) stopEdit(_secEditing);
+    if (_secEditing === sec) { stopEdit(sec); return; }
+    _secEditing = sec;
+    sec.classList.add('lf-editing');
+    btn.textContent = '💾 Salvar';
+    btn.onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
+      stopEdit(sec);
+      btn.textContent = '✏️ Editar';
+      btn.onclick = function(e2){ e2.preventDefault(); e2.stopPropagation(); toggleEdit(sec, btn); };
+    };
+    var q = 'h1,h2,h3,h4,h5,h6,p,span,a,li,b,strong,i,em,small,button,[class*="btn"],[class*="cta"],[class*="title"],[class*="heading"],[class*="text-editor"],[class*="label"]';
+    sec.querySelectorAll(q).forEach(function(el) {
+      if (!el.closest('.lf-sec-controls')) el.contentEditable = 'true';
+    });
+    showFmt();
+    syncFmt(sec);
+  }
+
+  function stopEdit(sec) {
+    if (!sec) return;
+    sec.classList.remove('lf-editing');
+    sec.querySelectorAll('[contenteditable=true]').forEach(function(el){ el.contentEditable = 'false'; });
+    _secEditing = null;
+  }
+
+  /* ---------- global click: intercept links/buttons ---------- */
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay'))) return;
+    var anchor = t.closest ? (t.tagName === 'A' ? t : t.closest('a')) : null;
+    if (anchor || t.tagName === 'BUTTON') { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  /* ---------- helpers: image overlay + resize ---------- */
+  function hideResizeWrap() {
+    var w = document.getElementById('lf-resize-wrap');
+    if (w) w.style.display = 'none';
+  }
+  function showResizeHandles(img) {
+    var wrap = document.getElementById('lf-resize-wrap');
+    if (!wrap) return;
+    var rect = img.getBoundingClientRect();
+    wrap.style.display = 'block';
+    wrap.style.left = rect.left + 'px'; wrap.style.top = rect.top + 'px';
+    wrap.style.width = rect.width + 'px'; wrap.style.height = rect.height + 'px';
+    var rh = document.getElementById('lf-rh-se');
+    if (!rh) return;
+    rh.onmousedown = function(ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var startX = ev.clientX; var startW = img.offsetWidth; var startH = img.offsetHeight;
+      var ratio = startH / (startW || 1);
+      function onMove(em) {
+        var newW = Math.max(20, startW + (em.clientX - startX));
+        img.style.width = newW + 'px'; img.style.height = (newW * ratio) + 'px';
+        var r2 = img.getBoundingClientRect();
+        wrap.style.width = r2.width + 'px'; wrap.style.height = r2.height + 'px';
+        wrap.style.left = r2.left + 'px'; wrap.style.top = r2.top + 'px';
+      }
+      function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    };
+  }
+  function showImgOverlay(img) {
+    var overlay = document.getElementById('lf-img-overlay');
+    if (!overlay) return;
+    var rect = img.getBoundingClientRect();
+    overlay.style.display = 'flex';
+    overlay.style.left = Math.max(4, rect.left + rect.width/2 - 90) + 'px';
+    overlay.style.top = Math.max(4, rect.top + rect.height/2 - 36) + 'px';
+    document.getElementById('lf-img-sub-btn').onclick = function() {
+      overlay.style.display = 'none';
+      var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+      inp.onchange = function(ev) {
+        var f = ev.target.files && ev.target.files[0]; if (!f) return;
+        var r = new FileReader();
+        r.onload = function(le) { snapshotHistory(); img.src = le.target.result; img.style.filter = 'none'; showResizeHandles(img); };
+        r.readAsDataURL(f);
+      };
+      inp.click();
+    };
+    document.getElementById('lf-img-cancel-btn').onclick = function() { overlay.style.display = 'none'; };
+  }
+
+  /* ---------- global mousedown: select + sync + drag ---------- */
+  document.addEventListener('mousedown', function(e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap'))) return;
+
+    // Hide img overlay when clicking elsewhere
+    var ov = document.getElementById('lf-img-overlay');
+    if (ov && !t.closest('#lf-img-overlay')) ov.style.display = 'none';
+
+    // Remove previous highlight
+    if (_sel && _sel !== t) { _sel.classList.remove('lf-selected-el'); if (_sel.tagName !== 'IMG') hideResizeWrap(); }
+
+    _sel = t;
+    _sel.classList.add('lf-selected-el');
+    showFmt();
+    syncFmt(t);
+
+    // IMG: show overlay + resize handles
+    if (t.tagName === 'IMG') {
+      e.preventDefault(); e.stopPropagation();
+      showImgOverlay(t);
+      showResizeHandles(t);
+      return;
+    }
+
+    // Non-IMG: hide resize wrap
+    hideResizeWrap();
+
+    // Drag-to-move watcher (skip lf-sec-resize-bar)
+    if (t.classList && t.classList.contains('lf-sec-resize-bar')) return;
+    var _dragEl = t;
+    var _dragStartX = e.clientX; var _dragStartY = e.clientY;
+    var _dragging = false;
+    var _grid = document.getElementById('lf-drag-grid');
+    function onDragMove(em) {
+      var dx = em.clientX - _dragStartX; var dy = em.clientY - _dragStartY;
+      if (!_dragging && Math.abs(dx) + Math.abs(dy) > 5) {
+        _dragging = true;
+        snapshotHistory();
+        var pos = window.getComputedStyle(_dragEl).position;
+        if (pos === 'static') _dragEl.style.position = 'relative';
+        if (_grid) _grid.style.display = 'block';
+      }
+      if (_dragging) {
+        var curL = parseInt(_dragEl.style.left) || 0; var curT = parseInt(_dragEl.style.top) || 0;
+        _dragEl.style.left = (curL + (em.clientX - _dragStartX)) + 'px';
+        _dragEl.style.top = (curT + (em.clientY - _dragStartY)) + 'px';
+        _dragStartX = em.clientX; _dragStartY = em.clientY;
+      }
+    }
+    function onDragUp() {
+      document.removeEventListener('mousemove', onDragMove); document.removeEventListener('mouseup', onDragUp);
+      if (_grid) _grid.style.display = 'none'; _dragging = false;
+    }
+    document.addEventListener('mousemove', onDragMove); document.addEventListener('mouseup', onDragUp);
+  }, true);
+
+  /* ---------- toolbar actions ---------- */
+  window.lfTC = function(v) {
+    if (!_sel) return; snapshotHistory();
+    _sel.style.setProperty('color', v, 'important');
+  };
+  window.lfBC = function(v) {
+    if (!_sel) return; snapshotHistory();
+    _sel.style.setProperty('background-color', v, 'important');
+  };
+  window.lfSC = function(v) {
+    snapshotHistory();
+    // Apply to nearest section ancestor
+    var node = _sel;
+    while (node && node !== document.body) {
+      if (node.classList && node.classList.contains('lf-edit-wrapper')) {
+        node.style.setProperty('background-color', v, 'important');
+        return;
+      }
+      node = node.parentElement;
+    }
+    if (_secEditing) _secEditing.style.setProperty('background-color', v, 'important');
+  };
+  window.lfBold = function() {
+    if (!_sel) return; snapshotHistory();
+    var fw = window.getComputedStyle(_sel).fontWeight;
+    _sel.style.fontWeight = (fw === 'bold' || parseInt(fw) >= 700) ? '400' : 'bold';
+  };
+  window.lfItalic = function() {
+    if (!_sel) return; snapshotHistory();
+    var fi = window.getComputedStyle(_sel).fontStyle;
+    _sel.style.fontStyle = fi === 'italic' ? 'normal' : 'italic';
+  };
+  window.lfFS = function(v) {
+    if (_sel && v) { snapshotHistory(); _sel.style.setProperty('font-size', v, 'important'); }
+  };
+  window.lfDelEl = function() {
+    if (_sel && confirm('Apagar este elemento?')) {
+      snapshotHistory();
+      var el = _sel; _sel = null;
+      el.remove(); hideResizeWrap();
+    }
+  };
+  window.lfUndo = function() {
+    if (!_history.length) return;
+    document.body.innerHTML = _history.pop();
+    _sel = null; _secEditing = null; _fmtVisible = false;
+    hideResizeWrap();
+    var ov = document.getElementById('lf-img-overlay'); if (ov) ov.style.display = 'none';
+    getSections().forEach(setupSection);
+  };
+  window.lfCloseAll = function() {
+    if (_sel) { _sel.classList.remove('lf-selected-el'); _sel = null; }
+    if (_secEditing) stopEdit(_secEditing);
+    var b = document.getElementById('lf-fmt-bar');
+    if (b) { b.style.display = 'none'; _fmtVisible = false; }
+    hideResizeWrap();
+    var ov = document.getElementById('lf-img-overlay'); if (ov) ov.style.display = 'none';
+  };
+
+  /* ---------- AI fill section ---------- */
+  function fillWithAI(sec, btn) {
+    var p = window.parent;
+    var leadData = null;
+    try {
+      var st = p.state;
+      var sel = p.document.getElementById('genLeadSelect');
+      var leadId = sel ? sel.value : '';
+      if (leadId && st && st.leads) {
+        var l = st.leads.find(function(x){ return x.id === leadId; });
+        if (l) leadData = l;
+      }
+      if (!leadData && p.getSiteFormData) leadData = p.getSiteFormData();
+    } catch(ex) {}
+
+    if (!leadData || !leadData.name) {
+      alert('Selecione um lead na aba Info antes de usar a IA.');
+      return;
+    }
+
+    var textEls = Array.from(sec.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li'));
+    textEls = textEls.filter(function(el) {
+      return !el.closest('.lf-sec-controls') && !el.querySelector('h1,h2,h3,h4,p') && el.textContent.trim().length > 2;
+    });
+    if (!textEls.length) { alert('Nenhum texto encontrado nesta seção.'); return; }
+
+    var texts = textEls.map(function(el, i){ return (i+1) + '. ' + el.textContent.trim().substring(0, 120); }).join('\\n');
+    var prompt = 'Profissional: ' + (leadData.name||'') + ', ' + (leadData.specialty||'') + ', ' + (leadData.city||'Brasil') + '.\\n' +
+      'Bio: ' + ((leadData.bio||leadData.tagline||'')).substring(0,200) + '\\n' +
+      'Reescreva os textos abaixo para este profissional. Mantenha estrutura e tamanho similares.\\n' +
+      'Retorne SOMENTE JSON: {"textos":["t1","t2",...]}\\n\\n' + texts;
+
+    var orig = btn.textContent;
+    btn.textContent = '⏳';
+    btn.disabled = true;
+
+    p.fetch('http://localhost:3000/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ system:'Responda SOMENTE JSON puro.', messages:[{role:'user',content:prompt}], maxTokens:600 })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      var txt = (d.text||'').replace(/^[\s\S]*?\\{/, '{').replace(/\\}[^\\}]*$/, '}');
+      var arr = JSON.parse(txt).textos || [];
+      arr.forEach(function(t, i){ if (textEls[i] && t) textEls[i].textContent = t; });
+      btn.textContent = '✅';
+      setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1500);
+    }).catch(function(){
+      btn.textContent = orig; btn.disabled = false;
+      alert('Erro ao chamar IA. Verifique se o servidor está rodando.');
+    });
+  }
+
+  /* ---------- init ---------- */
+  function init() {
+    getSections().forEach(setupSection);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  setTimeout(init, 600);
+  setTimeout(init, 2000); // catch Elementor lazy-rendered sections
+})();
+</script>
+`;
 
   if (insertPos !== -1) {
-    return html.slice(0, insertPos) + code + html.slice(insertPos);
+    return html.slice(0, insertPos) + editorCode + html.slice(insertPos);
   } else {
-    return html + code;
+    return html + editorCode;
   }
 }
 
-function getCleanHTML(iframeId = 'sitePreview') {
-  const iframe = document.getElementById(iframeId);
-  if (!iframe || !iframe.contentDocument || !iframe.contentDocument.body) return null;
 
-  // Use clone to avoid messing up the view
-  const doc = iframe.contentDocument.documentElement.cloneNode(true);
 
-  // Remove Editor Styles and Scripts
-  const style = doc.querySelector('#lf-editor-style');
-  if (style) style.remove();
-  const script = doc.querySelector('#lf-editor-script');
-  if (script) script.remove();
 
-  // Remove Editor UI Elements
-  doc.querySelectorAll('.lf-edit-btn, .lf-del-btn').forEach(el => el.remove());
-
-  // Clean classes and attributes
-  doc.querySelectorAll('.lf-edit-wrapper').forEach(el => {
-    el.classList.remove('lf-edit-wrapper');
-    el.classList.remove('lf-editable-active');
-    if (el.style.position === 'relative' && !el.getAttribute('style')?.includes('position: relative')) {
-      el.style.position = ''; // Attempt to revert if inline style was added strictly for editor
-    }
-  });
-
-  // Clean images
-  doc.querySelectorAll('img').forEach(img => {
-    if (img.title === 'Clique para alterar a imagem') {
-      img.removeAttribute('title');
-    }
-    img.style.cursor = '';
-  });
-
-  doc.querySelectorAll('[title="Clique para alterar a imagem"]').forEach(el => el.removeAttribute('title'));
-  doc.querySelectorAll('[data-lf-editor-cursor="1"]').forEach(el => {
-    el.style.cursor = '';
-    el.removeAttribute('data-lf-editor-cursor');
-  });
-
-  doc.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
-
-  return doc.outerHTML;
+function getCleanHTML() {
+  try {
+    const iframe = document.getElementById('sitePreview');
+    if (!iframe || !iframe.contentDocument) return state.generatedHTML;
+    const doc = iframe.contentDocument;
+    const clone = doc.documentElement.cloneNode(true);
+    // Remove editor UI
+    ['#lf-toolbar','#lf-el-float','#lf-canva-style','#lf-canva-script'].forEach(sel => {
+      const el = clone.querySelector(sel); if (el) el.remove();
+    });
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('.lf-section-selected,.lf-section-hover,.lf-el-selected,.lf-editable-mode').forEach(el => {
+      el.classList.remove('lf-section-selected','lf-section-hover','lf-el-selected','lf-editable-mode');
+    });
+    clone.querySelectorAll('.lf-del-section').forEach(el => el.remove());
+    return '<!DOCTYPE html>' + clone.outerHTML;
+  } catch(e) { return state.generatedHTML; }
 }
 
 function sanitizeHexColor(value, fallback) {
@@ -5123,6 +5677,12 @@ function sanitizeHexColor(value, fallback) {
 function getIframeDoc(iframeId) {
   const iframe = document.getElementById(iframeId);
   return iframe && iframe.contentDocument ? iframe.contentDocument : null;
+}
+
+function ensureEditorInIframe(iframeId) {
+  // The new Canva editor is already injected via injectEditor() during generateSite()
+  // and updateQuickPreview(). No auto-injection needed.
+  return;
 }
 
 function ensurePreviewButtonColors(iframeId, primary, secondary) {
@@ -5378,58 +5938,250 @@ async function downloadUrlAsFile(url, filename) {
   }
 }
 
-function rebuildPreviewImagesList(iframeId = 'sitePreview') {
+function renderButtonsList(iframeId) {
+  const container = document.getElementById('previewButtonsList');
+  const doc = getIframeDoc(iframeId || 'sitePreview');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!doc || !doc.body) {
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Gere um site primeiro para ver os botões.</div>';
+    return;
+  }
+  const seen = new Set();
+  const btns = Array.from(doc.querySelectorAll('a[href], button, [class*="btn"], [class*="cta"]'))
+    .filter(el => !el.closest('.lf-sec-controls') && !el.closest('#lf-fmt-bar') && !el.closest('#lf-img-overlay') && !el.closest('#lf-resize-wrap') && el.id !== 'lf-img-sub-btn' && el.id !== 'lf-img-cancel-btn')
+    .filter(el => { const txt = el.textContent.trim(); if (!txt || seen.has(txt + el.tagName)) return false; seen.add(txt + el.tagName); return true; });
+
+  if (!btns.length) {
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum botão encontrado no preview.</div>';
+    return;
+  }
+
+  btns.forEach(function(btn, idx) {
+    const item = document.createElement('div');
+    item.style.cssText = 'background:rgba(255,255,255,.04);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;border:1px solid rgba(255,255,255,.06)';
+
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em';
+    label.textContent = (btn.tagName === 'A' ? '🔗 Link' : '🔘 Botão') + ' ' + (idx + 1);
+
+    const textInp = document.createElement('input');
+    textInp.type = 'text'; textInp.className = 'form-input';
+    textInp.style.cssText = 'font-size:12px;padding:5px 8px';
+    textInp.placeholder = 'Texto do botão';
+    // Get text content without children HTML (just direct text)
+    textInp.value = btn.textContent.trim();
+    textInp.addEventListener('input', function() {
+      // Try to update only text nodes, keeping child elements
+      const walker = document.createTreeWalker(btn, 4 /* NodeFilter.SHOW_TEXT */);
+      let node = walker.nextNode();
+      if (node) { node.textContent = textInp.value; }
+      else { btn.textContent = textInp.value; }
+    });
+
+    item.appendChild(label);
+    item.appendChild(textInp);
+
+    if (btn.tagName === 'A') {
+      const linkInp = document.createElement('input');
+      linkInp.type = 'text'; linkInp.className = 'form-input';
+      linkInp.style.cssText = 'font-size:11px;padding:4px 8px;color:var(--text-muted)';
+      linkInp.placeholder = 'URL ou #ancora ou tel:...';
+      linkInp.value = btn.getAttribute('href') || '';
+      linkInp.addEventListener('input', function() { btn.setAttribute('href', linkInp.value); });
+      item.appendChild(linkInp);
+    }
+
+    container.appendChild(item);
+  });
+}
+
+function rebuildPreviewImagesList(iframeId) {
+  if (!iframeId) iframeId = 'sitePreview';
   const grid = document.getElementById('previewImagesList');
   const doc = getIframeDoc(iframeId);
   if (!grid) return;
   grid.innerHTML = '';
-  if (!doc || !doc.body) return;
-
-  const imgs = Array.from(doc.querySelectorAll('img'))
-    .map(img => (img && img.getAttribute ? img.getAttribute('src') : '') || '')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const bgs = extractBackgroundUrls(doc).map(s => String(s).trim()).filter(Boolean);
-  const unique = Array.from(new Set([...imgs, ...bgs]));
-
-  if (unique.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'preview-image-meta';
-    empty.textContent = 'Nenhuma imagem encontrada.';
-    grid.appendChild(empty);
+  if (!doc || !doc.body) {
+    grid.innerHTML = '<div class="preview-image-meta" style="padding:16px;text-align:center;color:var(--text-muted)">Gere um site primeiro para ver as imagens.</div>';
     return;
   }
 
-  unique.forEach((src, idx) => {
+  function isRealImage(src) {
+    if (!src || typeof src !== 'string') return false;
+    const s = src.trim();
+    if (!s) return false;
+    if (s.startsWith('{{') || s.includes('}}')) return false;
+    if (s.startsWith('data:image/svg')) return false;
+    if (s.length < 5) return false;
+    return true;
+  }
+
+  function isEmptySlot(src) {
+    if (!src || typeof src !== 'string') return true;
+    const s = src.trim();
+    if (!s) return true;
+    if (s.startsWith('{{') || s.includes('}}')) return true;
+    return false;
+  }
+
+  // Collect all img elements
+  const allImgs = Array.from(doc.querySelectorAll('img'));
+
+  const realImgEls = allImgs.filter(img => {
+    const src = (img.getAttribute ? img.getAttribute('src') : '') || '';
+    return isRealImage(src);
+  });
+  const emptySlotEls = allImgs.filter(img => {
+    const src = (img.getAttribute ? img.getAttribute('src') : '') || '';
+    return isEmptySlot(src);
+  });
+
+  const bgs = (typeof extractBackgroundUrls === 'function' ? extractBackgroundUrls(doc) : [])
+    .map(s => String(s).trim())
+    .filter(isRealImage);
+
+  const uniqueRealSrcs = Array.from(new Set(
+    realImgEls.map(img => (img.getAttribute('src') || '').trim()).concat(bgs)
+  ));
+
+  const hasContent = realImgEls.length > 0 || emptySlotEls.length > 0 || bgs.length > 0;
+  if (!hasContent) {
+    grid.innerHTML = '<div class="preview-image-meta" style="padding:16px;text-align:center;color:var(--text-muted)">Nenhuma imagem no site gerado.</div>';
+    return;
+  }
+
+  // ---- Helper: render real image item ----
+  function makeRealImgItem(src, idx, imgEl) {
     const item = document.createElement('div');
     item.className = 'preview-image-item';
-
     const thumb = document.createElement('img');
-    thumb.className = 'preview-image-thumb';
-    thumb.src = src;
-    thumb.alt = '';
-
+    thumb.className = 'preview-image-thumb'; thumb.src = src; thumb.alt = '';
+    thumb.onerror = function() { this.style.opacity = '0.3'; };
     const meta = document.createElement('div');
     meta.className = 'preview-image-meta';
-    meta.textContent = getFileNameFromUrl(src, idx);
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-secondary';
-    btn.textContent = 'Baixar';
-    btn.addEventListener('click', async () => {
-      const fileName = getFileNameFromUrl(src, idx);
-      const ok = await downloadUrlAsFile(src, fileName);
-      if (ok) toast('Download iniciado');
-      else toast('Não foi possível baixar (abrindo em nova aba)', 'error');
+    meta.textContent = (typeof getFileNameFromUrl === 'function') ? getFileNameFromUrl(src, idx) : ('imagem-' + (idx+1));
+    const dlBtn = document.createElement('button');
+    dlBtn.type = 'button'; dlBtn.className = 'btn-secondary'; dlBtn.textContent = '↓';
+    dlBtn.title = 'Baixar';
+    dlBtn.addEventListener('click', async () => {
+      const fn = (typeof getFileNameFromUrl === 'function') ? getFileNameFromUrl(src, idx) : ('imagem-' + (idx+1) + '.png');
+      const ok = (typeof downloadUrlAsFile === 'function') ? await downloadUrlAsFile(src, fn) : false;
+      if (ok) toast('Download iniciado'); else { window.open(src, '_blank'); }
     });
+    const swapBtn = document.createElement('button');
+    swapBtn.type = 'button'; swapBtn.className = 'btn-secondary'; swapBtn.textContent = 'Trocar';
+    swapBtn.addEventListener('click', async () => {
+      if (typeof replacePreviewImageForUrl === 'function') {
+        await replacePreviewImageForUrl(src, iframeId);
+        rebuildPreviewImagesList(iframeId);
+      }
+    });
+    item.appendChild(thumb); item.appendChild(meta); item.appendChild(dlBtn); item.appendChild(swapBtn);
+    return item;
+  }
 
-    item.appendChild(thumb);
-    item.appendChild(meta);
-    item.appendChild(btn);
-    grid.appendChild(item);
+  // ---- Helper: render empty slot item ----
+  function makeEmptyItem(imgEl, idx) {
+    const item = document.createElement('div');
+    item.className = 'preview-image-item';
+    const thumb = document.createElement('div');
+    thumb.style.cssText = 'width:60px;height:45px;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    thumb.innerHTML = '<span style="font-size:18px;opacity:.5">🖼</span>';
+    const meta = document.createElement('div');
+    meta.className = 'preview-image-meta'; meta.textContent = 'Slot ' + (idx+1) + ' (vazio)';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button'; addBtn.className = 'btn-secondary'; addBtn.textContent = '+ Foto';
+    addBtn.addEventListener('click', () => {
+      const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+      input.onchange = (ev) => {
+        const file = ev.target.files && ev.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target && e.target.result ? String(e.target.result) : '';
+          if (!dataUrl) return;
+          imgEl.setAttribute('src', dataUrl); toast('Imagem adicionada!'); rebuildPreviewImagesList(iframeId);
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    });
+    item.appendChild(thumb); item.appendChild(meta); item.appendChild(addBtn);
+    return item;
+  }
+
+  // ---- Helper: build accordion group ----
+  function makeAccordion(label, count, renderFn) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'background:rgba(255,255,255,.03);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.06);margin-bottom:6px';
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px';
+    const lbl = document.createElement('span'); lbl.textContent = label + ' (' + count + ')';
+    const arrow = document.createElement('span'); arrow.textContent = '▶'; arrow.style.cssText = 'font-size:9px;transition:transform .2s';
+    hdr.appendChild(lbl); hdr.appendChild(arrow);
+    const body = document.createElement('div');
+    body.style.display = 'none';
+    body.style.padding = '4px 8px 8px';
+    hdr.addEventListener('click', function() {
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+    });
+    renderFn(body);
+    wrap.appendChild(hdr); wrap.appendChild(body);
+    grid.appendChild(wrap);
+  }
+
+  // ---- Group images by section ----
+  const sectionSelectors = '[data-element_type="container"].e-parent, section[data-element_type="section"], .elementor-section.elementor-top-section, header, footer, section, main>div, body>div, body>article';
+  const docSections = Array.from(doc.querySelectorAll(sectionSelectors))
+    .filter(s => s.id !== 'lf-fmt-bar' && !s.closest('#lf-fmt-bar'));
+
+  const assignedReal = new Set();
+  const assignedEmpty = new Set();
+  const groups = [];
+
+  docSections.forEach(function(sec, si) {
+    const gReal = realImgEls.filter(img => sec.contains(img) && !assignedReal.has(img));
+    const gEmpty = emptySlotEls.filter(img => sec.contains(img) && !assignedEmpty.has(img));
+    if (!gReal.length && !gEmpty.length) return;
+    gReal.forEach(i => assignedReal.add(i));
+    gEmpty.forEach(i => assignedEmpty.add(i));
+    const secLabel = sec.getAttribute('data-section-label') || sec.id || (sec.tagName.toLowerCase() + ' ' + (si+1));
+    groups.push({ label: secLabel, real: gReal, empty: gEmpty });
   });
+
+  // Unassigned
+  const unsecReal = realImgEls.filter(img => !assignedReal.has(img));
+  const unsecEmpty = emptySlotEls.filter(img => !assignedEmpty.has(img));
+  if (unsecReal.length || unsecEmpty.length) groups.push({ label: 'Outras', real: unsecReal, empty: unsecEmpty });
+
+  // Fallback: if no sections detected, show flat list
+  if (!groups.length) {
+    let globalIdx = 0;
+    uniqueRealSrcs.forEach((src, i) => grid.appendChild(makeRealImgItem(src, i, null)));
+    emptySlotEls.forEach((imgEl, i) => grid.appendChild(makeEmptyItem(imgEl, i)));
+    return;
+  }
+
+  // ---- Render accordion per section ----
+  groups.forEach(function(grp) {
+    const totalCount = grp.real.length + grp.empty.length;
+    makeAccordion(grp.label, totalCount, function(body) {
+      grp.real.forEach((imgEl, i) => {
+        const src = (imgEl.getAttribute('src') || '').trim();
+        body.appendChild(makeRealImgItem(src, i, imgEl));
+      });
+      grp.empty.forEach((imgEl, i) => body.appendChild(makeEmptyItem(imgEl, i)));
+    });
+  });
+
+  // ---- Background images (not grouped) ----
+  if (bgs.length > 0) {
+    makeAccordion('Fundos CSS', bgs.length, function(body) {
+      bgs.forEach((src, i) => body.appendChild(makeRealImgItem(src, i, null)));
+    });
+  }
 }
 
 async function downloadAllPreviewImages(iframeId = 'sitePreview') {
@@ -5448,6 +6200,46 @@ async function downloadAllPreviewImages(iframeId = 'sitePreview') {
     const fileName = getFileNameFromUrl(src, i);
     await downloadUrlAsFile(src, fileName);
   }
+}
+
+async function replacePreviewImageForUrl(oldUrl, iframeId = 'sitePreview') {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return resolve(false);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target && e.target.result ? String(e.target.result) : '';
+        if (!dataUrl) return resolve(false);
+        const doc = getIframeDoc(iframeId);
+        if (!doc || !doc.body) return resolve(false);
+        const normOld = String(oldUrl || '').trim();
+        doc.querySelectorAll('img').forEach(img => {
+          try {
+            const src = (img.getAttribute && img.getAttribute('src')) ? String(img.getAttribute('src')).trim() : '';
+            if (src === normOld) img.setAttribute('src', dataUrl);
+          } catch {}
+        });
+        const all = Array.from(doc.body.querySelectorAll('*'));
+        all.forEach(el => {
+          try {
+            const style = doc.defaultView ? doc.defaultView.getComputedStyle(el) : null;
+            const bg = style && style.backgroundImage ? String(style.backgroundImage) : '';
+            if (bg && bg.includes(normOld)) {
+              el.style.backgroundImage = 'url(\"' + dataUrl + '\")';
+            }
+          } catch {}
+        });
+        toast('Imagem substituída');
+        resolve(true);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  });
 }
 
 function initPreviewToolsUI() {
@@ -5532,9 +6324,53 @@ function initPreviewToolsUI() {
   if (refreshImagesBtn) refreshImagesBtn.addEventListener('click', () => rebuildPreviewImagesList('sitePreview'));
   if (downloadAllBtn) downloadAllBtn.addEventListener('click', async () => { await downloadAllPreviewImages('sitePreview'); });
 
+  // Botões tab refresh
+  const refreshBtnsBtn = document.getElementById('refreshPreviewBtnsBtn');
+  if (refreshBtnsBtn) refreshBtnsBtn.addEventListener('click', () => renderButtonsList('sitePreview'));
+
+  // Fotos upload zone
+  const fotosUploadZone = document.getElementById('fotosUploadZone');
+  const fotosUploadInput = document.getElementById('fotosUploadInput');
+  const fotosUploadedList = document.getElementById('fotosUploadedList');
+  if (fotosUploadZone && fotosUploadInput) {
+    fotosUploadZone.addEventListener('click', () => fotosUploadInput.click());
+    fotosUploadInput.addEventListener('change', (ev) => {
+      const files = Array.from(ev.target.files || []);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target && e.target.result ? String(e.target.result) : '';
+          if (!dataUrl) return;
+          // Show thumbnail with "Inserir" button
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
+          const img = document.createElement('img');
+          img.src = dataUrl; img.style.cssText = 'width:60px;height:45px;object-fit:cover;border-radius:6px;border:2px solid rgba(255,255,255,.15)';
+          const insertBtn = document.createElement('button');
+          insertBtn.type = 'button'; insertBtn.className = 'btn-secondary';
+          insertBtn.style.cssText = 'font-size:10px;padding:3px 7px';
+          insertBtn.textContent = 'Inserir';
+          insertBtn.addEventListener('click', () => {
+            const doc = getIframeDoc('sitePreview');
+            if (!doc || !doc.body) { toast('Gere um site primeiro'); return; }
+            const newImg = doc.createElement('img');
+            newImg.src = dataUrl; newImg.style.cssText = 'max-width:100%;height:auto;display:block';
+            doc.body.insertBefore(newImg, doc.body.firstChild);
+            toast('Foto inserida no preview!');
+          });
+          wrap.appendChild(img); wrap.appendChild(insertBtn);
+          if (fotosUploadedList) fotosUploadedList.appendChild(wrap);
+        };
+        reader.readAsDataURL(file);
+      });
+      fotosUploadInput.value = '';
+    });
+  }
+
   const siteIframe = document.getElementById('sitePreview');
   if (siteIframe) {
     siteIframe.addEventListener('load', () => {
+      ensureEditorInIframe('sitePreview');
       ensurePreviewButtonColors('sitePreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
       rebuildPreviewSectionsList('sitePreview');
       rebuildPreviewImagesList('sitePreview');
@@ -5550,7 +6386,7 @@ function initPreviewToolsUI() {
   }
 
   ensurePreviewButtonColors('sitePreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
-  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
+  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
   rebuildPreviewSectionsList('sitePreview');
   rebuildPreviewImagesList('sitePreview');
   updatePreviewButtonsMeta('sitePreview');
@@ -6908,7 +7744,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sidebar toggle
   document.getElementById('sidebarToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
+    var sb = document.getElementById('sidebar');
+    sb.classList.toggle('collapsed');
+    localStorage.setItem('lf_sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
   });
   document.getElementById('topbarMenuBtn').addEventListener('click', () => {
     const sb = document.getElementById('sidebar');
@@ -6917,7 +7755,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const syncSidebarViewport = () => {
     const sb = document.getElementById('sidebar');
-    sb.style.display = '';
     if (window.matchMedia('(min-width: 901px)').matches) sb.classList.remove('mobile-open');
   };
   window.addEventListener('resize', syncSidebarViewport);

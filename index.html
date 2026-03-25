@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3" />
   <link rel="stylesheet" href="lead-carousel-premium.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -71,17 +71,6 @@
       </a>
       <div class="nav-divider" aria-hidden="true"></div>
       <div class="nav-section-label">Sistema</div>
-      <a href="#" class="nav-item" data-view="kpis" id="nav-kpis">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 3v18h18" />
-          <path d="M7 14l3-3 3 2 4-6" />
-          <circle cx="7" cy="14" r="1.2" fill="currentColor" />
-          <circle cx="10" cy="11" r="1.2" fill="currentColor" />
-          <circle cx="13" cy="13" r="1.2" fill="currentColor" />
-          <circle cx="17" cy="7" r="1.2" fill="currentColor" />
-        </svg>
-        <span>KPI's</span>
-      </a>
       <a href="#" class="nav-item" data-view="biblioteca-templates" id="nav-biblioteca-templates">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -103,12 +92,6 @@
           <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
         </svg>
         <span>Stories</span>
-      </a>
-      <a href="#" class="nav-item" id="nav-pipeline-hq" onclick="navigatePipelineHQ(event)">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="4" width="5" height="20" rx="1"/><rect x="9.5" y="9" width="5" height="15" rx="1"/><rect x="17" y="6" width="5" height="18" rx="1"/>
-        </svg>
-        <span>Pipeline HQ</span>
       </a>
       <a href="#" class="nav-item" data-view="leads" id="nav-leads">
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
@@ -177,7 +160,6 @@
           <h1 class="page-title" id="pageTitle">Dashboard</h1>
           <div class="breadcrumb" id="breadcrumb">Visão geral do sistema</div>
         </div>
-      </div>
       <div class="topbar-right">
         <div id="saveIndicator" class="save-indicator"></div>
       </div>
@@ -206,6 +188,8 @@
             <button class="metrics-tab-btn active" id="btn-tab-metrics" onclick="document.getElementById('tab-metrics-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Métricas</button>
             <button class="metrics-tab-btn" id="btn-tab-buckets" onclick="document.getElementById('tab-buckets-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Visão Geral</button>
             <button class="metrics-tab-btn" id="btn-tab-funnel" onclick="document.getElementById('tab-funnel-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Funil</button>
+            <button class="metrics-tab-btn" id="btn-tab-finance" onclick="document.getElementById('tab-finance-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Financeiro & Meta</button>
+            <button class="metrics-tab-btn" id="btn-tab-cycle" onclick="document.getElementById('tab-cycle-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Ciclo</button>
           </div>
 
           <div id="metricsCarousel" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; gap: 16px; padding-bottom: 8px; -ms-overflow-style: none; scrollbar-width: none; position: relative;">
@@ -340,7 +324,6 @@
                     <span class="dash2-bucket-label">Ritmo</span>
                     <div class="dash2-bucket-row">
                       <div class="dash2-bucket-value"><span id="goalPaceValue">0.0</span></div>
-                      <div class="dash2-bucket-badge" id="goalPaceStatus">--</div>
                     </div>
                     <span class="dash2-bucket-sub">sites/dia</span>
                   </div>
@@ -350,7 +333,46 @@
 
             <!-- BUCKETS CARD CONTENT -->
             <div id="tab-buckets-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0;">
-              <div class="kpi-cards-grid" id="kpiCardsPrimary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 4px;">
+              <style>
+                #tab-buckets-content {
+                  overflow: hidden; /* Prevent horizontal scroll from inner elements expanding */
+                }
+                #kpiCardsPrimary, #kpiCardsPrimary2 {
+                  display: grid !important;
+                  grid-template-columns: repeat(30, 1fr) !important;
+                  gap: 12px;
+                  width: 100% !important;
+                  box-sizing: border-box;
+                }
+                /* Primeira e segunda fileira: 5 cards (cada um ocupa 6 colunas de 30) */
+                #kpiCardsPrimary > .kpi-card, #kpiCardsPrimary2 > .kpi-card {
+                  grid-column: span 6 !important;
+                  min-width: 0 !important; /* Force fit inside grid column */
+                }
+                /* Terceira fileira: 6 cards (cada um ocupa 5 colunas de 30) */
+                #kpiCardsPrimary > .kpi-card:nth-child(n+11), #kpiCardsPrimary2 > .kpi-card:nth-child(n+11) {
+                  grid-column: span 5 !important;
+                  min-width: 0 !important; /* Force fit */
+                  padding: 10px !important; /* Diminuindo para caber */
+                }
+                #kpiCardsPrimary > .kpi-card:nth-child(n+11) .kpi-card-value {
+                  font-size: 16px !important;
+                }
+                #kpiCardsPrimary > .kpi-card:nth-child(n+11) .kpi-card-label {
+                  font-size: 10px !important;
+                }
+                
+                @media (max-width: 1024px) {
+                  #kpiCardsPrimary, #kpiCardsPrimary2 {
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                  }
+                  #kpiCardsPrimary > .kpi-card, #kpiCardsPrimary2 > .kpi-card {
+                    flex: 1 1 140px !important;
+                  }
+                }
+              </style>
+              <div class="kpi-cards-grid" id="kpiCardsPrimary" style="padding: 4px;">
                 <div class="kpi-card" data-accent="green" style="padding: 12px;">
                   <div class="kpi-card-top" style="margin-bottom: 8px;">
                     <div class="kpi-card-label" style="font-size: 11px;">Receita confirmada</div>
@@ -597,6 +619,243 @@
               </div>
             </div>
 
+            <!-- FINANCE CARD CONTENT -->
+            <div id="tab-finance-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+              <div class="kpi-grid-3" style="gap: 12px; display: grid; grid-template-columns: repeat(3, 1fr); height: 100%;">
+                
+                <!-- PIPELINE FINANCEIRO -->
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
+                    <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Pipeline Financeiro</div>
+                    <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Dinheiro no funil</div>
+                  </div>
+                  <div class="kpi-finance-viz" id="kpiFinanceViz" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: scale(0.9); transform-origin: top;">
+                    <div class="kpi-finance-stack" style="width: 100%;"><div class="kpi-finance-seg fin-active" style="width:92%"></div><div class="kpi-finance-seg fin-prop" style="width:8%"></div><div class="kpi-finance-seg fin-closed" style="width:2%"></div></div>
+                    <div class="kpi-finance-legend" style="width: 100%;">
+                      <div class="kpi-finance-item">
+                        <div class="kpi-finance-dot fin-active"></div>
+                        <div class="kpi-finance-name">Leads ativos • 22</div>
+                        <div class="kpi-finance-val">R$ 7.700</div>
+                      </div>
+                      <div class="kpi-finance-item">
+                        <div class="kpi-finance-dot fin-prop"></div>
+                        <div class="kpi-finance-name">Propostas enviadas • 2</div>
+                        <div class="kpi-finance-val">R$ 700</div>
+                      </div>
+                      <div class="kpi-finance-item">
+                        <div class="kpi-finance-dot fin-closed"></div>
+                        <div class="kpi-finance-name">Fechados • 0</div>
+                        <div class="kpi-finance-val">R$ 0</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tabela removida para evitar repetição -->
+                </div>
+
+                <!-- META DO MÊS -->
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
+                    <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Meta do Mês</div>
+                    <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Ritmo e projeção</div>
+                  </div>
+                  <div class="kpi-viz kpi-month-viz" id="kpiMonthViz" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: scale(0.9); transform-origin: top;">
+                    <div class="kpi-viz-top" style="width: 100%;">
+                      <div>
+                        <div class="kpi-viz-title">Progresso da meta</div>
+                        <div class="kpi-viz-sub">4 / 15 fechados</div>
+                      </div>
+                      <div class="kpi-viz-big">27%</div>
+                    </div>
+                    <div class="kpi-viz-bar" style="width: 100%;"><div class="kpi-viz-fill" style="width:27%"></div></div>
+                    <div class="kpi-viz-kpis" style="width: 100%;">
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Faltam</div>
+                        <div class="kpi-viz-kpi-val">11</div>
+                        <div class="kpi-viz-kpi-hint">para bater a meta</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Necessário / dia</div>
+                        <div class="kpi-viz-kpi-val">1.10</div>
+                        <div class="kpi-viz-kpi-hint">10 dias restantes</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Ritmo atual</div>
+                        <div class="kpi-viz-kpi-val">0.18</div>
+                        <div class="kpi-viz-kpi-hint">fechados/dia</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Projeção</div>
+                        <div class="kpi-viz-kpi-val">6</div>
+                        <div class="kpi-viz-kpi-hint">abaixo da meta</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tabela removida para evitar repetição -->
+                </div>
+
+                <!-- VELOCIDADE -->
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
+                    <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Velocidade</div>
+                    <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Ritmo operacional</div>
+                  </div>
+                  <div class="kpi-viz kpi-speed-viz" id="kpiSpeedViz" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: scale(0.9); transform-origin: top;">
+                    <div class="kpi-viz-top" style="width: 100%;">
+                      <div>
+                        <div class="kpi-viz-title">Ritmo geral</div>
+                        <div class="kpi-viz-sub">Média das metas do bloco</div>
+                      </div>
+                      <div class="kpi-viz-big">0%</div>
+                    </div>
+                    <div class="kpi-viz-bar" style="width: 100%;"><div class="kpi-viz-fill" style="width:2%"></div></div>
+                    <div class="kpi-viz-kpis" style="width: 100%;">
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Hoje: Leads</div>
+                        <div class="kpi-viz-kpi-val">0</div>
+                        <div class="kpi-viz-kpi-hint">Meta 10</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Hoje: DM1</div>
+                        <div class="kpi-viz-kpi-val">0</div>
+                        <div class="kpi-viz-kpi-hint">Meta 10</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Hoje: Sites</div>
+                        <div class="kpi-viz-kpi-val">0</div>
+                        <div class="kpi-viz-kpi-hint">Meta 2</div>
+                      </div>
+                      <div class="kpi-viz-kpi">
+                        <div class="kpi-viz-kpi-label">Semana: Propostas</div>
+                        <div class="kpi-viz-kpi-val">0</div>
+                        <div class="kpi-viz-kpi-hint">Meta 5</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tabela removida para evitar repetição -->
+                </div>
+
+              </div>
+            </div>
+
+            <!-- CYCLE CARD CONTENT -->
+            <div id="tab-cycle-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+              <div class="kpi-grid-2" style="gap: 12px; display: grid; grid-template-columns: repeat(2, 1fr); height: 100%;">
+                
+                <!-- TEMPO POR ETAPA -->
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;">
+                  <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
+                    <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Tempo por Etapa</div>
+                    <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Quanto tempo cada lead fica em cada etapa</div>
+                  </div>
+                  <div class="kpi-viz" id="kpiStageDurationsViz" style="width: 100%; transform: scale(0.85); transform-origin: top; margin-bottom: -15%;">
+                    <div class="kpi-stage-bars">
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Coletados</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:71%;background:#7c3aed"></div></div>
+                            <div class="kpi-stage-val">9.2d • n=23</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Perfil Engajado</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:100%;background:#64748b"></div></div>
+                            <div class="kpi-stage-val">12.9d • n=1</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">DM1 Enviada</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:50%;background:#3b82f6"></div></div>
+                            <div class="kpi-stage-val">6.4d • n=2</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Não Respondeu</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:2%;background:#06b6d4"></div></div>
+                            <div class="kpi-stage-val">2h • n=9</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Respondeu</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:2%;background:#8b5cf6"></div></div>
+                            <div class="kpi-stage-val">— • n=6</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Gerar Site</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:71%;background:#ec4899"></div></div>
+                            <div class="kpi-stage-val">9.2d • n=6</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">DM2 Enviada</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:29%;background:#db2777"></div></div>
+                            <div class="kpi-stage-val">3.8d • n=3</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Proposta Enviada</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:2%;background:#f59e0b"></div></div>
+                            <div class="kpi-stage-val">1h • n=7</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Follow-up 2</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:2%;background:#f97316"></div></div>
+                            <div class="kpi-stage-val">1h • n=1</div>
+                          </div>
+                          <div class="kpi-stage-row">
+                            <div class="kpi-stage-label">Fechado</div>
+                            <div class="kpi-stage-track"><div class="kpi-stage-fill" style="width:10%;background:#22c55e"></div></div>
+                            <div class="kpi-stage-val">1.3d • n=8</div>
+                          </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TOP CIDADES -->
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;">
+                  <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
+                    <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Top Cidades</div>
+                    <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Distribuição geográfica</div>
+                  </div>
+                  <div class="kpi-table-wrap" style="transform: scale(0.85); transform-origin: top; margin-bottom: -15%;">
+                    <table class="kpi-table" id="kpiTopCitiesTable" data-bound-city-click="1">
+                      <thead><tr><th>Cidade</th><th>Leads</th><th>%</th></tr></thead>
+                      <tbody>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Cataguases%20-%20MG">Cataguases - MG</button></td>
+                            <td class="kpi-num">6</td>
+                            <td class="kpi-muted">27%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="N%C3%A3o%20especificada">Não especificada</button></td>
+                            <td class="kpi-num">4</td>
+                            <td class="kpi-muted">18%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Leopoldina%20-%20MG">Leopoldina - MG</button></td>
+                            <td class="kpi-num">2</td>
+                            <td class="kpi-muted">9%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Nova%20Igua%C3%A7u%20-%20RJ">Nova Iguaçu - RJ</button></td>
+                            <td class="kpi-num">1</td>
+                            <td class="kpi-muted">5%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Macei%C3%B3%20-%20AL">Maceió - AL</button></td>
+                            <td class="kpi-num">1</td>
+                            <td class="kpi-muted">5%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Cataguases%20-%20MG%20(Cl%C3%ADnica%20Sant%C3%A9%20Corpos)">Cataguases - MG (Clínica Santé Corpos)</button></td>
+                            <td class="kpi-num">1</td>
+                            <td class="kpi-muted">5%</td>
+                          </tr>
+                          <tr>
+                            <td><button type="button" class="kpi-cell-btn" data-kpi-city="Porto%20Alegre%20-%20RS">Porto Alegre - RS</button></td>
+                            <td class="kpi-num">1</td>
+                            <td class="kpi-muted">5%</td>
+                          </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+
           </div>
 
           <script>
@@ -609,6 +868,8 @@
               const btnMetrics = document.getElementById('btn-tab-metrics');
               const btnBuckets = document.getElementById('btn-tab-buckets');
               const btnFunnel = document.getElementById('btn-tab-funnel');
+              const btnFinance = document.getElementById('btn-tab-finance');
+              const btnCycle = document.getElementById('btn-tab-cycle');
               
               const resetBtn = (btn) => {
                 if(!btn) return;
@@ -629,10 +890,14 @@
               resetBtn(btnMetrics);
               resetBtn(btnBuckets);
               resetBtn(btnFunnel);
+              resetBtn(btnFinance);
+              resetBtn(btnCycle);
               
               if (activeIndex === 0) activeBtn(btnMetrics);
               else if (activeIndex === 1) activeBtn(btnBuckets);
               else if (activeIndex === 2) activeBtn(btnFunnel);
+              else if (activeIndex === 3) activeBtn(btnFinance);
+              else if (activeIndex === 4) activeBtn(btnCycle);
             });
           </script>
         </div>
@@ -645,38 +910,6 @@
             </div>
 
             <div id="tab-unico" class="lead-tab-content" style="display: none;">
-              <div class="lead-carousel-header">
-                <div class="lead-carousel-filter-wrapper">
-                  <select class="lead-carousel-filter" id="leadCarouselFilter" onchange="dashboardCarouselFilter()">
-                    <option value="">Todos os estágios</option>
-                    <option value="coletados">Coletados</option>
-                    <option value="perfil_engajado">Perfil Engajado</option>
-                    <option value="dm1_enviada">DM1 Enviada</option>
-                    <option value="nao_respondeu">Não Respondeu</option>
-                    <option value="respondeu">Respondeu</option>
-                    <option value="follow_up_1">Follow-up 1</option>
-                    <option value="chat_gerado">Gerar Site</option>
-                    <option value="dm2_enviada">DM2 Enviada</option>
-                    <option value="proposta_enviada">Proposta Enviada</option>
-                    <option value="follow_up_2">Follow-up 2</option>
-                    <option value="fechado">Fechado</option>
-                    <option value="arquivado">Arquivado / Sem Interesse</option>
-                  </select>
-                </div>
-                <div class="lead-carousel-nav">
-                  <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </button>
-                  <div class="lead-carousel-counter" id="leadCarouselCounter">0/0</div>
-                  <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </button>
-                </div>
-              </div>
               <div class="lead-carousel-body" id="leadCarouselBody"></div>
             </div>
 
@@ -856,8 +1089,8 @@
 
           <!-- CATEGORY TABS -->
           <div class="library-tabs" style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0;">
-            <button class="library-tab active" data-category="minichat" style="background: none; border: none; padding: 12px 16px; color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--primary); cursor: pointer;">Mini Chat</button>
             <button class="library-tab" data-category="landing" style="background: none; border: none; padding: 12px 16px; color: var(--text-muted); font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer;">Landing Page</button>
+            <button class="library-tab active" data-category="minichat" style="background: none; border: none; padding: 12px 16px; color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--primary); cursor: pointer;">Mini Chat</button>
           </div>
 
           <!-- CONTENT GRID (populado pelo JS) -->
@@ -867,164 +1100,11 @@
       </section>
 
       <!-- OFFICE VIEW -->
-      <section class="view" id="view-office" style="overflow-y:auto; padding:0; display:flex; flex-direction:column; height:calc(100vh - 80px);">
-        <div style="padding:16px 20px; background:var(--bg-card); border-bottom:1px solid var(--border); flex-shrink:0;">
-          <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
-            <div>
-              <h2 style="font-size:17px; font-weight:700; color:var(--text-primary); margin:0;">Pipeline HQ</h2>
-              <p style="color:var(--text-muted); font-size:12px; margin:2px 0 0;">Funil completo de prospecção — arraste os cards entre colunas</p>
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; min-width:70px;">
-                <div style="font-size:20px; font-weight:700; color:var(--primary);" id="pm-sent-today">0</div>
-                <div style="font-size:10px; color:var(--text-muted);">Msgs Hoje</div>
-              </div>
-              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; min-width:70px;">
-                <div style="font-size:20px; font-weight:700; color:var(--green);" id="pm-responses">0</div>
-                <div style="font-size:10px; color:var(--text-muted);">Responderam</div>
-              </div>
-              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; min-width:70px;">
-                <div style="font-size:20px; font-weight:700; color:#f59e0b;" id="pm-in-conversation">0</div>
-                <div style="font-size:10px; color:var(--text-muted);">Em Conversa</div>
-              </div>
-              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; min-width:70px;">
-                <div style="font-size:20px; font-weight:700; color:#22c55e;" id="pm-conversions">0</div>
-                <div style="font-size:10px; color:var(--text-muted);">Fechados</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style="overflow-x:auto; padding:16px; flex:1; min-height:0;">
-          <div id="prospectingBoard" style="display:flex; gap:12px; min-width:max-content; height:100%; align-items:flex-start;"></div>
-        </div>
+      <section class="view" id="view-office" style="padding:0; overflow:hidden; height:calc(100vh - 60px);">
+        <iframe id="office-iframe" src="vjoseph-completo.html" style="width:100%; height:100%; border:none; display:block;"></iframe>
       </section>
 
-      <section class="view" id="view-kpis">
-        <div class="kpi-view">
-          <details class="kpi-section" id="kpiSectionControl">
-            <summary class="kpi-section-summary">
-              <span>Painel de Controle</span>
-              <span class="kpi-section-hint">métricas que controlam o crescimento</span>
-            </summary>
-            <div class="kpi-section-body">
-              <div class="kpi-cards-grid" id="kpiCardsPrimary"></div>
-            </div>
-          </details>
-
-          <div class="kpi-section-flow" aria-hidden="true">↓</div>
-
-          <details class="kpi-section" id="kpiSectionFunnel" style="display: none;">
-            <summary class="kpi-section-summary">
-              <span>Funil Visual</span>
-              <span class="kpi-section-hint">entenda o funil em 3 segundos</span>
-            </summary>
-            <div class="kpi-section-body">
-              <div class="kpi-funnel-layout">
-                <div class="kpi-funnel-visual" id="kpiFunnelVisual"></div>
-              </div>
-            </div>
-          </details>
-
-          <div class="kpi-section-flow" aria-hidden="true">↓</div>
-
-          <details class="kpi-section" id="kpiSectionFinance">
-            <summary class="kpi-section-summary">
-              <span>Financeiro & Meta</span>
-              <span class="kpi-section-hint">projeção, ritmo, dinheiro no funil</span>
-            </summary>
-            <div class="kpi-section-body">
-              <div class="kpi-grid-3">
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Pipeline Financeiro</div>
-                    <div class="kpi-block-subtitle">Dinheiro no funil</div>
-                  </div>
-                  <div class="kpi-finance-viz" id="kpiFinanceViz"></div>
-                  <div class="kpi-table-wrap kpi-table-compact">
-                    <table class="kpi-table" id="kpiFinanceTable"></table>
-                  </div>
-                </div>
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Meta do Mês</div>
-                    <div class="kpi-block-subtitle">Ritmo e projeção</div>
-                  </div>
-                  <div class="kpi-viz kpi-month-viz" id="kpiMonthViz"></div>
-                  <div class="kpi-table-wrap kpi-table-compact kpi-table-soft">
-                    <table class="kpi-table" id="kpiMonthPaceTable"></table>
-                  </div>
-                </div>
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Velocidade</div>
-                    <div class="kpi-block-subtitle">Ritmo operacional</div>
-                  </div>
-                  <div class="kpi-viz kpi-speed-viz" id="kpiSpeedViz"></div>
-                  <div class="kpi-table-wrap kpi-table-compact kpi-table-soft">
-                    <table class="kpi-table" id="kpiSpeedTable"></table>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </details>
-
-          <div class="kpi-section-flow" aria-hidden="true">↓</div>
-
-          <details class="kpi-section" id="kpiSectionOps">
-            <summary class="kpi-section-summary">
-              <span>Operação</span>
-              <span class="kpi-section-hint">etapas, backlog, ciclo, atividade</span>
-            </summary>
-            <div class="kpi-section-body">
-              <div class="kpi-grid-2">
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Tempo por Etapa</div>
-                    <div class="kpi-block-subtitle">Quanto tempo cada lead fica em cada etapa</div>
-                  </div>
-                  <div class="kpi-viz" id="kpiStageDurationsViz"></div>
-                </div>
-              </div>
-
-              <div class="kpi-grid-2">
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Ciclo Operacional</div>
-                    <div class="kpi-block-subtitle">Quanto tempo leva para avançar</div>
-                  </div>
-                  <div class="kpi-table-wrap">
-                    <table class="kpi-table" id="kpiCycleTable"></table>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </details>
-
-          <div class="kpi-section-flow" aria-hidden="true">↓</div>
-
-          <details class="kpi-section" id="kpiSectionQuality">
-            <summary class="kpi-section-summary">
-              <span>Base & Qualidade</span>
-              <span class="kpi-section-hint">cidades, especialidades, dados faltando</span>
-            </summary>
-            <div class="kpi-section-body">
-              <div class="kpi-grid-2">
-                <div class="kpi-block">
-                  <div class="kpi-block-head">
-                    <div class="kpi-block-title">Top Cidades</div>
-                    <div class="kpi-block-subtitle">Distribuição geográfica</div>
-                  </div>
-                  <div class="kpi-table-wrap">
-                    <table class="kpi-table" id="kpiTopCitiesTable"></table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </details>
-        </div>
-      </section>
+      <!-- KPI View Removed -->
 
       <section class="view" id="view-dashboard2">
         <div class="dash2">
@@ -1332,130 +1412,152 @@
       <section class="view" id="view-generator">
         <div class="generator-layout">
           <div class="generator-left">
-            <div class="panel-header">
-              <h2>Gerador de Sites</h2>
-              <p>Escolha um template e personalize as informações para gerar o site automaticamente</p>
+            <!-- Carousel tabs -->
+            <div class="gen-carousel-tabs">
+              <button class="gen-tab active" id="genTab0" onclick="genGoSlide(0)">Info</button>
+              <button class="gen-tab" id="genTab1" onclick="genGoSlide(1)">Templates</button>
+              <button class="gen-tab" id="genTab2" onclick="genGoSlide(2)">Sessões</button>
+              <button class="gen-tab" id="genTab3" onclick="genGoSlide(3)">Fotos</button>
+              <button class="gen-tab" id="genTab4" onclick="genGoSlide(4)">Botões</button>
             </div>
 
-            <!-- Modo toggle: Template / Blocos -->
-            <div class="mode-toggle-wrap" id="generatorModeToggle">
-              <button class="mode-btn active" id="modeBtnTemplate" onclick="setGeneratorMode('template')">Template</button>
-              <button class="mode-btn" id="modeBtnBlocos" onclick="setGeneratorMode('blocos')">⬡ Blocos</button>
-            </div>
+            <!-- Carousel viewport -->
+            <div class="gen-carousel-viewport">
+              <div class="gen-carousel-track" id="genCarouselTrack">
 
-            <div class="form-group">
-              <label>Selecionar Lead (ou preencher manualmente)</label>
-              <div class="select-with-avatar">
-                <div class="selected-avatar" id="genSelectedAvatar" style="display:none">
-                  <span class="avatar-fallback">?</span>
-                  <img id="genAvatarImg" src="" alt="" referrerpolicy="no-referrer">
+                <!-- Slide 0: Config -->
+                <div class="gen-slide">
+                  <div class="form-group">
+                    <label>Selecionar Lead (ou preencher manualmente)</label>
+                    <div class="select-with-avatar">
+                      <div class="selected-avatar" id="genSelectedAvatar" style="display:none">
+                        <span class="avatar-fallback">?</span>
+                        <img id="genAvatarImg" src="" alt="" referrerpolicy="no-referrer">
+                      </div>
+                      <select id="genLeadSelect" class="form-select">
+                        <option value="">— Preencher manualmente —</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between" style="margin-bottom:16px;margin-top:20px;">
+                    <h3 style="font-size:0.875rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0;">Informações do Cliente</h3>
+                    <button class="icon-btn" id="toggleClientInfo" title="Minimizar/Expandir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 transition-transform rotate-180" id="toggleClientIcon">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div id="clientInfoContainer" class="generator-scroll-area collapsed">
+                    <div class="gen-form-grid">
+                      <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="genName" placeholder="Dra. Ana Lima" class="form-input" />
+                      </div>
+                      <div class="form-group">
+                        <label>Especialidade</label>
+                        <input type="text" id="genSpecialty" placeholder="Nutricionista Esportiva" class="form-input" />
+                      </div>
+                      <div class="form-group">
+                        <label>Cidade</label>
+                        <input type="text" id="genCity" placeholder="São Paulo, SP" class="form-input" />
+                      </div>
+                      <div class="form-group">
+                        <label>Atendimento</label>
+                        <select id="genAttendance" class="form-select">
+                          <option>Online e Presencial</option>
+                          <option>Apenas Online</option>
+                          <option>Apenas Presencial</option>
+                        </select>
+                      </div>
+                      <div class="form-group full-width">
+                        <label>Tagline / Frase de impacto</label>
+                        <input type="text" id="genTagline" placeholder="Transforme sua saúde com nutrição de alta performance" class="form-input" />
+                      </div>
+                      <div class="form-group full-width">
+                        <label>Bio / Sobre mim</label>
+                        <textarea id="genBio" rows="3" placeholder="Conte um pouco sobre sua trajetória, formação e diferenciais..." class="form-input"></textarea>
+                      </div>
+                      <div class="form-group full-width">
+                        <label>Serviços (um por linha)</label>
+                        <textarea id="genServices" rows="4" placeholder="Consultoria Nutricional&#10;Acompanhamento Esportivo&#10;Plano Alimentar Personalizado&#10;Suplementação"></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label>WhatsApp</label>
+                        <input type="text" id="genWhatsapp" placeholder="(11) 99999-9999" class="form-input" />
+                      </div>
+                      <div class="form-group">
+                        <label>Instagram</label>
+                        <input type="text" id="genInstagram" placeholder="@draanalima" class="form-input" />
+                      </div>
+                      <div class="form-group">
+                        <label>Foto (URL)</label>
+                        <input type="text" id="genAvatar" placeholder="https://..." class="form-input" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Paleta de Cores -->
+                  <div style="margin-top:20px;">
+                    <h3 style="font-size:0.875rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 12px;">Paleta de Cores</h3>
+                    <div class="gen-palette-grid" id="genPaletteGrid"></div>
+                  </div>
                 </div>
-                <select id="genLeadSelect" class="form-select">
-                  <option value="">— Preencher manualmente —</option>
-                </select>
+
+                <!-- Slide 1: Templates -->
+                <div class="gen-slide">
+                  <div class="template-selector-container" id="templateSelectorContainer">
+                    <div class="template-selector" id="templateSelector">
+                      <!-- Rendered via JS -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Slide 2: Blocos -->
+                <div class="gen-slide">
+                  <div id="blocosContainer"></div>
+                </div>
+
+                <!-- Slide 3: Fotos -->
+                <div class="gen-slide">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <h3 style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:0;">Fotos do Preview</h3>
+                    <div style="display:flex;gap:8px;">
+                      <button class="btn-secondary" id="refreshPreviewImagesBtn" title="Atualizar lista">Atualizar</button>
+                      <button class="btn-secondary" id="downloadAllPreviewImagesBtn" title="Baixar todas">Baixar todas</button>
+                    </div>
+                  </div>
+                  <div id="fotosUploadZone" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:.15s" onmouseover="this.style.borderColor='rgba(124,58,237,.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+                    📤 Clique para subir uma foto e inserir no preview
+                    <input type="file" id="fotosUploadInput" accept="image/*" style="display:none">
+                  </div>
+                  <div id="fotosUploadedList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+                  <div id="previewImagesList" class="preview-tools-grid"></div>
+                </div>
+
+                <!-- Slide 4: Botões -->
+                <div class="gen-slide">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <h3 style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:0;">Botões do Preview</h3>
+                    <button class="btn-secondary" id="refreshPreviewBtnsBtn" title="Atualizar lista">Atualizar</button>
+                  </div>
+                  <div id="previewButtonsList"></div>
+                </div>
+
               </div>
             </div>
 
-            <div class="flex items-center justify-between" style="margin-bottom: 16px; margin-top: 24px;">
-              <h3
-                style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
-                Informações do Cliente</h3>
-              <button class="icon-btn" id="toggleClientInfo" title="Minimizar/Expandir">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  class="w-5 h-5 transition-transform rotate-180" id="toggleClientIcon">
-                  <polyline points="18 15 12 9 6 15"></polyline>
+            <!-- Bottom bar: always visible -->
+            <div class="gen-bottom-bar">
+              <button class="btn-primary btn-full" id="generateSiteBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
                 </svg>
+                Gerar Site
               </button>
             </div>
-
-            <div id="clientInfoContainer" class="generator-scroll-area collapsed">
-              <div class="gen-form-grid">
-                <div class="form-group">
-                  <label>Nome Completo</label>
-                  <input type="text" id="genName" placeholder="Dra. Ana Lima" class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Especialidade</label>
-                  <input type="text" id="genSpecialty" placeholder="Nutricionista Esportiva" class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Cidade</label>
-                  <input type="text" id="genCity" placeholder="São Paulo, SP" class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Atendimento</label>
-                  <select id="genAttendance" class="form-select">
-                    <option>Online e Presencial</option>
-                    <option>Apenas Online</option>
-                    <option>Apenas Presencial</option>
-                  </select>
-                </div>
-                <div class="form-group full-width">
-                  <label>Tagline / Frase de impacto</label>
-                  <input type="text" id="genTagline" placeholder="Transforme sua saúde com nutrição de alta performance"
-                    class="form-input" />
-                </div>
-                <div class="form-group full-width">
-                  <label>Bio / Sobre mim</label>
-                  <textarea id="genBio" rows="3"
-                    placeholder="Conte um pouco sobre sua trajetória, formação e diferenciais..."
-                    class="form-input"></textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label>Serviços (um por linha)</label>
-                  <textarea id="genServices" rows="4"
-                    placeholder="Consultoria Nutricional&#10;Acompanhamento Esportivo&#10;Plano Alimentar Personalizado&#10;Suplementação"></textarea>
-                </div>
-                <div class="form-group">
-                  <label>WhatsApp</label>
-                  <input type="text" id="genWhatsapp" placeholder="(11) 99999-9999" class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Instagram</label>
-                  <input type="text" id="genInstagram" placeholder="@draanalima" class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Foto (URL)</label>
-                  <input type="text" id="genAvatar" placeholder="https://..." class="form-input" />
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <div class="flex items-center justify-between" style="margin-bottom: 16px; margin-top: 24px;">
-                <h3
-                  style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
-                  Template</h3>
-                <button class="icon-btn" id="toggleTemplateSection" title="Minimizar/Expandir">
-                  <svg id="toggleTemplateIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    class="w-5 h-5 transition-transform rotate-180">
-                    <polyline points="18 15 12 9 6 15"></polyline>
-                  </svg>
-                </button>
-              </div>
-              <div class="template-selector-container collapsed" id="templateSelectorContainer">
-                <div class="template-selector" id="templateSelector">
-                  <!-- Rendered via JS -->
-                </div>
-              </div>
-            </div>
-
-
-
-            <!-- Botões section removed -->
-
-
-
-
-
-            <!-- Gallery section removed -->
-            <button class="btn-primary btn-full" id="generateSiteBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-                <path d="M8 21h8M12 17v4" />
-              </svg>
-              Gerar Site
-            </button>
           </div>
           <div class="generator-right">
             <div class="preview-panel">
@@ -1465,6 +1567,12 @@
                 </div>
                 <div class="preview-url">leadflow.site/dra-ana</div>
                 <div class="preview-actions">
+                  <button class="preview-btn" id="clearPreviewBtn" title="Limpar preview" onclick="(function(){var i=document.getElementById('sitePreview');var p=document.getElementById('previewPlaceholder');if(i){i.srcdoc='';i.style.display='none';}if(p)p.style.display='';if(window.state)state.generatedHTML='';})()" style="color:#ef4444">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                   <button class="preview-btn" id="openPreviewBtn" title="Abrir em tela cheia">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1" />
@@ -2376,7 +2484,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=stories1"></script>
+  <script src="app.js?v=canva1"></script>
   <script src="lab-library.js"></script>
   <script src="stories.js?v=stories1"></script>
 </body>

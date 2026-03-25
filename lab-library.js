@@ -310,7 +310,7 @@ window.saveLabMessage = function() {
 };
 
 // Render Library
-function renderTemplateLibrary(category = 'minichat') {
+function renderTemplateLibrary(category = 'landing') {
   // Update Tabs UI
   document.querySelectorAll('.library-tab').forEach(t => {
     const isActive = t.dataset.category === category;
@@ -380,11 +380,15 @@ function renderLibraryGridLanding(container, items) {
 
     // Resolve type label
     const typeObj  = _allTypes.find(t => t.name === item.type);
-    const typeLabel = typeObj ? typeObj.label : (item.type ? item.type.replace(/_/g,' ') : 'Landing Page');
+    const typeLabel = item.isBuiltin ? 'Nativo' : (typeObj ? typeObj.label : (item.type ? item.type.replace(/_/g,' ') : 'Landing Page'));
+    const bgGrad = item.isBuiltin ? 'linear-gradient(135deg,#7C3AED 0%,#06B6D4 100%)' : 'linear-gradient(135deg,#f59e0b 0%,#ef4444 100%)';
+    const actionBtns = item.isBuiltin
+      ? `<button class="btn-secondary" onclick="navigate('generator');genGoSlide(1)" style="flex:1;justify-content:center;font-size:12px;">Usar no Gerador</button>`
+      : '<button class="btn-secondary" onclick="editTemplateHtml(\'landing\',' + "'" + '+item.id+' + "'" + ')" style="flex:1;justify-content:center;font-size:12px;">Editar HTML</button><button class="btn-secondary" onclick="deleteCustomTemplate(' + "'" + '+item.id+' + "'" + ')" style="padding:7px 10px;justify-content:center;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#f87171;">X</button>';
 
     return `
       <div class="template-card" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .2s;">
-        <div style="height:140px;background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);display:flex;align-items:center;justify-content:center;color:white;position:relative;">
+        <div style="height:140px;background:${bgGrad};display:flex;align-items:center;justify-content:center;color:white;position:relative;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;opacity:.8;"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
           <span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.3);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${typeLabel}</span>
         </div>
@@ -392,8 +396,7 @@ function renderLibraryGridLanding(container, items) {
           <h3 style="font-size:15px;font-weight:600;margin:0 0 6px;color:var(--text-primary);">${item.name}</h3>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;min-height:22px;">${varsHtml || '<span style="color:var(--text-muted);font-size:12px;">Sem variáveis detectadas</span>'}</div>
           <div style="display:flex;gap:7px;">
-            <button class="btn-secondary" onclick="editTemplateHtml('landing','${item.id}')" style="flex:1;justify-content:center;font-size:12px;">🖊️ Editar HTML</button>
-            <button class="btn-secondary" onclick="deleteCustomTemplate('${item.id}')" style="padding:7px 10px;justify-content:center;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#f87171;" title="Excluir template">🗑️</button>
+            ${actionBtns}
           </div>
         </div>
       </div>`;
@@ -580,7 +583,7 @@ window.navigate = function(view, activeNavEl) {
     renderMessageLab();
   }
   if (view === 'biblioteca-templates') {
-    window._libCategory = window._libCategory || 'minichat';
+    window._libCategory = window._libCategory || 'landing';
     renderTemplateLibrary(window._libCategory);
   }
   if (view === 'generator') {
@@ -631,7 +634,7 @@ window.renderProspectMiniKanban = function(countPrefix = 'k3-', colPrefix = 'kan
       const handle = (l.instagram || '').replace('https://instagram.com/', '@').replace('/', '');
       
       return `
-      <div class="lead-carousel-card kanban-dnd-item" draggable="true" data-id="${l.id}" 
+      <div class="lead-carousel-card kanban-dnd-item" draggable="true" data-id="${l.id}" onclick="if(typeof openLeadInUnicoTab === 'function') openLeadInUnicoTab('${l.id}')"
            style="padding: 12px; gap: 8px; margin-bottom: 12px; cursor: grab; min-height: 80px; grid-template-columns: 1fr;">
         <div class="lead-carousel-card-head" style="gap: 10px; align-items: center;">
           <div class="lead-carousel-card-title">
@@ -812,33 +815,37 @@ if (typeof escapeXml !== 'function') {
 // Override render function
 window.dashboardCarouselRender = function() {
   const body = document.getElementById('leadCarouselBody');
-  const counter = document.getElementById('leadCarouselCounter');
-  const filterSelect = document.getElementById('leadCarouselFilter');
-  if (!body || !counter) return;
+  if (!body) return;
 
-  // Update lead count badge in sidebar
   if(typeof updateLeadCounter === 'function') updateLeadCounter();
 
-  // Populate filter options if needed
-  if (filterSelect && filterSelect.children.length <= 1) {
-    const stages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
-    stages.forEach(stage => {
-      const option = document.createElement('option');
-      option.value = stage.id;
-      option.textContent = stage.label;
-      if (stage.color) option.style.color = stage.color;
-      filterSelect.appendChild(option);
-    });
-  }
-  
-  if (filterSelect) {
-    filterSelect.value = dashboardCarouselFilterValue;
-  }
-
   const leads = dashboardCarouselGetLeads();
+  if (!Number.isFinite(dashboardCarouselIndex)) dashboardCarouselIndex = 0;
+  if (dashboardCarouselIndex < 0) dashboardCarouselIndex = leads.length - 1;
+  if (dashboardCarouselIndex >= leads.length && leads.length > 0) dashboardCarouselIndex = 0;
+
   if (!leads.length) {
-    counter.textContent = '0/0';
-    body.innerHTML = `<div class="lead-carousel-empty">Nenhum lead ativo</div>`;
+    const counterStr = '0/0';
+    body.innerHTML = `
+      <div class="lead-carousel-card">
+        <div class="lead-carousel-card-head">
+          <div class="lead-carousel-card-title">
+            <div class="lead-carousel-lead-name">Nenhum lead ativo</div>
+            <div class="lead-carousel-lead-sub">—</div>
+          </div>
+          <div class="lead-carousel-nav">
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+        </div>
+        <div class="lead-carousel-empty">Nenhum lead ativo</div>
+      </div>
+    `;
     return;
   }
 
@@ -847,7 +854,7 @@ window.dashboardCarouselRender = function() {
   if (dashboardCarouselIndex >= leads.length) dashboardCarouselIndex = 0;
 
   const lead = leads[dashboardCarouselIndex];
-  counter.textContent = `${dashboardCarouselIndex + 1}/${leads.length}`;
+  const counterStr = `${dashboardCarouselIndex + 1}/${leads.length}`;
 
   const stageId = lead.pipelineStageV2 || 'coletados';
   const meta = dashboardCarouselStageMeta(stageId);
@@ -878,31 +885,53 @@ window.dashboardCarouselRender = function() {
     return `<button class="lead-action-btn" type="button" onclick="dashboardCarouselSetStage('${lead.id}','${target.id}')">${escapeXml(a.label || target.label)}</button>`;
   }).join('') : '';
 
-  // Pipeline Timeline Logic (New)
+  // Pipeline Timeline Logic (New - Detailed)
   const allStages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
-  const currentStageIndex = allStages.findIndex(s => s.id === stageId);
-  
   const stageSelectOptions = allStages.map(s => 
     `<option value="${s.id}" ${s.id === stageId ? 'selected' : ''}>${escapeXml(s.label)}</option>`
   ).join('');
 
-  const pipelineHtml = allStages.map((s, idx) => {
-    const isCurrent = idx === currentStageIndex;
-    const isPast = idx < currentStageIndex;
-    const color = isCurrent || isPast ? s.color : 'rgba(255,255,255,0.1)';
-    const opacity = isCurrent ? 1 : (isPast ? 0.6 : 0.3);
-    const labelColor = isCurrent ? 'var(--text-primary)' : 'var(--text-muted)';
-    const fontWeight = isCurrent ? '600' : '400';
-    
-    return `
-      <div onclick="dashboardCarouselSetStage('${lead.id}','${s.id}')" 
-           style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; opacity: ${opacity}; transition: all 0.2s;"
-           title="${s.label}">
-        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; box-shadow: ${isCurrent ? `0 0 8px ${color}` : 'none'};"></div>
-        <div style="font-size: 10px; color: ${labelColor}; font-weight: ${fontWeight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.label}</div>
+  const now = Date.now();
+  const t = typeof v2TimelineOf === 'function' ? v2TimelineOf(lead, now) : [];
+  const currentStageId = String(stageId).toLowerCase();
+  const currentMeta = typeof stageMetaOf === 'function' ? stageMetaOf(currentStageId) : { label: stageId, color: 'var(--primary)' };
+  
+  let pipelineHtml = '';
+  if (t.length > 0) {
+    pipelineHtml = t.map(item => {
+      const meta = typeof stageMetaOf === 'function' ? stageMetaOf(item.stageId) : { label: item.stageId, color: 'var(--primary)' };
+      const isNow = String(item.stageId || '').toLowerCase() === currentStageId && item.isCurrent;
+      const canDelete = !isNow && t.length > 1;
+      return `
+        <div style="border-left: 2px solid ${meta.color}; padding-left: 10px; margin-bottom: 12px; position: relative;">
+          <div style="position: absolute; left: -5px; top: 0; width: 8px; height: 8px; border-radius: 50%; background: ${meta.color};"></div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 4px;">
+            <div style="font-weight:600; font-size:11px; color:var(--text-primary);">${escapeXml(meta.label)}</div>
+            <div style="font-size:10px; color:var(--text-muted);">${typeof fmtLeadDuration === 'function' ? fmtLeadDuration(item.durMs) : ''}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:10px; color:var(--text-muted); opacity: 0.8;">${typeof fmtLeadDateTime === 'function' ? fmtLeadDateTime(item.startAt) : ''}</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <div style="font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--text-muted);">${isNow ? 'Atual' : 'Concluído'}</div>
+              ${canDelete ? `
+                <button title="Excluir" onclick="event.stopPropagation(); if(typeof excludeV2TimelineEntry === 'function') excludeV2TimelineEntry('${lead.id}', '${String(item.stageId || '').toLowerCase()}', ${Number(item.startAt) || 0})" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; align-items:center;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px;"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    pipelineHtml = `
+      <div style="border-left: 2px solid ${currentMeta.color}; padding-left: 10px; margin-bottom: 12px; position: relative;">
+        <div style="position: absolute; left: -5px; top: 0; width: 8px; height: 8px; border-radius: 50%; background: ${currentMeta.color};"></div>
+        <div style="font-weight:600; font-size:11px; color:var(--text-primary); margin-bottom: 4px;">${escapeXml(currentMeta.label)}</div>
+        <div style="font-size:10px; color:var(--text-muted); opacity: 0.8;">Sem histórico suficiente</div>
       </div>
     `;
-  }).join('');
+  }
 
   body.innerHTML = `
     <div class="lead-carousel-card">
@@ -911,12 +940,19 @@ window.dashboardCarouselRender = function() {
           <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
           <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
         </div>
-        <div title="Alterar estágio">
-          <select onchange="dashboardCarouselSetStage('${lead.id}', this.value)" 
-                  class="lead-carousel-filter" 
-                  style="padding: 4px 8px; font-size: 11px; height: auto; width: auto; background-color: var(--bg-surface); border-color: var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardCarouselSetStage('${lead.id}', this.value)">
             ${stageSelectOptions}
           </select>
+          <div class="lead-carousel-nav">
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -934,8 +970,8 @@ window.dashboardCarouselRender = function() {
           ${checklistHtml || `<div class="lead-carousel-empty" style="font-size:11px; padding: 12px;">Sem tarefas para esta etapa</div>`}
         </div>
         
-        <div style="width: 140px; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
-          <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; letter-spacing: 0.05em;">Pipeline</div>
+        <div style="flex: 1; min-width: 240px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
+          <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.05em;">Timeline do Pipeline</div>
           <div style="display: flex; flex-direction: column;">
             ${pipelineHtml}
           </div>
@@ -943,4 +979,7 @@ window.dashboardCarouselRender = function() {
       </div>
     </div>
   `;
+
+  const cEl = document.getElementById('leadCarouselCounter');
+  if (cEl) cEl.textContent = counterStr;
 };
