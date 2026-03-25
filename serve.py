@@ -9,7 +9,7 @@ def _log(msg):
     except Exception:
         pass
 
-PORT = int(os.environ.get("PORT", 3000))
+PORT = int(os.environ.get("PORT", 8080))
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG  = os.path.join(BASE, 'ai-config.json')
 

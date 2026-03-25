@@ -5,8 +5,8 @@
       "name": "vjoseph",
       "runtimeExecutable": "C:\\Users\\milen\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "runtimeArgs": ["serve.py"],
-      "port": 3000,
-      "autoPort": true
+      "env": { "PORT": "8080" },
+      "port": 8080
     }
   ]
 }

@@ -269,7 +269,8 @@ let state = {
     dailyLeadGoal: 100,
     monthlySiteGoal: 30,
     yourName: '',
-    yourInstagram: ''
+    yourInstagram: '',
+    useSiteAsHome: true
   },
   currentView: 'dashboard',
   dashboardTab: 'metrics',
@@ -352,6 +353,7 @@ function save() {
     localStorage.setItem('lf_template_types', JSON.stringify(state.templateTypes));
     localStorage.setItem('lf_preview_settings', JSON.stringify(state.previewSettings));
     localStorage.setItem('lf_dashboard_tab', state.dashboardTab === 'pipeline' ? 'pipeline' : 'metrics');
+    localStorage.setItem('lf_generated_html', state.generatedHTML || '');
 
     // Visual feedback for reassurance (non-intrusive)
     const saveIndicator = document.getElementById('saveIndicator');
@@ -380,6 +382,7 @@ function load() {
     const templateTypes = localStorage.getItem('lf_template_types');
     const previewSettings = localStorage.getItem('lf_preview_settings');
     const dashboardTab = localStorage.getItem('lf_dashboard_tab');
+    const generated = localStorage.getItem('lf_generated_html');
     if (leads) {
       state.leads = JSON.parse(leads).map(l => {
         if (l.status === 'analisado') l.status = 'coletado';
@@ -422,6 +425,8 @@ function load() {
       }
     }
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
+    if (!('useSiteAsHome' in state.settings)) state.settings.useSiteAsHome = true;
+    if (generated) state.generatedHTML = generated;
     if (customTemplates) state.customTemplates = JSON.parse(customTemplates) || [];
     if (!Array.isArray(state.customTemplates)) state.customTemplates = [];
     const sectionLibrary = localStorage.getItem('lf_section_library');
@@ -430,6 +435,17 @@ function load() {
     if (templateTypes) state.templateTypes = JSON.parse(templateTypes) || [];
     if (!Array.isArray(state.templateTypes)) state.templateTypes = [];
     state.dashboardTab = 'metrics';
+
+    const adminBypass = /\badmin=1\b/.test(window.location.search);
+    if (state.settings?.useSiteAsHome && !adminBypass) {
+      const html = String(state.generatedHTML || '').trim();
+      if (html) {
+        document.open();
+        document.write(html);
+        document.close();
+        return;
+      }
+    }
 
     renderGeneratorTemplates();
     // Auto-extract sections from built-in templates
