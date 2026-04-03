@@ -4167,7 +4167,7 @@ function genGoSlide(idx) {
   if (track) track.style.transform = 'translateX(calc(-' + idx + ' * 380px))';
   document.querySelectorAll('.gen-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
   if (idx === 1) { renderGeneratorTemplates(); }
-  if (idx === 2) { renderSectionPicker(); }
+  if (idx === 2) { showSectionManager(); }
   if (idx === 3) { rebuildPreviewImagesList('sitePreview'); }
   if (idx === 4) { renderButtonsList('sitePreview'); }
 }
@@ -4300,6 +4300,119 @@ function extractSectionsFromHTML(html, templateName) {
   return extracted;
 }
 // ========== END SECTION EXTRACTION ==========
+
+// ─── GERENCIADOR DE SEÇÕES DO PREVIEW ────────────────────────────────────────
+function showSectionManager() {
+  document.getElementById('sectionManagerPanel').style.display = '';
+  document.getElementById('blocosContainer').style.display = 'none';
+  document.getElementById('secViewBtn').style.background = '#7c3aed';
+  document.getElementById('secViewBtn').style.color = '#fff';
+  document.getElementById('blocosViewBtn').style.background = 'rgba(255,255,255,.07)';
+  document.getElementById('blocosViewBtn').style.color = '#aaa';
+  refreshSectionManager();
+}
+
+function showBlocosManager() {
+  document.getElementById('sectionManagerPanel').style.display = 'none';
+  document.getElementById('blocosContainer').style.display = '';
+  document.getElementById('blocosViewBtn').style.background = '#7c3aed';
+  document.getElementById('blocosViewBtn').style.color = '#fff';
+  document.getElementById('secViewBtn').style.background = 'rgba(255,255,255,.07)';
+  document.getElementById('secViewBtn').style.color = '#aaa';
+  renderSectionPicker();
+}
+
+function refreshSectionManager() {
+  const listEl = document.getElementById('sectionManagerList');
+  const emptyEl = document.getElementById('sectionManagerEmpty');
+  if (!listEl) return;
+
+  const iframe = document.getElementById('sitePreview');
+  let sections = [];
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    // Procura por <section>, elementos com role="region", ou .lf-edit-wrapper
+    const candidates = doc.querySelectorAll('section, [data-section], .lf-edit-wrapper, header, footer, main > div, body > div');
+    candidates.forEach((el, i) => {
+      // Pula elementos muito pequenos ou invisíveis
+      if (el.offsetHeight < 40) return;
+      // Tenta extrair um nome legível
+      const id = el.id || el.dataset.section || '';
+      const heading = el.querySelector('h1,h2,h3');
+      const label = heading ? heading.textContent.trim().slice(0, 40) : (id || `Seção ${sections.length + 1}`);
+      sections.push({ index: i, label, el });
+    });
+  } catch(e) {
+    // iframe não carregado ainda
+  }
+
+  if (sections.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = sections.map((s, i) => `
+    <div data-sec-index="${i}" style="display:flex;align-items:center;gap:6px;padding:7px 8px;margin-bottom:4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;">
+      <span style="flex:1;font-size:12px;color:#d0d0e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.label}">${s.label}</span>
+      <button onclick="sectionMove(${i},-1)" title="Mover para cima" style="all:unset;cursor:pointer;padding:3px 7px;font-size:13px;border-radius:4px;background:rgba(255,255,255,.08);color:#ccc;" ${i===0?'disabled style="all:unset;padding:3px 7px;font-size:13px;color:#444;cursor:default;"':''}>↑</button>
+      <button onclick="sectionMove(${i},1)" title="Mover para baixo" style="all:unset;cursor:pointer;padding:3px 7px;font-size:13px;border-radius:4px;background:rgba(255,255,255,.08);color:#ccc;" ${i===sections.length-1?'disabled style="all:unset;padding:3px 7px;font-size:13px;color:#444;cursor:default;"':''}>↓</button>
+      <button onclick="sectionRemove(${i})" title="Remover seção" style="all:unset;cursor:pointer;padding:3px 7px;font-size:13px;border-radius:4px;background:rgba(220,38,38,.15);color:#f87171;">×</button>
+    </div>
+  `).join('');
+}
+
+function _getPreviewSections() {
+  const iframe = document.getElementById('sitePreview');
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const candidates = doc.querySelectorAll('section, [data-section], .lf-edit-wrapper, header, footer, main > div, body > div');
+    return Array.from(candidates).filter(el => el.offsetHeight >= 40);
+  } catch(e) { return []; }
+}
+
+function sectionMove(index, direction) {
+  const sections = _getPreviewSections();
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= sections.length) return;
+
+  const el = sections[index];
+  const sibling = sections[newIndex];
+  const parent = el.parentNode;
+  if (!parent) return;
+
+  if (direction === -1) {
+    parent.insertBefore(el, sibling);
+  } else {
+    parent.insertBefore(sibling, el);
+  }
+
+  // Atualiza HTML salvo no estado
+  try {
+    const iframe = document.getElementById('sitePreview');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    state.generatedHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  } catch(e) {}
+
+  refreshSectionManager();
+}
+
+function sectionRemove(index) {
+  const sections = _getPreviewSections();
+  if (!sections[index]) return;
+  sections[index].remove();
+
+  try {
+    const iframe = document.getElementById('sitePreview');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    state.generatedHTML = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  } catch(e) {}
+
+  refreshSectionManager();
+  toast('Seção removida');
+}
+// ─── FIM GERENCIADOR DE SEÇÕES ────────────────────────────────────────────────
 
 function renderSectionPicker() {
   var container = document.getElementById('blocosContainer');
@@ -4558,18 +4671,28 @@ function renderGeneratorTemplates() {
     }
 
     // Create iframe preview
+    const customBtns = t.isCustom ? `
+      <div class="tpl-custom-actions" style="display:none;position:absolute;bottom:4px;left:0;right:0;z-index:20;gap:4px;padding:0 4px;justify-content:center;">
+        <button onclick="event.stopPropagation();editCustomTemplate('${t.id}')" style="all:unset;cursor:pointer;background:#7c3aed;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;">✏️ Editar</button>
+        <button onclick="event.stopPropagation();deleteCustomTemplate('${t.id}')" style="all:unset;cursor:pointer;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;">× Excluir</button>
+      </div>` : '';
     el.innerHTML = `
       <div class="template-preview" style="position: relative; overflow: hidden; background: #fff; border: 1px solid #eee;">
-        <iframe 
-          scrolling="no" 
+        <iframe
+          scrolling="no"
           loading="lazy"
           style="width: 400%; height: 400%; transform: scale(0.25); transform-origin: 0 0; border: none; pointer-events: none; background: #fff;"
           srcdoc="${html.replace(/"/g, '&quot;')}"
         ></iframe>
         <div style="position: absolute; inset: 0; z-index: 10; cursor: pointer;"></div>
+        ${customBtns}
       </div>
       <span>${t.name}</span>
     `;
+    if (t.isCustom) {
+      el.addEventListener('mouseenter', () => { const a = el.querySelector('.tpl-custom-actions'); if (a) a.style.display = 'flex'; });
+      el.addEventListener('mouseleave', () => { const a = el.querySelector('.tpl-custom-actions'); if (a) a.style.display = 'none'; });
+    }
 
     el.addEventListener('click', () => {
       document.querySelectorAll('.template-option').forEach(o => o.classList.remove('selected'));
@@ -4640,6 +4763,73 @@ function deleteCustomTemplate(id) {
     }
   }
   toast('Template excluído.');
+}
+
+function editCustomTemplate(id) {
+  const tpl = state.customTemplates.find(t => t.id === id);
+  if (!tpl) return;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#13131f;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:860px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;';
+
+  modal.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:15px;font-weight:700;color:#e0e0e0;">✏️ Editar Template: ${tpl.name}</div>
+      <button id="etm-close" style="background:transparent;border:none;color:#6b6b80;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1;">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Nome do Template</label>
+        <input id="etm-name" type="text" value="${tpl.name.replace(/"/g,'&quot;')}" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block;font-size:12px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Código HTML</label>
+        <textarea id="etm-html" style="width:100%;height:340px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#c0c0d0;font-family:monospace;font-size:12px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5;"></textarea>
+        <div style="font-size:11px;color:#5a5a70;margin-top:6px;">Variáveis: {{nome}}, {{bio}}, {{tagline}}, {{servico_1}}, {{servicos}}, {{foto}}, {{cta}}, {{whatsapp}}, {{instagram}}, {{especialidade}}, {{cidade}}</div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button id="etm-cancel" style="all:unset;cursor:pointer;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;color:#aaa;border:1px solid rgba(255,255,255,.1);">Cancelar</button>
+      <button id="etm-save" style="all:unset;cursor:pointer;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;color:#fff;background:#7c3aed;">Salvar alterações</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Set textarea value after append to avoid HTML encoding issues
+  document.getElementById('etm-html').value = tpl.html;
+
+  const close = () => overlay.remove();
+  document.getElementById('etm-close').onclick = close;
+  document.getElementById('etm-cancel').onclick = close;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  document.getElementById('etm-save').onclick = () => {
+    const newName = document.getElementById('etm-name').value.trim();
+    const newHtml = document.getElementById('etm-html').value.trim();
+    if (!newName || !newHtml) { toast('Nome e HTML são obrigatórios'); return; }
+
+    const idx = state.customTemplates.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    state.customTemplates[idx].name = newName;
+    state.customTemplates[idx].html = newHtml;
+
+    // Re-extract sections
+    try {
+      state.sectionLibrary = state.sectionLibrary.filter(s => s.fromTemplate !== tpl.name && s.fromTemplate !== newName);
+      const extracted = extractSectionsFromHTML(newHtml, newName);
+      if (extracted.length) state.sectionLibrary.push(...extracted);
+    } catch(e) {}
+
+    save();
+    renderGeneratorTemplates();
+    close();
+    toast('✅ Template atualizado!');
+  };
 }
 
 function openNewTemplateModal() {
@@ -4995,6 +5185,14 @@ function generateCustomTemplate(html, data) {
     var fSrc = imgArr[fi] || (fi === 0 ? data.avatar || '' : '');
     output = output.replace(new RegExp('\\{\\{foto_' + (fi+1) + '\\}\\}', 'g'), fSrc);
   }
+  // Aplica campos extras gerados pela IA (campos não cobertos acima)
+  if (data._aiRaw && typeof data._aiRaw === 'object') {
+    Object.entries(data._aiRaw).forEach(([key, val]) => {
+      if (val && typeof val === 'string') {
+        output = output.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val);
+      }
+    });
+  }
   return output;
 }
 
@@ -5087,14 +5285,92 @@ function getTemplateImage(data, index, fallbackUrl) {
   return placeholderTemplateImageDataUri(data, index);
 }
 
-async function generateSiteWithAI(data, templateType) {
+async function _callAI(system, userPrompt, maxTokens) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system,
+      messages: [{ role: 'user', content: userPrompt }],
+      maxTokens: maxTokens || 600
+    })
+  });
+  if (!res.ok) return null;
+  const d = await res.json();
+  if (d.error) return null;
+  return (d.text || '').trim().replace(/^```json\s*|^```\s*|```$/gm, '');
+}
+
+async function generateSiteWithAI(data, templateType, customHtml) {
   try {
-    // Resolve fields based on template type
+    // ── CAMINHO 1: Template customizado ────────────────────────────
+    // Detecta todas as variáveis {{...}} presentes no HTML via regex (sem IA)
+    // e pede pra IA preencher todas de uma vez com os dados da cliente.
+    if (customHtml) {
+      const matches = [...new Set((customHtml.match(/\{\{([^}]+)\}\}/g) || []).map(m => m.replace(/\{\{|\}\}/g, '')))];
+      // Remove placeholders de imagem e whatsapp (já preenchidos no código)
+      const textVars = matches.filter(v => !['foto','foto_hero','foto_1','foto_2','foto_3','foto_4','foto_5','foto_6','foto_7','foto_8','foto_9','avatar','whatsapp','instagram'].includes(v));
+      if (textVars.length === 0) return null;
+
+      // Monta o JSON shape pedindo um valor para cada variável
+      const jsonShape = {};
+      textVars.forEach(v => {
+        if (v === 'nome')          jsonShape.nome          = data.name;
+        else if (v === 'especialidade') jsonShape.especialidade = data.specialty;
+        else if (v === 'cidade')   jsonShape.cidade        = data.city || 'Brasil';
+        else if (v === 'atendimento') jsonShape.atendimento = data.attendance || 'Online e Presencial';
+        else if (v === 'tagline')  jsonShape.tagline       = 'frase de impacto em até 12 palavras';
+        else if (v === 'bio')      jsonShape.bio           = 'parágrafo profissional em até 60 palavras na 3ª pessoa';
+        else if (v === 'cta')      jsonShape.cta           = 'frase curta para botão (ex: Agende sua consulta)';
+        else if (v === 'servicos') jsonShape.servicos      = 'lista dos serviços separados por vírgula';
+        else if (/^servico_\d+$/.test(v)) {
+          const n = parseInt(v.split('_')[1], 10);
+          jsonShape[v] = (data.services && data.services[n-1]) ? `versão melhorada de: ${data.services[n-1]}` : 'nome do serviço';
+        } else {
+          jsonShape[v] = `conteúdo adequado para a seção "${v}"`;
+        }
+      });
+
+      const prompt = `Você é copywriter especialista em sites de saúde no Brasil.
+Preencha o JSON abaixo com conteúdo real para o site desta profissional.
+Retorne SOMENTE JSON válido, sem markdown.
+
+Profissional:
+Nome: ${data.name}
+Especialidade: ${data.specialty}
+Cidade: ${data.city || 'Brasil'}
+Bio: ${data.bio || 'não informada'}
+Tagline: ${data.tagline || 'não informada'}
+Serviços: ${(data.services||[]).join(', ') || 'não informados'}
+Atendimento: ${data.attendance || 'presencial'}
+
+JSON a preencher:
+${JSON.stringify(jsonShape, null, 2)}`;
+
+      const text = await _callAI('Responda SOMENTE com JSON puro, sem markdown.', prompt, 700);
+      if (!text) return null;
+      const ai = JSON.parse(text);
+
+      // Retorna no formato esperado por generateSite()
+      const svcArr = [];
+      for (let i = 1; i <= 12; i++) {
+        if (ai[`servico_${i}`]) svcArr.push(ai[`servico_${i}`]);
+      }
+      return {
+        tagline:  ai.tagline  || data.tagline,
+        bio:      ai.bio      || data.bio,
+        services: svcArr.length ? svcArr : (data.services || []),
+        cta:      ai.cta      || 'Agendar consulta',
+        _raw:     ai  // preserva todos os campos para substituição direta
+      };
+    }
+
+    // ── CAMINHO 2: Templates built-in ──────────────────────────────
+    // Usa o sistema existente baseado em fields do tipo de template.
     const allTypes = [...BUILTIN_TEMPLATE_TYPES, ...(state.templateTypes || [])];
     const typeObj  = allTypes.find(t => t.name === templateType);
     const fields   = typeObj ? typeObj.fields : ['nome','tagline','bio','servico_1','servico_2','servico_3','cta','whatsapp'];
 
-    // Build only the JSON shape the template actually needs
     const jsonShape = {};
     if (fields.includes('tagline')) jsonShape.tagline = 'frase de impacto em até 12 palavras';
     if (fields.includes('bio'))     jsonShape.bio     = 'parágrafo profissional em até 55 palavras na 3ª pessoa';
@@ -5102,7 +5378,6 @@ async function generateSiteWithAI(data, templateType) {
     const servicoCount = fields.filter(f => f.startsWith('servico_')).length;
     if (servicoCount > 0) jsonShape.servicos = `array com exatamente ${servicoCount} serviço(s) melhorado(s)`;
 
-    // If nothing to generate, skip AI call
     if (Object.keys(jsonShape).length === 0) return null;
 
     const prompt = `Você é um copywriter especialista em sites de profissionais de saúde no Brasil.
@@ -5118,19 +5393,8 @@ Tagline original: ${data.tagline || 'não informada'}
 Serviços: ${(data.services||[]).join(', ') || 'não informados'}
 Atendimento: ${data.attendance || 'presencial'}`;
 
-    const res = await fetch('http://localhost:3000/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system: 'Você é copywriter. Responda SOMENTE com JSON puro, sem markdown, sem blocos de código.',
-        messages: [{ role: 'user', content: prompt }],
-        maxTokens: 500
-      })
-    });
-    if (!res.ok) return null;
-    const d = await res.json();
-    if (d.error) return null;
-    const text = (d.text || '').trim().replace(/^```json\s*|^```\s*|```$/gm, '');
+    const text = await _callAI('Você é copywriter. Responda SOMENTE com JSON puro, sem markdown, sem blocos de código.', prompt, 500);
+    if (!text) return null;
     const ai = JSON.parse(text);
     return {
       tagline:  ai.tagline  || data.tagline,
@@ -5156,12 +5420,13 @@ async function generateSite() {
   const template = state.selectedTemplate;
   const tplObj = state.customTemplates.find(t => t.id === template);
   const templateType = tplObj ? tplObj.type : null;
-  const aiCopy = await generateSiteWithAI(data, templateType);
+  const aiCopy = await generateSiteWithAI(data, templateType, tplObj ? tplObj.html : null);
   if (aiCopy) {
     data.tagline  = aiCopy.tagline;
     data.bio      = aiCopy.bio;
     data.services = aiCopy.services;
     data.cta      = aiCopy.cta;
+    if (aiCopy._raw) data._aiRaw = aiCopy._raw; // campos extras para templates customizados
   }
 
   if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
@@ -5186,6 +5451,8 @@ async function generateSite() {
   document.querySelector('.preview-url').textContent = `leadflow.site/${slug}`;
 
   toast(aiCopy ? '✨ Site gerado com IA!' : 'Site gerado com sucesso!');
+  // Atualiza painel de seções após carregamento do iframe
+  setTimeout(() => { if (typeof refreshSectionManager === 'function') refreshSectionManager(); }, 800);
 }
 
 function sanitizeGeneratedHtml(html, data) {
@@ -6690,7 +6957,7 @@ function initPreviewToolsUI() {
   }
 
   ensurePreviewButtonColors('sitePreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
-  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
+  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
   rebuildPreviewSectionsList('sitePreview');
   rebuildPreviewImagesList('sitePreview');
   updatePreviewButtonsMeta('sitePreview');

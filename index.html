@@ -1531,6 +1531,10 @@
 
                 <!-- Slide 1: Templates -->
                 <div class="gen-slide">
+                  <div style="padding:0 2px 8px;display:flex;align-items:center;justify-content:space-between;">
+                    <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Escolha o template</span>
+                    <button onclick="openNewTemplateModal()" style="all:unset;cursor:pointer;font-size:11px;font-weight:700;color:#7c3aed;padding:4px 10px;border:1px solid rgba(124,58,237,.35);border-radius:6px;background:rgba(124,58,237,.08);">+ Novo Template</button>
+                  </div>
                   <div class="template-selector-container" id="templateSelectorContainer">
                     <div class="template-selector" id="templateSelector">
                       <!-- Rendered via JS -->
@@ -1538,9 +1542,21 @@
                   </div>
                 </div>
 
-                <!-- Slide 2: Blocos -->
+                <!-- Slide 2: Blocos / Seções -->
                 <div class="gen-slide">
-                  <div id="blocosContainer"></div>
+                  <!-- Toggle: Seções do Preview vs Blocos -->
+                  <div style="display:flex;gap:6px;margin-bottom:10px;">
+                    <button id="secViewBtn" onclick="showSectionManager()" style="all:unset;cursor:pointer;flex:1;text-align:center;padding:7px 0;font-size:12px;font-weight:700;border-radius:7px;background:#7c3aed;color:#fff;">Seções do Preview</button>
+                    <button id="blocosViewBtn" onclick="showBlocosManager()" style="all:unset;cursor:pointer;flex:1;text-align:center;padding:7px 0;font-size:12px;font-weight:700;border-radius:7px;background:rgba(255,255,255,.07);color:#aaa;">Biblioteca de Blocos</button>
+                  </div>
+                  <!-- Painel de seções do preview gerado -->
+                  <div id="sectionManagerPanel">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Clique em ↑ ↓ para mover, × para remover uma seção do site.</div>
+                    <div id="sectionManagerList"></div>
+                    <div id="sectionManagerEmpty" style="display:none;text-align:center;padding:24px 0;font-size:12px;color:var(--text-muted);">Gere um site primeiro para gerenciar as seções aqui.</div>
+                  </div>
+                  <!-- Biblioteca de blocos original -->
+                  <div id="blocosContainer" style="display:none;"></div>
                 </div>
 
                 <!-- Slide 3: Fotos -->
