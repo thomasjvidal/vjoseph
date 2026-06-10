@@ -8,7 +8,7 @@ if (typeof state !== 'undefined') {
 }
 
 // Global state for current lab stage
-window.currentLabStage = 'dm1';
+window.currentLabStage = 'todas';
 
 // Load Lab Data from LocalStorage immediately
 try {
@@ -71,11 +71,11 @@ window.addEventListener('storage', function(e) {
 
 // Render Lab
 function renderMessageLab(stageId) {
-  if (!stageId) stageId = window.currentLabStage || 'dm1';
+  if (!stageId) stageId = window.currentLabStage || 'todas';
   window.currentLabStage = stageId;
 
-  // Ensure stage array exists
-  if (!state.messageLab[stageId]) {
+  // Ensure stages exist
+  if (stageId !== 'todas' && !state.messageLab[stageId]) {
     state.messageLab[stageId] = [];
   }
   
@@ -97,7 +97,26 @@ function renderMessageLab(stageId) {
   const container = document.querySelector('.lab-cards-grid');
   if (!container) return;
 
-  const messages = state.messageLab[stageId] || [];
+  // Change layout based on stage
+  if (stageId === 'todas') {
+    container.style.gridTemplateColumns = '1fr';
+  } else {
+    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(350px, 1fr))';
+  }
+
+  let messages = [];
+  if (stageId === 'todas') {
+    // Collect all messages from all stages
+    for (const key in state.messageLab) {
+      if (Array.isArray(state.messageLab[key])) {
+        state.messageLab[key].forEach(m => {
+          messages.push({...m, _stage: key});
+        });
+      }
+    }
+  } else {
+    messages = state.messageLab[stageId] || [];
+  }
   
   // Responsive Grid for Lab Cards
   container.style.display = 'grid';
@@ -105,44 +124,69 @@ function renderMessageLab(stageId) {
   container.style.gap = '24px';
 
   if (messages.length === 0) {
-    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma mensagem cadastrada neste estágio. Adicione uma nova copy.</div>`;
+    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma mensagem cadastrada. Adicione uma nova copy.</div>`;
   } else {
     const messagesHtml = messages.map(m => {
       // Find best performer logic if needed, but let's keep it simple for now
       const isBest = false; // logic can be added later
+      const actualStageId = stageId === 'todas' ? m._stage : stageId;
+      const stageBadge = stageId === 'todas' ? `<span style="margin-left: 8px; background: rgba(var(--shadow-rgb),0.05); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">${actualStageId}</span>` : '';
+      
+      const textEscaped = typeof escapeXml === 'function' ? escapeXml(m.text) : m.text;
+      const isLongText = textEscaped.length > 150 || textEscaped.split('\\n').length > 4;
+      
+      const textHtml = isLongText ? `
+        <div id="msg-text-container-${m.id}" style="background: rgba(var(--shadow-rgb),0.03); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 8px; min-height: 80px; max-height: 120px; overflow: hidden; white-space: pre-wrap; position: relative; transition: max-height 0.3s ease;">${textEscaped}</div>
+        <button onclick="toggleLabMessageExpand(this, '${m.id}')" style="background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 16px; text-align: left;">Ver mais</button>
+      ` : `
+        <div style="background: rgba(var(--shadow-rgb),0.03); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 16px; min-height: 80px; white-space: pre-wrap;">${textEscaped}</div>
+      `;
 
       return `
-        <div class="lab-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative;">
+        <div class="lab-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative; display: flex; flex-direction: column;">
           ${isBest ? '<div style="position: absolute; top: -10px; right: 20px; background: #22c55e; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;">Melhor Copy 🏆</div>' : ''}
-          <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
-            <span style="background: rgba(99, 102, 241, 0.1); color: #6366f1; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${m.name}</span>
-            <button onclick="deleteLabMessage('${stageId}', '${m.id}')" style="background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Excluir">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;">
+            <div>
+              <span style="background: rgba(99, 102, 241, 0.1); color: #6366f1; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${m.name}</span>
+              ${stageBadge}
+            </div>
+            <button onclick="deleteLabMessage('${actualStageId}', '${m.id}')" style="background: none; border: none; cursor: pointer; color: var(--text-muted);" title="Excluir">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
           </div>
           
-          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 16px; min-height: 80px; white-space: pre-wrap;">${(typeof escapeXml === 'function' ? escapeXml(m.text) : m.text)}</div>
+          ${textHtml}
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 12px;">
+          <div style="margin-top: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 12px;">
               <div>
                 <span style="display: block; font-size: 11px; margin-bottom: 2px;">Envios</span>
                 <strong style="color: var(--text-primary);">${m.sentCount || 0}</strong>
+              </div>
+              <div style="text-align: center;">
+                 <span style="display: block; font-size: 11px; margin-bottom: 2px;">Visu.</span>
+                 <strong style="color: #0ea5e9;">${m.viewCount || 0}</strong>
+              </div>
+              <div style="text-align: center;">
+                 <span style="display: block; font-size: 11px; margin-bottom: 2px;">Não Visu.</span>
+                 <strong style="color: #f43f5e;">${Math.max(0, (m.sentCount || 0) - (m.viewCount || 0))}</strong>
               </div>
               <div style="text-align: right;">
                  <span style="display: block; font-size: 11px; margin-bottom: 2px;">Resp.</span>
                  <strong style="color: var(--primary);">${m.replyRate || '0%'}</strong>
               </div>
-          </div>
+            </div>
 
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-secondary" onclick="copyLabMessage('${(typeof escapeXml === 'function' ? escapeXml(m.text) : m.text)}')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copiar
-            </button>
-            <button class="btn-secondary" onclick="editLabMessage('${stageId}', '${m.id}')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Editar
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary" onclick="copyLabMessage(this.dataset.text)" data-text="${(typeof escapeXml === 'function' ? escapeXml(m.text) : m.text).replace(/"/g, '&quot;')}" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copiar
+              </button>
+              <button class="btn-secondary" onclick="editLabMessage('${actualStageId}', '${m.id}')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -153,7 +197,7 @@ function renderMessageLab(stageId) {
   // Ensure "Nova Copy" button has correct icon/text if needed (but rely on HTML onclick)
   let newBtn = document.getElementById('btn-new-lab-test');
   if (newBtn && !newBtn.onclick) {
-     newBtn.onclick = () => addNewLabMessage(stageId);
+     newBtn.onclick = () => addNewLabMessage(stageId === 'todas' ? 'dm1' : stageId);
   }
 
   // Update Metrics Summary with Real Data
@@ -201,10 +245,158 @@ function renderMessageLab(stageId) {
         </div>
       `;
   }
+
+  // Render lead tracking section for specific stages (not "todas")
+  if (stageId !== 'todas') {
+    renderLabLeadTracking(stageId);
+  } else {
+    const t = document.getElementById('lab-lead-tracking');
+    if (t) t.innerHTML = '';
+  }
 }
+
+function renderLabLeadTracking(stageId, filter) {
+  const el = document.getElementById('lab-lead-tracking');
+  if (!el) return;
+  filter = filter || el.dataset.filter || 'nao_visualizou';
+  el.dataset.filter = filter;
+
+  const tracking = (state.labTracking && state.labTracking[stageId]) || {};
+  const leads = Object.entries(tracking).map(([id, d]) => ({ id, ...d }));
+
+  const counts = { nao_visualizou: 0, visualizou: 0, nao_respondeu: 0 };
+  leads.forEach(l => { if (counts[l.status] !== undefined) counts[l.status]++; });
+
+  const filtered = leads.filter(l => l.status === filter);
+
+  const btnStyle = (active) => `padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); transition: all 0.15s; background: ${active ? 'var(--primary)' : 'var(--bg-surface)'}; color: ${active ? 'white' : 'var(--text-secondary)'};`;
+
+  const statusLabel = { nao_visualizou: 'Não Visualizou', visualizou: 'Visualizou', nao_respondeu: 'Não Respondeu' };
+  const statusColor = { nao_visualizou: '#f59e0b', visualizou: '#0ea5e9', nao_respondeu: '#f43f5e' };
+
+  el.innerHTML = `
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Leads com mensagem enviada</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button style="${btnStyle(filter === 'nao_visualizou')}" onclick="renderLabLeadTracking('${stageId}', 'nao_visualizou')">📨 Não Visualizou <span style="opacity:.7">${counts.nao_visualizou}</span></button>
+          <button style="${btnStyle(filter === 'visualizou')}" onclick="renderLabLeadTracking('${stageId}', 'visualizou')">👁️ Visualizou <span style="opacity:.7">${counts.visualizou}</span></button>
+          <button style="${btnStyle(filter === 'nao_respondeu')}" onclick="renderLabLeadTracking('${stageId}', 'nao_respondeu')">❌ Não Respondeu <span style="opacity:.7">${counts.nao_respondeu}</span></button>
+        </div>
+      </div>
+      ${filtered.length === 0 ? `<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px 0;">Nenhum lead neste status ainda.</p>` : `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${filtered.map(l => `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(var(--glass-rgb),0.03); border: 1px solid rgba(var(--glass-rgb),0.08); border-radius: 10px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${l.name || l.id}</div>
+              ${l.handle ? `<div style="font-size: 11px; color: var(--text-muted);">@${l.handle}</div>` : ''}
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span style="font-size: 11px; color: ${statusColor[l.status]}; font-weight: 600;">${statusLabel[l.status] || l.status}</span>
+              <select onchange="labTrackingSetStatus('${stageId}', '${l.id}', this.value)" style="font-size: 11px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;">
+                <option value="nao_visualizou" ${l.status === 'nao_visualizou' ? 'selected' : ''}>Não Visualizou</option>
+                <option value="visualizou" ${l.status === 'visualizou' ? 'selected' : ''}>Visualizou</option>
+                <option value="nao_respondeu" ${l.status === 'nao_respondeu' ? 'selected' : ''}>Não Respondeu</option>
+              </select>
+            </div>
+          </div>
+        `).join('')}
+      </div>`}
+    </div>
+  `;
+}
+
+window.renderLabLeadTracking = renderLabLeadTracking;
+
+window.labTrackingSetStatus = function(stageId, leadId, newStatus) {
+  if (!state.labTracking) state.labTracking = {};
+  if (!state.labTracking[stageId]) state.labTracking[stageId] = {};
+  if (state.labTracking[stageId][leadId]) {
+    state.labTracking[stageId][leadId].status = newStatus;
+    if (typeof save === 'function') save();
+    renderLabLeadTracking(stageId);
+  }
+};
+
+window.toggleMessageViewed = function(leadId, msgInstanceId, viewed) {
+  const lead = state.leads.find(l => l.id === leadId);
+  if (!lead || !lead.sentMessages) return;
+
+  const msgInstance = lead.sentMessages.find(m => m.id === msgInstanceId);
+  if (msgInstance) {
+    const wasViewed = msgInstance.viewed;
+    msgInstance.viewed = viewed;
+
+    // Update Lab message metrics
+    const labStage = state.messageLab[msgInstance.labStageId];
+    if (labStage) {
+      const labMsg = labStage.find(m => m.id === msgInstance.messageId);
+      if (labMsg) {
+        if (viewed && !wasViewed) {
+          labMsg.viewCount = (labMsg.viewCount || 0) + 1;
+        } else if (!viewed && wasViewed) {
+          labMsg.viewCount = Math.max(0, (labMsg.viewCount || 0) - 1);
+        }
+      }
+    }
+    
+    if (typeof save === 'function') save();
+    if (typeof dashboardCarouselRender === 'function') dashboardCarouselRender();
+  }
+};
+
+window.toggleMessageReplied = function(leadId, msgInstanceId, replied) {
+  const lead = state.leads.find(l => l.id === leadId);
+  if (!lead || !lead.sentMessages) return;
+
+  const msgInstance = lead.sentMessages.find(m => m.id === msgInstanceId);
+  if (msgInstance) {
+    const wasReplied = msgInstance.replied;
+    msgInstance.replied = replied;
+
+    // Update Lab message metrics
+    const labStage = state.messageLab[msgInstance.labStageId];
+    if (labStage) {
+      const labMsg = labStage.find(m => m.id === msgInstance.messageId);
+      if (labMsg) {
+        if (replied && !wasReplied) {
+          labMsg.replyCount = (labMsg.replyCount || 0) + 1;
+        } else if (!replied && wasReplied) {
+          labMsg.replyCount = Math.max(0, (labMsg.replyCount || 0) - 1);
+        }
+        
+        // Recalculate replyRate
+        const sent = labMsg.sentCount || 0;
+        const replies = labMsg.replyCount || 0;
+        let calculatedRate = "0%";
+        if (sent > 0) {
+          calculatedRate = ((replies / sent) * 100).toFixed(1).replace(/\.0$/, '') + "%";
+        }
+        labMsg.replyRate = calculatedRate;
+      }
+    }
+    
+    if (typeof save === 'function') save();
+    if (typeof dashboardCarouselRender === 'function') dashboardCarouselRender();
+  }
+};
+
+window.toggleLabMessageExpand = function(btn, id) {
+  const container = document.getElementById('msg-text-container-' + id);
+  if (!container) return;
+  if(container.style.maxHeight === '120px') {
+    container.style.maxHeight = '2000px';
+    btn.textContent = 'Ver menos';
+  } else {
+    container.style.maxHeight = '120px';
+    btn.textContent = 'Ver mais';
+  }
+};
 
 window.addNewLabMessage = function(stageId) {
   if (!stageId) stageId = window.currentLabStage || 'dm1';
+  if (stageId === 'todas') stageId = 'dm1';
   openLabMessageModal('create', stageId);
 };
 
@@ -218,6 +410,7 @@ window.openLabMessageModal = function(mode, stage, id) {
   const nameEl = document.getElementById('labMsgName');
   const textEl = document.getElementById('labMsgText');
   const sentEl = document.getElementById('labMsgSent');
+  const viewEl = document.getElementById('labMsgViewed');
   const rateEl = document.getElementById('labMsgRate');
 
   if (!modal) {
@@ -231,6 +424,7 @@ window.openLabMessageModal = function(mode, stage, id) {
   nameEl.value = '';
   textEl.value = '';
   sentEl.value = '';
+  viewEl.value = '';
   rateEl.value = '';
 
   if (mode === 'edit' && id) {
@@ -244,7 +438,8 @@ window.openLabMessageModal = function(mode, stage, id) {
         nameEl.value = msg.name || '';
         textEl.value = msg.text || '';
         sentEl.value = msg.sentCount || 0;
-        rateEl.value = msg.replyRate || '0%';
+        viewEl.value = msg.viewCount || 0;
+        rateEl.value = msg.replyCount !== undefined ? msg.replyCount : 0;
       }
     }
   } else {
@@ -267,6 +462,7 @@ window.saveLabMessage = function() {
   const name = document.getElementById('labMsgName').value;
   const text = document.getElementById('labMsgText').value;
   let sent = document.getElementById('labMsgSent').value;
+  let viewed = document.getElementById('labMsgViewed').value;
   let rate = document.getElementById('labMsgRate').value;
 
   if (!name || !text) {
@@ -278,8 +474,16 @@ window.saveLabMessage = function() {
   if (!state.messageLab[stage]) state.messageLab[stage] = [];
 
   sent = parseInt(sent) || 0;
-  if (!rate.includes('%')) rate += '%';
-  if (rate === '%') rate = '0%';
+  let views = parseInt(viewed) || 0;
+  if (views > sent) views = sent; // prevent more views than sent
+  
+  let replies = parseInt(rate) || 0;
+  if (replies > sent) replies = sent; // prevent more replies than sent
+  
+  let calculatedRate = "0%";
+  if (sent > 0) {
+    calculatedRate = ((replies / sent) * 100).toFixed(1).replace(/\.0$/, '') + "%";
+  }
 
   if (id) {
     // Update existing
@@ -288,7 +492,9 @@ window.saveLabMessage = function() {
       msg.name = name;
       msg.text = text;
       msg.sentCount = sent;
-      msg.replyRate = rate;
+      msg.viewCount = views;
+      msg.replyCount = replies;
+      msg.replyRate = calculatedRate;
       if(typeof toast === 'function') toast('Copy atualizada!');
     }
   } else {
@@ -299,7 +505,9 @@ window.saveLabMessage = function() {
       name,
       text,
       sentCount: sent,
-      replyRate: rate
+      viewCount: views,
+      replyCount: replies,
+      replyRate: calculatedRate
     });
     if(typeof toast === 'function') toast('Copy criada!');
   }
@@ -307,6 +515,82 @@ window.saveLabMessage = function() {
   if (typeof save === 'function') save();
   renderMessageLab(stage);
   closeLabMessageModal();
+};
+
+// --- EXPORT AND IMPORT LAB MESSAGES ---
+window.exportLabMessages = function() {
+  if (!state.messageLab || Object.keys(state.messageLab).length === 0) {
+    alert('Não há mensagens para exportar.');
+    return;
+  }
+  const jsonStr = JSON.stringify(state.messageLab, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", url);
+  downloadAnchorNode.setAttribute("download", "mensagens_lab.json");
+  document.body.appendChild(downloadAnchorNode); // required for firefox
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+  URL.revokeObjectURL(url);
+};
+
+window.importLabMessages = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let content = e.target.result.trim();
+      
+      // Fix for previously exported files that might have been URL encoded
+      if (content.startsWith('data:text/json')) {
+        content = decodeURIComponent(content.substring(content.indexOf(',') + 1));
+      } else if (content.startsWith('%7B') || content.startsWith('%5B')) {
+        content = decodeURIComponent(content);
+      }
+      
+      // Remove any potential BOM or weird invisible characters at the start
+      if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.slice(1);
+      }
+
+      const importedData = JSON.parse(content);
+      if (typeof importedData === 'object' && importedData !== null) {
+        // Merge imported messages with existing ones
+        for (const stage in importedData) {
+          if (Array.isArray(importedData[stage])) {
+            if (!state.messageLab[stage]) {
+              state.messageLab[stage] = [];
+            }
+            
+            importedData[stage].forEach(importedMsg => {
+              // Check if message with same ID already exists
+              const existingIndex = state.messageLab[stage].findIndex(m => m.id === importedMsg.id);
+              if (existingIndex >= 0) {
+                // Update existing
+                state.messageLab[stage][existingIndex] = importedMsg;
+              } else {
+                // Append new
+                state.messageLab[stage].push(importedMsg);
+              }
+            });
+          }
+        }
+        if (typeof save === 'function') save();
+        if (typeof toast === 'function') toast('Mensagens importadas com sucesso!');
+        renderMessageLab(window.currentLabStage || 'todas');
+      } else {
+        alert('Formato de arquivo inválido.');
+      }
+    } catch (err) {
+      alert('Erro ao importar o arquivo: ' + err.message);
+    }
+    // Reset file input
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 };
 
 // Render Library
@@ -390,7 +674,7 @@ function renderLibraryGridLanding(container, items) {
       <div class="template-card" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .2s;">
         <div style="height:140px;background:${bgGrad};display:flex;align-items:center;justify-content:center;color:white;position:relative;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;opacity:.8;"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          <span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.3);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${typeLabel}</span>
+          <span style="position:absolute;top:10px;right:10px;background:rgba(var(--shadow-rgb),.3);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${typeLabel}</span>
         </div>
         <div style="padding:16px;">
           <h3 style="font-size:15px;font-weight:600;margin:0 0 6px;color:var(--text-primary);">${item.name}</h3>
@@ -411,7 +695,7 @@ function renderLibraryGrid(container, items, type) {
 
   container.innerHTML = items.map(item => {
     const varsHtml = (item.vars || []).map(v => 
-      `<span style="background: rgba(0,0,0,0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[${v}]</span>`
+      `<span style="background: rgba(var(--shadow-rgb),0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace;">[${v}]</span>`
     ).join('');
 
     const icon = type === 'minichat' 
@@ -509,13 +793,13 @@ window.editTemplateHtml = function(type, id) {
 
   // Cria modal de edição de HTML
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(var(--shadow-rgb),.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:#13131f;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;';
+  modal.style.cssText = 'background:#13131f;border:1px solid rgba(var(--glass-rgb),.1);border-radius:16px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;';
 
   modal.innerHTML = `
-    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(var(--glass-rgb),.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div>
         <div style="font-size:15px;font-weight:600;color:#e0e0e0;">🖊️ Editar HTML — ${item.name}</div>
         <div style="font-size:12px;color:#6b6b80;margin-top:2px;">Variáveis: {{nome}}, {{bio}}, {{tagline}}, {{servico_1}}, {{servicos}}, {{foto}}, {{cta}}, {{whatsapp}}, {{instagram}}</div>
@@ -523,9 +807,9 @@ window.editTemplateHtml = function(type, id) {
       <button id="tpl-edit-close" style="background:transparent;border:none;color:#6b6b80;font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
     </div>
     <textarea id="tpl-edit-textarea" style="flex:1;padding:16px;background:#0a0a14;color:#c0c0d0;font-family:monospace;font-size:13px;border:none;outline:none;resize:none;overflow-y:auto;min-height:400px;">${(item.html||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;flex-shrink:0;">
+    <div style="padding:12px 20px;border-top:1px solid rgba(var(--glass-rgb),.08);display:flex;gap:10px;flex-shrink:0;">
       <button id="tpl-edit-save" style="flex:1;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">💾 Salvar Alterações</button>
-      <button id="tpl-edit-cancel" style="padding:10px 20px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#9090a0;font-size:14px;cursor:pointer;">Cancelar</button>
+      <button id="tpl-edit-cancel" style="padding:10px 20px;background:transparent;border:1px solid rgba(var(--glass-rgb),.1);border-radius:8px;color:#9090a0;font-size:14px;cursor:pointer;">Cancelar</button>
     </div>
   `;
 
@@ -679,40 +963,37 @@ document.addEventListener('dragstart', (e) => {
 
 // Tab Switching Logic
 window.switchLeadTab = function(tab) {
-  const tUnico = document.getElementById('tab-unico');
-  const tPipeline = document.getElementById('tab-pipeline');
-  const bUnico = document.getElementById('btn-tab-unico');
-  const bPipeline = document.getElementById('btn-tab-pipeline');
+  const tabs = ['unico', 'pipeline', 'daily'];
 
-  if (tab === 'unico') {
-    if(tUnico) tUnico.style.display = 'block';
-    if(tPipeline) tPipeline.style.display = 'none';
-    if(bUnico) { 
-      bUnico.classList.add('active'); 
-      bUnico.style.borderBottom = '2px solid var(--primary)'; 
-      bUnico.style.color = 'var(--text-primary)'; 
+  // Update all buttons
+  tabs.forEach(t => {
+    const btn = document.getElementById(`btn-tab-${t}`);
+    if (!btn) return;
+    if (t === tab) {
+      btn.classList.add('active');
+      btn.style.borderBottom = '2px solid var(--primary)';
+      btn.style.color = 'var(--text-primary)';
+      btn.style.fontWeight = '600';
+    } else {
+      btn.classList.remove('active');
+      btn.style.borderBottom = '2px solid transparent';
+      btn.style.color = 'var(--text-muted)';
+      btn.style.fontWeight = '500';
     }
-    if(bPipeline) { 
-      bPipeline.classList.remove('active'); 
-      bPipeline.style.borderBottom = '2px solid transparent'; 
-      bPipeline.style.color = 'var(--text-muted)'; 
-    }
-  } else {
-    if(tUnico) tUnico.style.display = 'none';
-    if(tPipeline) tPipeline.style.display = 'block';
-    if(bUnico) { 
-      bUnico.classList.remove('active'); 
-      bUnico.style.borderBottom = '2px solid transparent'; 
-      bUnico.style.color = 'var(--text-muted)'; 
-    }
-    if(bPipeline) { 
-      bPipeline.classList.add('active'); 
-      bPipeline.style.borderBottom = '2px solid var(--primary)'; 
-      bPipeline.style.color = 'var(--text-primary)'; 
-    }
-    
-    // Render pipeline when showing it
-    if(typeof renderProspectMiniKanban === 'function') renderProspectMiniKanban();
+  });
+
+  // Update all content panes
+  tabs.forEach(t => {
+    const pane = document.getElementById(`tab-${t}`);
+    if (pane) pane.style.display = t === tab ? 'block' : 'none';
+  });
+
+  // Tab-specific render
+  if (tab === 'pipeline') {
+    if (typeof renderProspectMiniKanban === 'function') renderProspectMiniKanban();
+  }
+  if (tab === 'daily') {
+    if (typeof renderDailyTab === 'function') renderDailyTab();
   }
 };
 
@@ -726,7 +1007,7 @@ document.addEventListener('dragend', (e) => {
   if (e.target.classList.contains('kanban-dnd-item')) {
     e.target.style.opacity = '1';
     draggedItem = null;
-    document.querySelectorAll('.kanban-col').forEach(c => c.style.background = 'rgba(255,255,255,0.02)');
+    document.querySelectorAll('.kanban-col').forEach(c => c.style.background = 'rgba(var(--glass-rgb),0.02)');
   }
 });
 
@@ -735,7 +1016,7 @@ document.addEventListener('dragover', (e) => {
     e.preventDefault();
     const col = e.target.closest('.kanban-col');
     if (col) {
-      col.style.background = 'rgba(255,255,255,0.05)';
+      col.style.background = 'rgba(var(--glass-rgb),0.05)';
     }
   }
 });
@@ -743,7 +1024,7 @@ document.addEventListener('dragover', (e) => {
 document.addEventListener('dragleave', (e) => {
   const col = e.target.closest('.kanban-col');
   if (col) {
-    col.style.background = 'rgba(255,255,255,0.02)';
+    col.style.background = 'rgba(var(--glass-rgb),0.02)';
   }
 });
 
@@ -756,19 +1037,26 @@ document.addEventListener('drop', (e) => {
       if (cardsContainer) {
         const newStageId = cardsContainer.id.replace('kanbanv3-', '');
         const leadId = draggedItem.dataset.id;
-        
+
         const lead = state.leads.find(l => l.id === leadId);
         if (lead && lead.pipelineStageV2 !== newStageId) {
-          lead.pipelineStageV2 = newStageId;
-          if (typeof save === 'function') save();
-          
-          if (typeof renderProspectMiniKanban === 'function') {
-             renderProspectMiniKanban();
+          if (typeof moveLeadToStageDash2 === 'function') {
+            moveLeadToStageDash2(leadId, newStageId);
+          } else {
+            lead.pipelineStageV2 = newStageId;
+            if (typeof save === 'function') save();
           }
-          if (typeof toast === 'function') toast('Lead movido para ' + newStageId);
+
+          if (typeof renderProspectMiniKanban === 'function') renderProspectMiniKanban();
+          if (typeof renderDashboard === 'function') renderDashboard();
+          if (typeof toast === 'function') {
+            const stages = (typeof DASH2_STAGES !== 'undefined') ? DASH2_STAGES : [];
+            const meta = stages.find(s => s.id === newStageId);
+            toast('Lead movido para ' + (meta ? meta.label : newStageId));
+          }
         }
       }
-      col.style.background = 'rgba(255,255,255,0.02)';
+      col.style.background = 'rgba(var(--glass-rgb),0.02)';
     }
   }
 });
@@ -824,26 +1112,44 @@ window.dashboardCarouselRender = function() {
   if (dashboardCarouselIndex < 0) dashboardCarouselIndex = leads.length - 1;
   if (dashboardCarouselIndex >= leads.length && leads.length > 0) dashboardCarouselIndex = 0;
 
+  const allStages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+  
   if (!leads.length) {
     const counterStr = '0/0';
+    const filterStage = dashboardCarouselFilterValue || 'coletados';
+    const stageSelectOptions = allStages.map(s => 
+      `<option value="${s.id}" ${s.id === filterStage ? 'selected' : ''}>${escapeXml(s.label)}</option>`
+    ).join('');
+
     body.innerHTML = `
-      <div class="lead-carousel-card">
-        <div class="lead-carousel-card-head">
-          <div class="lead-carousel-card-title">
-            <div class="lead-carousel-lead-name">Nenhum lead ativo</div>
-            <div class="lead-carousel-lead-sub">—</div>
-          </div>
-          <div class="lead-carousel-nav">
-            <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
-            <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" onclick="dashboardCarouselNext()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+      <div class="lead-carousel-card" style="min-height: auto; border: none; background: transparent; box-shadow: none; padding: 0;">
+        <div class="lead-carousel-card-head" style="flex-direction: column; align-items: flex-start;">
+          <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px;justify-content:flex-start;flex-wrap:wrap;">
+            
+            <!-- Stage Selector with Arrows (View Only - Empty State) -->
+            <div style="display:flex;align-items:center;gap:2px;background:rgba(var(--glass-rgb),0.04);border:1px solid rgba(var(--glass-rgb),0.08);border-radius:8px;padding:2px;">
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Etapa Anterior" onclick="dashboardCarouselViewStageMove(-1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <select class="lead-carousel-filter" id="leadStageSelectEmpty" onchange="dashboardFilterByStage(this.value)" style="margin:0; border:none; background:transparent; max-width:130px; padding:2px 4px; box-shadow:none;">
+                ${stageSelectOptions}
+              </select>
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Próxima Etapa" onclick="dashboardCarouselViewStageMove(1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <div class="lead-carousel-nav">
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" disabled style="opacity: 0.5;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <div class="lead-carousel-counter" id="leadCarouselCounter">${counterStr}</div>
+              <button class="lead-carousel-nav-btn" type="button" aria-label="Próximo" disabled style="opacity: 0.5;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
           </div>
         </div>
-        <div class="lead-carousel-empty">Nenhum lead ativo</div>
       </div>
     `;
     return;
@@ -880,13 +1186,36 @@ window.dashboardCarouselRender = function() {
   const nextMeta = nextId ? dashboardCarouselStageMeta(nextId) : null;
   const canAdvance = nextId && dashboardCarouselAllDone(lead, stageId);
 
-  const altButtons = Array.isArray(flow.alt) ? flow.alt.map(a => {
-    const target = dashboardCarouselStageMeta(a.id);
-    return `<button class="lead-action-btn" type="button" onclick="dashboardCarouselSetStage('${lead.id}','${target.id}')">${escapeXml(a.label || target.label)}</button>`;
-  }).join('') : '';
+      const altButtons = Array.isArray(flow.alt) ? flow.alt.map(a => {
+        const target = dashboardCarouselStageMeta(a.id);
+        return `<button class="lead-action-btn" type="button" onclick="dashboardCarouselSetStage('${lead.id}','${target.id}')">${escapeXml(a.label || target.label)}</button>`;
+      }).join('') : '';
 
-  // Pipeline Timeline Logic (New - Detailed)
-  const allStages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+      // Filter stages where the view/reply icons should appear
+      const showIconsStages = ['dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3'];
+      const showIcons = showIconsStages.includes(String(stageId));
+
+      let iconsHtml = '';
+      if (showIcons) {
+        // Find the last sent message to determine the state
+        const lastMsg = (lead.sentMessages && lead.sentMessages.length > 0) ? lead.sentMessages[lead.sentMessages.length - 1] : null;
+        const isViewed = lastMsg ? !!lastMsg.viewed : false;
+        const isReplied = lastMsg ? !!lastMsg.replied : false;
+        const msgId = lastMsg ? lastMsg.id : '';
+
+        iconsHtml = `
+          <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+            <button title="Visualizou" onclick="if('${msgId}') toggleMessageViewed('${lead.id}', '${msgId}', ${!isViewed})" style="background: ${isViewed ? 'rgba(14, 165, 233, 0.1)' : 'rgba(var(--glass-rgb),0.05)'}; border: 1px solid ${isViewed ? '#0ea5e9' : 'rgba(var(--glass-rgb),0.1)'}; color: ${isViewed ? '#0ea5e9' : 'var(--text-secondary)'}; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+            <button title="Respondeu" onclick="if('${msgId}') toggleMessageReplied('${lead.id}', '${msgId}', ${!isReplied})" style="background: ${isReplied ? 'rgba(124, 58, 237, 0.1)' : 'rgba(var(--glass-rgb),0.05)'}; border: 1px solid ${isReplied ? 'var(--primary)' : 'rgba(var(--glass-rgb),0.1)'}; color: ${isReplied ? 'var(--primary)' : 'var(--text-secondary)'}; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </button>
+          </div>
+        `;
+      }
+
+      // Pipeline Timeline Logic (New - Detailed)
   const stageSelectOptions = allStages.map(s => 
     `<option value="${s.id}" ${s.id === stageId ? 'selected' : ''}>${escapeXml(s.label)}</option>`
   ).join('');
@@ -912,7 +1241,7 @@ window.dashboardCarouselRender = function() {
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="font-size:10px; color:var(--text-muted); opacity: 0.8;">${typeof fmtLeadDateTime === 'function' ? fmtLeadDateTime(item.startAt) : ''}</div>
             <div style="display:flex; gap:6px; align-items:center;">
-              <div style="font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--text-muted);">${isNow ? 'Atual' : 'Concluído'}</div>
+              <div style="font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(var(--glass-rgb),0.05); color:var(--text-muted);">${isNow ? 'Atual' : 'Concluído'}</div>
               ${canDelete ? `
                 <button title="Excluir" onclick="event.stopPropagation(); if(typeof excludeV2TimelineEntry === 'function') excludeV2TimelineEntry('${lead.id}', '${String(item.stageId || '').toLowerCase()}', ${Number(item.startAt) || 0})" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; align-items:center;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px;"><path d="M18 6L6 18M6 6l12 12"></path></svg>
@@ -933,17 +1262,65 @@ window.dashboardCarouselRender = function() {
     `;
   }
 
+  // Sent Messages Logic
+  let sentMessagesHtml = '';
+  const sentMsgs = lead.sentMessages || [];
+  if (sentMsgs.length > 0) {
+    sentMessagesHtml = sentMsgs.slice().reverse().map(msg => {
+      const isViewed = !!msg.viewed;
+      const isReplied = !!msg.replied;
+      const dateStr = new Date(msg.sentAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+      
+      const suggestionHtml = isViewed 
+        ? `<div style="margin-top: 8px; padding: 6px 8px; background: rgba(14, 165, 233, 0.1); border-left: 2px solid #0ea5e9; color: #0ea5e9; font-size: 10px; border-radius: 4px;"><strong>Aviso:</strong> Lead visualizou! Lembre-se de responder ou acompanhar.</div>`
+        : `<div style="margin-top: 8px; padding: 6px 8px; background: rgba(244, 63, 94, 0.1); border-left: 2px solid #f43f5e; color: #f43f5e; font-size: 10px; border-radius: 4px;"><strong>Aviso:</strong> Lead não visualizou. Sugerimos enviar um Follow-up.</div>`;
+
+      return `
+        <div style="background: rgba(var(--glass-rgb),0.02); border: 1px solid rgba(var(--glass-rgb),0.05); border-radius: 8px; padding: 10px; margin-bottom: 8px; position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">${escapeXml(msg.messageName || 'Mensagem')}</div>
+            <div style="font-size: 9px; color: var(--text-muted);">${dateStr}</div>
+          </div>
+          <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+            ${escapeXml(msg.text)}
+          </div>
+          <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" ${isViewed ? 'checked' : ''} onchange="toggleMessageViewed('${lead.id}', '${msg.id}', this.checked)" style="margin: 0; cursor: pointer;">
+              Visualizou
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" ${isReplied ? 'checked' : ''} onchange="toggleMessageReplied('${lead.id}', '${msg.id}', this.checked)" style="margin: 0; cursor: pointer;">
+              Respondeu
+            </label>
+          </div>
+          ${suggestionHtml}
+        </div>
+      `;
+    }).join('');
+  } else {
+    sentMessagesHtml = `
+      <div style="font-size: 11px; color: var(--text-muted); padding: 10px; background: rgba(var(--glass-rgb),0.02); border-radius: 8px; border: 1px dashed rgba(var(--glass-rgb),0.05);">
+        Nenhuma mensagem enviada.
+      </div>
+    `;
+  }
+
   body.innerHTML = `
     <div class="lead-carousel-card">
-      <div class="lead-carousel-card-head">
-        <div class="lead-carousel-card-title">
-          <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
-          <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardCarouselSetStage('${lead.id}', this.value)">
-            ${stageSelectOptions}
-          </select>
+      <div class="lead-carousel-card-head" style="flex-direction: column; align-items: flex-start;">
+        <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px;justify-content:flex-start;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:2px;background:rgba(var(--glass-rgb),0.04);border:1px solid rgba(var(--glass-rgb),0.08);border-radius:8px;padding:2px;">
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Etapa Anterior" onclick="dashboardCarouselViewStageMove(-1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardFilterByStage(this.value)" style="margin:0; border:none; background:transparent; max-width:130px; padding:2px 4px; box-shadow:none;">
+              ${stageSelectOptions}
+            </select>
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Próxima Etapa" onclick="dashboardCarouselViewStageMove(1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
           <div class="lead-carousel-nav">
             <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -954,26 +1331,48 @@ window.dashboardCarouselRender = function() {
             </button>
           </div>
         </div>
+        <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div class="lead-carousel-card-title" style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
+            <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
+          </div>
+          ${iconsHtml}
+        </div>
       </div>
 
       <div class="lead-carousel-actions">
+        <button class="lead-action-btn" type="button" onclick="dashboardCarouselCopyMsg('${lead.id}')">Copiar Mensagem</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','open_insta')">Instagram</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','open_whats')">WhatsApp</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','generate_site')">Gerar Site</button>
         ${altButtons}
-        ${nextId ? `<button class="lead-action-btn primary" type="button" ${canAdvance ? '' : 'disabled'} onclick="dashboardCarouselAdvance('${lead.id}')">Avançar: ${escapeXml(nextMeta?.label || nextId)}</button>` : ''}
+        ${nextId ? `<button class="lead-action-btn primary" type="button" onclick="dashboardCarouselAdvance('${lead.id}', '${nextId}')">Avançar: ${escapeXml(nextMeta?.label || nextId)}</button>` : ''}
+        <div style="position:relative; display:inline-block;">
+          <select class="lead-action-btn" style="appearance:none; padding-right:30px; cursor:pointer; background:rgba(var(--glass-rgb),0.05); color:var(--text-secondary); border:1px solid rgba(var(--glass-rgb),0.1);" onchange="if(this.value){ dashboardCarouselSetStage('${lead.id}', this.value); this.value=''; }">
+            <option value="" disabled selected>Mover para...</option>
+            ${(typeof DASH2_STAGES !== 'undefined' && Array.isArray(DASH2_STAGES) ? DASH2_STAGES : []).map(s => `<option value="${s.id}">${escapeXml(s.label)}</option>`).join('')}
+          </select>
+          <svg style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; pointer-events:none; stroke:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
       </div>
 
-      <div style="display: flex; gap: 16px; margin-top: 20px; align-items: flex-start;">
-        <div class="lead-checklist" style="width: 220px; flex-shrink: 0;">
+      <div style="display: flex; gap: 16px; margin-top: 20px; align-items: flex-start; flex-wrap: wrap;">
+        <div class="lead-checklist" style="width: 200px; flex-shrink: 0;">
           <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; letter-spacing: 0.05em;">Checklist</div>
           ${checklistHtml || `<div class="lead-carousel-empty" style="font-size:11px; padding: 12px;">Sem tarefas para esta etapa</div>`}
         </div>
         
-        <div style="flex: 1; min-width: 240px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
+        <div style="flex: 1; min-width: 200px; border-left: 1px solid rgba(var(--glass-rgb),0.1); padding-left: 16px;">
           <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.05em;">Timeline do Pipeline</div>
           <div style="display: flex; flex-direction: column;">
             ${pipelineHtml}
+          </div>
+        </div>
+
+        <div style="flex: 1; min-width: 220px; border-left: 1px solid rgba(var(--glass-rgb),0.1); padding-left: 16px;">
+          <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.05em;">Mensagens Enviadas</div>
+          <div style="display: flex; flex-direction: column;">
+            ${sentMessagesHtml}
           </div>
         </div>
       </div>

@@ -6,24 +6,34 @@
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 
 const SC_STAGE_MAP = {
-  coletados:          'Coletados',
-  perfil_engajado:    'Perfil Engajado',
-  dm1_enviada:        'DM1 enviada',
-  nao_respondeu:      'Não Respondeu',
-  respondeu:          'Respondeu',
-  follow_up_1:        'Follow-up 1',
-  chat_gerado:        'Em Chat',
-  dm2_enviada:        'DM2 enviada',
-  proposta_enviada:   'Proposta enviada',
-  follow_up_2:        'Follow-up 2',
-  fechado:            'Fechado',
-  arquivado:          'Arquivado',
+  coletados:                  'Coletados',
+  perfil_engajado:            'Perfil Engajado',
+  dm1_enviada:                'DM1 Enviada',
+  nao_respondeu:              'Não Respondeu DM1',
+  follow_up_1:                'Follow Up 1',
+  chat_gerado:                'Gerar Site',
+  site_pronto:                'Site Pronto',
+  dm2_enviada:                'DM2 Enviada',
+  ainda_nao_respondeu:        'Não Respondeu DM2',
+  follow_up_2:                'Follow Up 2',
+  proposta_enviada:           'Proposta Enviada',
+  nao_respondeu_proposta:     'Não Respondeu - Proposta',
+  follow_up_3:                'Follow Up 3',
+  nao_respondeu_follow_up_3:  'Não Respondeu Follow Up 3',
+  remarketing_1:              'Remarketing 1',
+  nao_respondeu_rmkt1:        'Não Respondeu RMKT 1',
+  promocao_final:             'Promoção Final',
+  reuniao:                    'Reunião (Opcional)',
+  aguardando_resposta_final:  'Aguardando Resposta Final',
+  fechado:                    'Fechado',
+  arquivado:                  'Arquivado / Sem Interesse',
   // Legacy pipeline stages mapping
-  engajar:            'Coletados',
-  dm_enviada:         'DM1 enviada',
-  follow_up:          'Follow-up 1',
-  whatsapp:           'Em Chat',
-  proposta:           'Proposta enviada',
+  engajar:                    'Coletados',
+  dm_enviada:                 'DM1 Enviada',
+  follow_up:                  'Follow Up 1',
+  whatsapp:                   'Gerar Site',
+  proposta:                   'Proposta Enviada',
+  respondeu:                  'Follow Up 1',
 };
 
 const SC_STAGES = ['Coletados','Engajados','DM1 enviada','Respondeu','Não respondeu','Follow-up 1','Proposta','Fechado','Arquivado'];
@@ -81,7 +91,7 @@ const SC_MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','J
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
 const SC = {
-  tab:          'radar',
+  tab:          'calendario',
   tone:         'Profissional & Próximo',
   motorResult:  null,
   motorLoading: false,
@@ -200,13 +210,10 @@ function renderStoriesView() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
 
   const tabs = [
-    { id:'radar',      label:'Radar',    icon:'📡' },
+    { id:'calendario', label:'Agenda',   icon:'🗓' },
     { id:'motor',      label:'Motor IA', icon:'🤖' },
-    { id:'sequencia',  label:'Sequência',icon:'📅' },
     { id:'checklist',  label:'Execução', icon:'✅' },
     { id:'repost',     label:'Reposts',  icon:'🔄' },
-    { id:'calendario', label:'Agenda',   icon:'🗓' },
-    { id:'tom',        label:'Tom',      icon:'🎭' },
   ];
 
   el.innerHTML = `
@@ -221,9 +228,7 @@ function renderStoriesView() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;background:${pct===100?'rgba(16,185,129,0.15)':'rgba(245,158,11,0.12)'};color:${pct===100?'#10B981':'#F59E0B'};border:1px solid ${pct===100?'rgba(16,185,129,0.3)':'rgba(245,158,11,0.3)'}">
-          ✅ ${pct}%
-        </div>
+        <button onclick="renderStoriesView()" style="width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center">🔄</button>
       </div>
     </div>
 
@@ -499,16 +504,11 @@ Gere JSON exato (sem markdown, sem texto fora do JSON):
 {"analise":"2 frases sobre o estado atual da pipeline","prioridade":"qual tipo de story focar agora e por quê","recomendacoes":[{"tipo":"Bastidor|Prova|Autoridade|Desejo|Conversão|Engajamento","periodo":"Manhã|Tarde|Noite","sugestao":"texto concreto do story","razao":"por que faz sentido agora"}],"quantidade":{"manha":2,"tarde":3,"noite":2},"alerta":"mensagem de urgência se houver, ou string vazia"}`;
 
   try {
-    const res  = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system:    'Responda APENAS com JSON válido, sem markdown, sem texto adicional.',
-        messages:  [{ role: 'user', content: prompt }],
-        maxTokens: 1200,
-      })
+    const data = await window.apiFetchChat({
+      system:    'Responda APENAS com JSON válido, sem markdown, sem texto adicional.',
+      messages:  [{ role: 'user', content: prompt }],
+      maxTokens: 1200,
     });
-    const data = await res.json();
     if (data.error) throw new Error(data.error);
     const raw = (data.text || '').replace(/```json|```/g, '').trim();
     SC.motorResult = JSON.parse(raw);
@@ -847,10 +847,29 @@ function scRenderTom() {
 window.scSetTone = function(idx) {
   SC.tone = SC_TONE_PRESETS[idx].name;
   scSaveTone();
-  scRenderTab();
+  if (window.state && state.currentView === 'cultura') renderCulturaView();
+  else scRenderTab();
 };
 
 window.scSaveCustomTone = function() {
   const val = (document.getElementById('scCustomTone')?.value || '').trim();
-  if (val) { SC.tone = val; scSaveTone(); scRenderTab(); }
+  if (val) { 
+    SC.tone = val; 
+    scSaveTone(); 
+    if (window.state && state.currentView === 'cultura') renderCulturaView();
+    else scRenderTab();
+  }
 };
+
+// ── CULTURA VIEW ─────────────────────────────────────────────────────────────
+window.renderCulturaView = function() {
+  const el = document.getElementById('cultura-content');
+  if (!el) return;
+  scLoad(); // load tone if not loaded
+
+  el.innerHTML = `
+    <div style="padding:24px; max-width:800px; margin:0 auto;">
+      ${scRenderTom()}
+    </div>
+  `;
+}

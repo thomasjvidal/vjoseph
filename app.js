@@ -3,6 +3,8 @@
    Full application logic
    ========================================= */
 
+(function(){try{if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){var of=window.fetch;window.fetch=function(u,o){try{var s=String(u||'');if(s.includes('google.com/ccm/collect')||s.includes('googletagmanager.com')){return Promise.resolve(new Response('',{status:204}))}}catch(e){}return of(u,o)};var sb=navigator.sendBeacon;navigator.sendBeacon=function(u,d){try{var s=String(u||'');if(s.includes('google.com/ccm/collect')||s.includes('googletagmanager.com'))return true}catch(e){}return sb.call(navigator,u,d)};window.dataLayer=window.dataLayer||[];window.dataLayer.push=function(){return 0};window.gtag=function(){return 0}}}catch(e){}})();
+
 // ---- TIPOS DE TEMPLATE (built-in, sempre disponíveis) ----
 const BUILTIN_TEMPLATE_TYPES = [
   { name: 'landing_simples',  label: 'Landing Simples',      fields: ['nome','especialidade','cta','whatsapp'] },
@@ -12,6 +14,58 @@ const BUILTIN_TEMPLATE_TYPES = [
 ];
 
 // ---- SISTEMA DE BLOCOS ----
+
+// Fallback robusto para chamadas de IA (caso o servidor local localhost:3000 não esteja rodando)
+window.apiFetchChat = async function(payload) {
+  const urls = ['http://localhost:3000/api/chat', 'http://127.0.0.1:3000/api/chat', '/api/chat'];
+  let lastErr;
+  for (let u of urls) {
+    try {
+      const res = await fetch(u, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) return await res.json();
+    } catch(e) {
+      lastErr = e;
+    }
+  }
+  
+  console.warn('[AI Fallback] Servidor local indisponível, tentando chamada direta à API da Groq...');
+  const lsStr = localStorage.getItem('lf_api_config');
+  if (!lsStr) throw new Error('Servidor offline e chaves não configuradas. Acesse as Configurações.');
+  const ls = JSON.parse(lsStr);
+  let key = ls.groq_key || ls.groq_key_2 || ls.groq_key_3;
+  if (key === '••••••••') key = '';
+  if (!key) throw new Error('Nenhuma chave Groq configurada no localStorage.');
+
+  const groq_model = ls.groq_model || 'llama-3.3-70b-versatile';
+  const groq_msgs = [{ role: 'system', content: payload.system || '' }, ...(payload.messages || [])];
+  
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + key
+    },
+    body: JSON.stringify({
+      model: groq_model,
+      messages: groq_msgs,
+      max_tokens: payload.maxTokens || payload.max_tokens || 800,
+      temperature: 0.3
+    })
+  });
+  
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Erro na Groq: ' + err);
+  }
+  
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content || '';
+  return { text };
+};
 
 const SECTIONS_BASE_CSS = `
 *{margin:0;padding:0;box-sizing:border-box}
@@ -49,8 +103,8 @@ const SECTION_LIBRARY = [
 .hd-photo{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid rgba(124,58,237,.5);box-shadow:0 0 0 6px rgba(124,58,237,.1);margin:0 auto 28px;display:block}
 .hd-photo-placeholder{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:900;color:#fff;margin:0 auto 28px}
 .hd-h1{font-size:clamp(34px,5vw,58px);font-weight:900;letter-spacing:-2px;line-height:1.08;margin-bottom:16px;background:linear-gradient(135deg,#fff 40%,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hd-tagline{font-size:18px;color:rgba(255,255,255,.65);max-width:560px;margin:0 auto 40px;line-height:1.6}
-.hd-city{font-size:13px;color:rgba(255,255,255,.35);margin-top:20px;letter-spacing:.5px}
+.hd-tagline{font-size:18px;color:rgba(var(--glass-rgb),.65);max-width:560px;margin:0 auto 40px;line-height:1.6}
+.hd-city{font-size:13px;color:rgba(var(--glass-rgb),.35);margin-top:20px;letter-spacing:.5px}
 </style>
 <section class="site-section hd-wrap">
   <div class="sec-container">
@@ -117,7 +171,7 @@ const SECTION_LIBRARY = [
     html: `<style>
 .bs-wrap{background:#fff}
 .bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1000px;margin:0 auto}
-.bs-photo{width:100%;aspect-ratio:1;border-radius:20px;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,.1)}
+.bs-photo{width:100%;aspect-ratio:1;border-radius:20px;object-fit:cover;box-shadow:0 20px 60px rgba(var(--shadow-rgb),.1)}
 .bs-photo-placeholder{width:100%;aspect-ratio:1;border-radius:20px;background:linear-gradient(135deg,#f3f0ff,#e0e7ff);display:flex;align-items:center;justify-content:center;font-size:64px}
 .bs-label{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
 .bs-h2{font-size:clamp(22px,3vw,34px);font-weight:800;color:#111;margin-bottom:16px;letter-spacing:-1px}
@@ -224,9 +278,9 @@ const SECTION_LIBRARY = [
 .cp-wrap{background:linear-gradient(135deg,#0a0a10,#1a0a2e);color:#fff;text-align:center;position:relative;overflow:hidden}
 .cp-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(124,58,237,.2) 0%,transparent 65%);pointer-events:none}
 .cp-h2{font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-1px;margin-bottom:12px;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.cp-sub{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:40px;line-height:1.6}
+.cp-sub{font-size:16px;color:rgba(var(--glass-rgb),.6);margin-bottom:40px;line-height:1.6}
 .cp-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-.cp-ig{display:inline-flex;align-items:center;gap:6px;margin-top:20px;color:rgba(255,255,255,.5);font-size:14px}
+.cp-ig{display:inline-flex;align-items:center;gap:6px;margin-top:20px;color:rgba(var(--glass-rgb),.5);font-size:14px}
 </style>
 <section class="site-section cp-wrap">
   <div class="sec-container">
@@ -238,7 +292,7 @@ const SECTION_LIBRARY = [
     {{#instagram}}<div><a href="https://instagram.com/{{instagram_clean}}" class="cp-ig">📸 {{instagram}}</a></div>{{/instagram}}
   </div>
 </section>
-<footer style="padding:16px;text-align:center;font-size:12px;color:rgba(255,255,255,.2);background:#0a0a10">© 2025 {{name}} — {{specialty}}</footer>`
+<footer style="padding:16px;text-align:center;font-size:12px;color:rgba(var(--glass-rgb),.2);background:#0a0a10">© 2025 {{name}} — {{specialty}}</footer>`
   }
 ];
 
@@ -270,7 +324,7 @@ let state = {
     monthlySiteGoal: 30,
     yourName: '',
     yourInstagram: '',
-    useSiteAsHome: true
+    useSiteAsHome: false
   },
   currentView: 'dashboard',
   dashboardTab: 'metrics',
@@ -354,6 +408,7 @@ function save() {
     localStorage.setItem('lf_preview_settings', JSON.stringify(state.previewSettings));
     localStorage.setItem('lf_dashboard_tab', state.dashboardTab === 'pipeline' ? 'pipeline' : 'metrics');
     localStorage.setItem('lf_generated_html', state.generatedHTML || '');
+    if (state.labTracking) localStorage.setItem('lf_labTracking', JSON.stringify(state.labTracking));
 
     // Visual feedback for reassurance (non-intrusive)
     const saveIndicator = document.getElementById('saveIndicator');
@@ -425,7 +480,7 @@ function load() {
       }
     }
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
-    if (!('useSiteAsHome' in state.settings)) state.settings.useSiteAsHome = true;
+    if (!('useSiteAsHome' in state.settings)) state.settings.useSiteAsHome = false;
     if (generated) state.generatedHTML = generated;
     if (customTemplates) state.customTemplates = JSON.parse(customTemplates) || [];
     if (!Array.isArray(state.customTemplates)) state.customTemplates = [];
@@ -434,18 +489,9 @@ function load() {
     if (!Array.isArray(state.sectionLibrary)) state.sectionLibrary = [];
     if (templateTypes) state.templateTypes = JSON.parse(templateTypes) || [];
     if (!Array.isArray(state.templateTypes)) state.templateTypes = [];
+    const labTracking = localStorage.getItem('lf_labTracking');
+    if (labTracking) state.labTracking = JSON.parse(labTracking) || {};
     state.dashboardTab = 'metrics';
-
-    const adminBypass = /\badmin=1\b/.test(window.location.search);
-    if (state.settings?.useSiteAsHome && !adminBypass) {
-      const html = String(state.generatedHTML || '').trim();
-      if (html) {
-        document.open();
-        document.write(html);
-        document.close();
-        return;
-      }
-    }
 
     renderGeneratorTemplates();
     // Auto-extract sections from built-in templates
@@ -586,6 +632,50 @@ function fmtLeadDateTime(ts) {
   return new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+// ---- OFFICE FULLSCREEN ----
+(function() {
+  // CSS injected once
+  const style = document.createElement('style');
+  style.textContent = `
+    #view-office.office-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+    }
+    #view-office.office-fullscreen #office-fullscreen-btn {
+      bottom: 20px; right: 20px;
+    }
+    body.office-fullscreen-active .sidebar,
+    body.office-fullscreen-active .topbar {
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+window.toggleOfficeFullscreen = function() {
+  const section = document.getElementById('view-office');
+  const btn     = document.getElementById('office-fullscreen-btn');
+  const isFs    = section.classList.toggle('office-fullscreen');
+  document.body.classList.toggle('office-fullscreen-active', isFs);
+  if (btn) btn.textContent = isFs ? '✕' : '⛶';
+  if (btn) btn.title = isFs ? 'Sair do fullscreen (Esc)' : 'Fullscreen (F)';
+};
+
+// Keyboard shortcuts for office fullscreen
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  const officeActive = document.getElementById('view-office')?.classList.contains('active');
+  if (!officeActive) return;
+  if (e.key === 'f' || e.key === 'F') window.toggleOfficeFullscreen();
+  if (e.key === 'Escape') {
+    const section = document.getElementById('view-office');
+    if (section?.classList.contains('office-fullscreen')) window.toggleOfficeFullscreen();
+  }
+});
+
 // ---- ROUTING ----
 function navigate(view, activeNavEl) {
   state.currentView = view;
@@ -610,11 +700,18 @@ function navigate(view, activeNavEl) {
     'lab-mensagens': ['Lab de Mensagens', 'Teste e otimize suas mensagens'],
     'biblioteca-templates': ['Biblioteca de Templates', 'Gerencie seus produtos e templates'],
     stories: ['Stories Control', 'Estratégia de Stories integrada ao LeadFlow'],
+    cultura: ['Cultura', 'Valores e identidade do time'],
     settings: ['Configurações', 'API, preços e configurações gerais']
   };
   if (titles[view]) {
     document.getElementById('pageTitle').textContent = titles[view][0];
     document.getElementById('breadcrumb').textContent = titles[view][1];
+  }
+
+  // Office view: remove padding so iframe fills the container edge-to-edge
+  const vc = document.querySelector('.view-container');
+  if (vc) {
+    vc.style.padding = (view === 'office') ? '0' : '';
   }
   if (view === 'dashboard') {
     renderDashboard();
@@ -642,7 +739,11 @@ function navigate(view, activeNavEl) {
   }
 
   if (view === 'stories') {
+    try { SC.tab = 'calendario'; } catch(e) {}
     if (typeof renderStoriesView === 'function') renderStoriesView();
+  }
+  if (view === 'cultura') {
+    if (typeof renderCulturaView === 'function') renderCulturaView();
   }
   if (view === 'settings') { loadSettingsForm(); loadApiConfig(); }
 
@@ -865,23 +966,171 @@ function setTodayDateText(elementId) {
   if (el) el.textContent = formattedDate;
 }
 
+// ---- DASHBOARD CAROUSEL LOGIC ----
+// (Handles the rendering of the V2 carousel in the Dashboard)
+
+// ----------------------------------------------------
+// TIME BLOCKS WIDGET LOGIC
+// ----------------------------------------------------
+function updateTimeBlocksWidget() {
+  const now = new Date();
+  const h = now.getHours();
+  
+  const tb = (state.settings && state.settings.timeBlocks) || [
+    { start: 6, end: 12 },
+    { start: 12, end: 14 },
+    { start: 14, end: 18 },
+    { start: 18, end: 24 },
+    { start: 0, end: 6 }
+  ];
+
+  const blocks = [
+    { id: 'morning', name: 'Manhã', color: '#3b82f6', start: tb[0].start, end: tb[0].end },
+    { id: 'noon', name: 'Meio-dia', color: '#f59e0b', start: tb[1].start, end: tb[1].end },
+    { id: 'afternoon', name: 'Tarde', color: '#8b5cf6', start: tb[2].start, end: tb[2].end },
+    { id: 'night', name: 'Noite', color: '#6366f1', start: tb[3].start, end: tb[3].end },
+    { id: 'latenight', name: 'Madrugada', color: '#4b5563', start: tb[4].start, end: tb[4].end }
+  ];
+
+  let currentBlock = null;
+  for (const b of blocks) {
+    if (h >= b.start && h < b.end) {
+      currentBlock = b;
+      break;
+    }
+  }
+
+  if (!currentBlock) currentBlock = blocks[4]; // fallback to latenight
+
+  const blockNameEl = document.getElementById('current-time-block-name');
+  const indicatorEl = document.getElementById('time-block-indicator');
+  const timerEl = document.getElementById('time-block-timer');
+  
+  if (blockNameEl) blockNameEl.textContent = currentBlock.name;
+  if (indicatorEl) {
+    indicatorEl.style.backgroundColor = currentBlock.color;
+    indicatorEl.style.boxShadow = `0 0 8px ${currentBlock.color}80`;
+  }
+
+  // Calculate remaining time
+  const endHour = currentBlock.end;
+  let remainingMs = 0;
+  if (endHour === 24) {
+     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+     remainingMs = midnight - now;
+  } else {
+     const endObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, 0, 0);
+     remainingMs = endObj - now;
+  }
+
+  // Update current time clock
+  const clockDisplayEl = document.getElementById('current-clock-display');
+  if (clockDisplayEl) {
+    const clockHrs = h.toString().padStart(2, '0');
+    const clockMins = now.getMinutes().toString().padStart(2, '0');
+    clockDisplayEl.textContent = `${clockHrs}:${clockMins}`;
+  }
+
+  const totalSecs = Math.floor(remainingMs / 1000);
+  const hrs = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  
+  let timerText = '';
+  if (hrs > 0) {
+    timerText = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  } else {
+    timerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  
+  const nextTextEl = document.getElementById('time-block-next-text');
+  if (nextTextEl) {
+    let fullTimerText = '';
+    if (hrs > 0) {
+      fullTimerText = `${hrs}h ${mins}m ${secs}s`;
+    } else {
+      fullTimerText = `${mins}m ${secs}s`;
+    }
+    nextTextEl.textContent = `${fullTimerText} para o próximo bloco`;
+  }
+  
+  if (timerEl) {
+    timerEl.textContent = timerText;
+    // Turn red if less than 15 mins (900 secs)
+    if (totalSecs <= 900) {
+      timerEl.style.color = '#ef4444'; // red
+      timerEl.style.borderColor = '#ef4444';
+      timerEl.style.animation = 'pulse 1.5s infinite';
+    } else {
+      timerEl.style.color = 'var(--text-secondary)';
+      timerEl.style.borderColor = 'rgba(var(--glass-rgb),0.1)';
+      timerEl.style.animation = 'none';
+    }
+  }
+
+  // Update progress dots
+  const dotIds = ['morning', 'noon', 'afternoon', 'night'];
+  const currentIndex = dotIds.indexOf(currentBlock.id);
+  
+  const dots = document.querySelectorAll('#time-blocks-progress .block-dot');
+  dots.forEach(dot => {
+    const bId = dot.getAttribute('data-block');
+    const idx = dotIds.indexOf(bId);
+    
+    if (idx < currentIndex) {
+      // Past
+      dot.style.background = 'var(--text-muted)';
+    } else if (idx === currentIndex) {
+      // Current
+      dot.style.background = currentBlock.color;
+    } else {
+      // Future
+      dot.style.background = 'rgba(var(--glass-rgb),0.1)';
+    }
+  });
+}
+
+// Ensure style exists for pulse
+if (!document.getElementById('pulse-style')) {
+  const style = document.createElement('style');
+  style.id = 'pulse-style';
+  style.innerHTML = `
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+setInterval(updateTimeBlocksWidget, 1000);
+// ----------------------------------------------------
+
 let dashboardCarouselIndex = 0;
 let dashboardCarouselFilterValue = '';
 
 const DASHBOARD_CAROUSEL_STAGE_FLOW = {
   coletados: { next: 'perfil_engajado' },
   perfil_engajado: { next: 'dm1_enviada' },
-  dm1_enviada: { next: 'nao_respondeu', alt: [{ id: 'respondeu', label: 'Respondeu' }] },
-  nao_respondeu: { next: 'follow_up_1', alt: [{ id: 'respondeu', label: 'Respondeu' }] },
+  dm1_enviada: { next: 'nao_respondeu', alt: [{ id: 'chat_gerado', label: 'Gerar Site' }] },
+  nao_respondeu: { next: 'follow_up_1', alt: [{ id: 'chat_gerado', label: 'Gerar Site' }] },
   follow_up_1: { next: 'chat_gerado' },
-  respondeu: { next: 'chat_gerado' },
-  chat_gerado: { next: 'dm2_enviada' },
+  chat_gerado: { next: 'site_pronto' },
+  site_pronto: { next: 'dm2_enviada' },
   dm2_enviada: { next: 'ainda_nao_respondeu', alt: [{ id: 'proposta_enviada', label: 'Proposta Enviada' }] },
   ainda_nao_respondeu: { next: 'follow_up_2', alt: [{ id: 'proposta_enviada', label: 'Proposta Enviada' }] },
   follow_up_2: { next: 'proposta_enviada' },
   proposta_enviada: { next: 'nao_respondeu_proposta', alt: [{ id: 'fechado', label: 'Fechado' }] },
   nao_respondeu_proposta: { next: 'follow_up_3', alt: [{ id: 'fechado', label: 'Fechado' }] },
-  follow_up_3: { next: 'fechado' }
+  follow_up_3: { next: 'nao_respondeu_follow_up_3', alt: [{ id: 'fechado', label: 'Fechado' }] },
+  nao_respondeu_follow_up_3: { next: 'remarketing_1', alt: [{ id: 'arquivado', label: 'Arquivar' }] },
+  remarketing_1: { next: 'nao_respondeu_rmkt1' },
+  nao_respondeu_rmkt1: { next: 'promocao_final', alt: [{ id: 'arquivado', label: 'Arquivar' }] },
+  promocao_final: { next: 'reuniao', alt: [{ id: 'fechado', label: 'Fechado' }] },
+  reuniao: { next: 'aguardando_resposta_final' },
+  aguardando_resposta_final: { next: 'fechado', alt: [{ id: 'arquivado', label: 'Arquivar' }] },
+  fechado: {}
 };
 
 const DASHBOARD_STAGE_CHECKLISTS = {
@@ -1019,12 +1268,8 @@ function dashboardCarouselRender() {
     const counterStr = '0/0';
     body.innerHTML = `
       <div class="lead-carousel-card">
-        <div class="lead-carousel-card-head">
-          <div class="lead-carousel-card-title">
-            <div class="lead-carousel-lead-name">Nenhum lead ativo</div>
-            <div class="lead-carousel-lead-sub">—</div>
-          </div>
-          <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;">
+        <div class="lead-carousel-card-head" style="flex-direction: column; align-items: flex-start;">
+          <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px;justify-content:flex-start;">
             <div class="lead-carousel-nav">
               <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -1034,6 +1279,10 @@ function dashboardCarouselRender() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
             </div>
+          </div>
+          <div class="lead-carousel-card-title" style="width:100%;">
+            <div class="lead-carousel-lead-name">Nenhum lead ativo</div>
+            <div class="lead-carousel-lead-sub">—</div>
           </div>
         </div>
         <div class="lead-carousel-empty">Nenhum lead ativo</div>
@@ -1079,15 +1328,23 @@ function dashboardCarouselRender() {
 
   body.innerHTML = `
     <div class="lead-carousel-card">
-      <div class="lead-carousel-card-head">
-        <div class="lead-carousel-card-title">
-          <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
-          <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
-        </div>
-        <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;">
-          <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardCarouselSetStage('${lead.id}', this.value)">
-            ${stageSelectOptions}
-          </select>
+      <div class="lead-carousel-card-head" style="flex-direction: column; align-items: flex-start;">
+        <div class="lead-carousel-controls" style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px;justify-content:flex-start;flex-wrap:wrap;">
+          
+          <!-- Stage Selector with Arrows -->
+          <div style="display:flex;align-items:center;gap:2px;background:rgba(var(--glass-rgb),0.04);border:1px solid rgba(var(--glass-rgb),0.08);border-radius:8px;padding:2px;">
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Etapa Anterior" onclick="dashboardCarouselViewStageMove(-1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <select class="lead-carousel-filter" id="leadStageSelect" onchange="dashboardFilterByStage(this.value)" style="margin:0; border:none; background:transparent; max-width:130px; padding:2px 4px; box-shadow:none;">
+              ${stageSelectOptions}
+            </select>
+            <button class="lead-carousel-nav-btn" type="button" aria-label="Próxima Etapa" onclick="dashboardCarouselViewStageMove(1)" style="width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;border-radius:4px;transition:background 0.2s;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+
+          <!-- Lead Navigation Arrows -->
           <div class="lead-carousel-nav">
             <button class="lead-carousel-nav-btn" type="button" aria-label="Anterior" onclick="dashboardCarouselPrev()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -1098,14 +1355,26 @@ function dashboardCarouselRender() {
             </button>
           </div>
         </div>
+        <div class="lead-carousel-card-title" style="width:100%;">
+          <div class="lead-carousel-lead-name">${escapeXml(lead.name || 'Lead')}</div>
+          <div class="lead-carousel-lead-sub">${escapeXml(sub || '—')}</div>
+        </div>
       </div>
 
       <div class="lead-carousel-actions">
+        <button class="lead-action-btn" type="button" onclick="dashboardCarouselCopyMsg('${lead.id}')">Copiar Mensagem</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','open_insta')">Instagram</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','open_whats')">WhatsApp</button>
         <button class="lead-action-btn" type="button" onclick="dashboardCarouselQuickAction('${lead.id}','generate_site')">Gerar Site</button>
         ${altButtons}
-        ${nextId ? `<button class="lead-action-btn primary" type="button" ${canAdvance ? '' : 'disabled'} onclick="dashboardCarouselAdvance('${lead.id}')">Avançar: ${escapeXml(nextMeta?.label || nextId)}</button>` : ''}
+        ${nextId ? `<button class="lead-action-btn primary" type="button" onclick="dashboardCarouselAdvance('${lead.id}', '${nextId}')">Avançar: ${escapeXml(nextMeta?.label || nextId)}</button>` : ''}
+        <div style="position:relative; display:inline-block;">
+          <select class="lead-action-btn" style="appearance:none; padding-right:30px; cursor:pointer; background:rgba(var(--glass-rgb),0.05); color:var(--text-secondary); border:1px solid rgba(var(--glass-rgb),0.1);" onchange="if(this.value){ dashboardCarouselSetStage('${lead.id}', this.value); this.value=''; }">
+            <option value="" disabled selected>Mover para...</option>
+            ${(typeof DASH2_STAGES !== 'undefined' && Array.isArray(DASH2_STAGES) ? DASH2_STAGES : []).map(s => `<option value="${s.id}">${escapeXml(s.label)}</option>`).join('')}
+          </select>
+          <svg style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; pointer-events:none; stroke:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
       </div>
 
       <div class="lead-checklist">
@@ -1157,6 +1426,36 @@ window.dashboardCarouselSetStage = function (leadId, stageId) {
   renderDashboard();
 };
 
+window.dashboardCarouselStageMove = function (leadId, direction) {
+  const lead = state.leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const currentStage = lead.pipelineStageV2 || 'coletados';
+  const stages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+  const currentIndex = stages.findIndex(s => s.id === currentStage);
+  if (currentIndex === -1) return;
+  
+  const nextIndex = currentIndex + direction;
+  if (nextIndex >= 0 && nextIndex < stages.length) {
+    const nextStageId = stages[nextIndex].id;
+    dashboardCarouselSetStage(leadId, nextStageId);
+  }
+};
+
+window.dashboardCarouselViewStageMove = function (direction) {
+  const currentStage = dashboardCarouselFilterValue || 'coletados';
+  const stages = Array.isArray(DASH2_STAGES) ? DASH2_STAGES : [];
+  const currentIndex = stages.findIndex(s => s.id === currentStage);
+  if (currentIndex === -1) return;
+
+  const nextIndex = currentIndex + direction;
+  if (nextIndex >= 0 && nextIndex < stages.length) {
+    const nextStageId = stages[nextIndex].id;
+    if (typeof dashboardFilterByStage === 'function') {
+      dashboardFilterByStage(nextStageId);
+    }
+  }
+};
+
 window.switchLeadTab = function(tabId) {
   // Update buttons
   document.querySelectorAll('.lead-tab-btn').forEach(btn => {
@@ -1183,6 +1482,10 @@ window.switchLeadTab = function(tabId) {
   }
 
   // Render pipeline if needed
+  if (tabId === 'daily') {
+    if (typeof renderDailyTab === 'function') renderDailyTab();
+  }
+
   if (tabId === 'pipeline') {
     const container = document.getElementById('kanbanMiniDashboard');
     if (container && container.children.length === 0) {
@@ -1190,13 +1493,13 @@ window.switchLeadTab = function(tabId) {
       const stages = (typeof PROSPECT_STAGES !== 'undefined' && Array.isArray(PROSPECT_STAGES)) ? PROSPECT_STAGES : [];
       
       container.innerHTML = stages.map(stage => `
-        <div class="kanban-col" style="min-width: 280px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 12px; margin-right: 12px;">
+        <div class="kanban-col" style="min-width: 280px; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; padding: 12px; margin-right: 12px;">
           <div class="kanban-col-header" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span class="kanban-dot" style="background:${stage.color}; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
               <span style="font-weight: 600; font-size: 13px;">${stage.label}</span>
             </div>
-            <span class="kanban-count" id="k3-${stage.id}" style="font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">0</span>
+            <span class="kanban-count" id="k3-${stage.id}" style="font-size: 11px; background: rgba(var(--glass-rgb),0.1); padding: 2px 6px; border-radius: 10px;">0</span>
           </div>
           <div class="kanban-cards" id="kanbanv3-${stage.id}" style="min-height: 50px;"></div>
         </div>
@@ -1209,6 +1512,155 @@ window.switchLeadTab = function(tabId) {
   }
 };
 
+// ── DAILY TAB ──────────────────────────────────────────────────────────────
+
+const DAILY_HOT   = ['proposta_enviada','nao_respondeu_proposta','follow_up_3','nao_respondeu_follow_up_3','remarketing_1','nao_respondeu_rmkt1','promocao_final','reuniao','aguardando_resposta_final'];
+const DAILY_WARM  = ['chat_gerado','site_pronto','dm2_enviada','ainda_nao_respondeu','follow_up_1','follow_up_2'];
+const DAILY_COLD  = ['coletados','perfil_engajado','dm1_enviada','nao_respondeu'];
+
+function dailyDaysInStage(lead, now) {
+  const ts = toTsAny(lead.v2LastMovedAt) || toTsAny(lead.createdAt) || now;
+  return Math.max(0, Math.floor((now - ts) / 86400000));
+}
+
+function dailyDayColor(days) {
+  if (days <= 1) return '#22c55e';
+  if (days <= 3) return '#f97316';
+  return '#ef4444';
+}
+
+function dailyCheckedKey() {
+  return `daily-checked-${new Date().toISOString().slice(0, 10)}`;
+}
+
+window.dailyToggleCheck = function(leadId) {
+  const key = dailyCheckedKey();
+  let checked = JSON.parse(localStorage.getItem(key) || '[]');
+  const idx = checked.indexOf(leadId);
+  if (idx >= 0) checked.splice(idx, 1); else checked.push(leadId);
+  localStorage.setItem(key, JSON.stringify(checked));
+  renderDailyTab();
+};
+
+window.renderDailyTab = function() {
+  const container = document.getElementById('tab-daily');
+  if (!container) return;
+
+  const now = Date.now();
+  const checked = new Set(JSON.parse(localStorage.getItem(dailyCheckedKey()) || '[]'));
+
+  const leadsOf = (stageId) =>
+    (state.leads || [])
+      .filter(l => (l.pipelineStageV2 || 'coletados') === stageId)
+      .map(l => ({ ...l, _days: dailyDaysInStage(l, now) }))
+      .sort((a, b) => b._days - a._days);
+
+  const hasOverdue = (stageId) => leadsOf(stageId).some(l => l._days >= 4);
+
+  const cardHtml = (lead) => {
+    const done  = checked.has(lead.id);
+    const days  = lead._days;
+    const color = dailyDayColor(days);
+    const dayLbl = days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`;
+    const name  = lead.name || lead.instagram || 'Lead';
+    const insta = (lead.instagram || '').replace(/^@/, '');
+    const av    = lead.avatar;
+    return `<div class="daily-card" data-id="${lead.id}"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+             background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+             margin-bottom:6px;transition:all 0.2s;${done ? 'opacity:0.38;' : ''}">
+      <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;
+                  background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">
+        ${av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">` :
+               `<span style="font-size:14px;font-weight:600;color:var(--text-muted);">${name[0].toUpperCase()}</span>`}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                    ${done ? 'text-decoration:line-through;' : ''}">${name}</div>
+        ${insta ? `<div style="font-size:11px;color:var(--text-muted);">@${insta}</div>` : ''}
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${color};background:${color}22;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;">${dayLbl}</div>
+      <div style="display:flex;gap:5px;flex-shrink:0;">
+        ${insta ? `<button onclick="event.stopPropagation();window.open('https://instagram.com/${insta}','_blank')"
+          style="background:rgba(214,41,118,0.15);border:none;border-radius:8px;padding:6px 7px;cursor:pointer;color:#e1306c;line-height:0;" title="Instagram">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </button>` : ''}
+        <button onclick="event.stopPropagation();dailyToggleCheck('${lead.id}')"
+          style="background:${done ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'};border:none;border-radius:8px;
+                 padding:6px 8px;cursor:pointer;color:${done ? '#22c55e' : 'var(--text-muted)'};font-size:13px;font-weight:700;line-height:1;"
+          title="${done ? 'Desmarcar' : 'Feito'}">${done ? '✓' : '○'}</button>
+      </div>
+    </div>`;
+  };
+
+  const sectionHtml = (emoji, title, stages) => {
+    let body = '';
+    let hasAny = false;
+    stages.forEach((stageId, i) => {
+      const leads = leadsOf(stageId);
+      const meta  = (typeof DASH2_STAGES !== 'undefined' ? DASH2_STAGES : []).find(s => s.id === stageId) || { label: stageId, color: '#94a3b8' };
+      const prevId = i > 0 ? stages[i - 1] : null;
+      const ghost  = leads.length === 0 && prevId && hasOverdue(prevId);
+      if (leads.length === 0 && !ghost) return;
+      hasAny = true;
+      if (ghost) {
+        body += `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;
+                             background:rgba(255,255,255,0.01);border:1px dashed rgba(255,255,255,0.08);
+                             margin-bottom:6px;opacity:0.45;">
+          <span style="font-size:15px;">👻</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">${meta.label}</span>
+          <span style="font-size:11px;color:var(--text-muted);">— vazio, aguardando</span>
+        </div>`;
+        return;
+      }
+      body += `<div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${meta.color};display:inline-block;flex-shrink:0;"></span>
+          <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;">${meta.label}</span>
+          <span style="font-size:10px;background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:8px;color:var(--text-muted);">${leads.length}</span>
+        </div>
+        ${leads.map(cardHtml).join('')}
+      </div>`;
+    });
+    if (!hasAny) return '';
+    return `<div style="margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <span style="font-size:18px;">${emoji}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:.03em;">${title}</span>
+      </div>
+      ${body}
+    </div>`;
+  };
+
+  const hotHtml  = sectionHtml('🔥', 'QUENTES',  DAILY_HOT);
+  const warmHtml = sectionHtml('🌡️', 'MORNOS',   DAILY_WARM);
+  const coldHtml = sectionHtml('🧊', 'FRIOS',    DAILY_COLD);
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const doneToday = checked.size;
+
+  container.innerHTML = `
+    <div style="padding:4px 0 2px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:12px;color:var(--text-muted);">Segunda-feira, ${todayKey}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${doneToday > 0 ? `<span style="font-size:11px;color:#22c55e;background:rgba(34,197,94,0.1);padding:3px 10px;border-radius:20px;font-weight:600;">✓ ${doneToday} feito${doneToday > 1 ? 's' : ''}</span>` : ''}
+          <button onclick="localStorage.removeItem('daily-checked-${todayKey}');renderDailyTab()"
+            style="font-size:11px;color:var(--text-muted);background:rgba(255,255,255,0.05);border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">
+            Resetar
+          </button>
+        </div>
+      </div>
+      <div style="max-height:520px;overflow-y:auto;padding-right:4px;">
+        ${hotHtml || warmHtml || coldHtml
+          ? hotHtml + warmHtml + coldHtml
+          : '<div style="text-align:center;padding:48px 0;color:var(--text-muted);font-size:14px;">Nenhum lead ativo 🎉</div>'}
+      </div>
+    </div>`;
+};
+
+// ───────────────────────────────────────────────────────────────────────────
+
 window.dashboardCarouselFilter = function () {
   const select = document.getElementById('leadCarouselFilter');
   dashboardCarouselFilterValue = select ? select.value : '';
@@ -1216,12 +1668,29 @@ window.dashboardCarouselFilter = function () {
   renderDashboard();
 };
 
-window.dashboardCarouselAdvance = function (leadId) {
+window.dashboardFilterByStage = function(stageId, navigateToLab = false) {
+  dashboardCarouselFilterValue = stageId;
+  dashboardCarouselIndex = 0;
+  
+  // Guarantee we are on the Único tab
+  if (typeof switchLeadTab === 'function') switchLeadTab('unico');
+  
+  renderDashboard();
+
+  if (navigateToLab) {
+    const labNav = document.getElementById('nav-lab-mensagens');
+    if (labNav) labNav.click();
+  }
+};
+
+window.dashboardCarouselAdvance = function (leadId, nextId) {
   const lead = state.leads.find(l => l.id === leadId);
   if (!lead) return;
   const stageId = lead.pipelineStageV2 || 'coletados';
-  const flow = DASHBOARD_CAROUSEL_STAGE_FLOW[String(stageId)] || {};
-  const nextId = flow.next;
+  if (!nextId) {
+    const flow = DASHBOARD_CAROUSEL_STAGE_FLOW[String(stageId)] || {};
+    nextId = flow.next;
+  }
   if (!nextId) return;
   if (!dashboardCarouselAllDone(lead, stageId)) {
     toast('Complete o checklist para avançar', 'error');
@@ -1229,6 +1698,88 @@ window.dashboardCarouselAdvance = function (leadId) {
   }
   if (typeof moveLeadToStageDash2 === 'function') moveLeadToStageDash2(leadId, nextId);
   renderDashboard();
+};
+
+window.dashboardCarouselCopyMsg = function (leadId) {
+  const lead = state.leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const stageId = lead.pipelineStageV2 || 'coletados';
+  
+  // Mapping pipeline stages to Lab de Mensagens stages
+  const stageMap = {
+    'coletados': 'dm1',
+    'perfil_engajado': 'dm1',
+    'dm1_enviada': 'dm1',
+    'nao_respondeu': 'fu1',
+    'follow_up_1': 'fu1',
+    'chat_gerado': 'dm2',
+    'site_pronto': 'dm2',
+    'dm2_enviada': 'dm2',
+    'ainda_nao_respondeu': 'fu2',
+    'follow_up_2': 'fu2',
+    'proposta_enviada': 'proposta_wpp',
+    'nao_respondeu_proposta': 'proposta_wpp',
+    'follow_up_3': 'rmkt1',
+    'nao_respondeu_follow_up_3': 'rmkt1',
+    'remarketing_1': 'rmkt1',
+    'nao_respondeu_rmkt1': 'rmkt1',
+    'promocao_final': 'promocao_final',
+    'reuniao': 'reuniao',
+    'aguardando_resposta_final': 'encerramento',
+    'fechado': 'encerramento',
+    'arquivado': 'rmkt1'
+  };
+
+  const labStageId = stageMap[stageId];
+  if (!labStageId) {
+    toast(`Nenhuma mensagem do Lab mapeada para a etapa atual.`, 'warning');
+    return;
+  }
+  
+  const messages = state.messageLab && state.messageLab[labStageId];
+  if (!messages || messages.length === 0) {
+    toast(`Nenhuma mensagem configurada para a etapa ${labStageId.toUpperCase()} no Lab de Mensagens.`, 'warning');
+    return;
+  }
+  
+  // Try to find the first message, or you can enhance this later to pick a "best" one
+  const msg = messages[0];
+  let textToCopy = msg.text;
+  
+  // Optional: replace placeholders if needed, e.g., {nome} or [Nome]
+  textToCopy = textToCopy.replace(/\{nome\}/gi, lead.name || 'Lead');
+  textToCopy = textToCopy.replace(/\[nome\]/gi, lead.name || 'Lead');
+  
+  // Registrar envio no lead e no lab
+  lead.sentMessages = lead.sentMessages || [];
+  lead.sentMessages.push({
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+    labStageId: labStageId,
+    messageId: msg.id,
+    messageName: msg.name,
+    text: textToCopy,
+    sentAt: Date.now(),
+    viewed: false
+  });
+  msg.sentCount = (msg.sentCount || 0) + 1;
+  msg.viewCount = msg.viewCount || 0;
+
+  // Track lead in lab stage for visualization control
+  if (!state.labTracking) state.labTracking = {};
+  if (!state.labTracking[labStageId]) state.labTracking[labStageId] = {};
+  if (!state.labTracking[labStageId][leadId]) {
+    state.labTracking[labStageId][leadId] = { name: lead.name, handle: (lead.instagram || '').replace('https://instagram.com/', ''), status: 'nao_visualizou', sentAt: Date.now() };
+  }
+
+  save();
+  
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    toast(`Mensagem (${labStageId.toUpperCase()}) copiada com sucesso!`, 'success');
+    renderDashboard(); // Re-render to show new message in timeline
+  }).catch(err => {
+    toast('Erro ao copiar mensagem.', 'error');
+    console.error(err);
+  });
 };
 
 window.dashboardCarouselQuickAction = function (leadId, action) {
@@ -1288,6 +1839,7 @@ function renderDashboard() {
   // document.getElementById('metricSitesGoal').textContent = state.settings.monthlySiteGoal || 30; // Reverted per user request
 
   setTodayDateText('currentDateDisplay');
+  updateTimeBlocksWidget(); // Update time blocks on dashboard render
 
   // ---- GOALS PANEL UPDATE ----
   const goalTarget = state.settings.monthlySiteGoal || 20;
@@ -1324,7 +1876,6 @@ function renderDashboard() {
 
   safeSetText('goalCurrent', currentSites);
   safeSetText('goalTarget', goalTarget);
-  safeSetText('goalPercentage', `${percentage}%`);
 
   const progressBar = document.getElementById('goalProgressBar');
   if (progressBar) progressBar.style.width = `${percentage}%`;
@@ -1340,7 +1891,7 @@ function renderDashboard() {
 
   safeSetText('goalServicePrice', `R$ ${servicePrice.toLocaleString('pt-BR')}`);
 
-  safeSetText('goalPaceValue', pace);
+  safeSetText('kpiPaceValue', pace);
   const paceStatusEl = document.getElementById('goalPaceStatus');
   if (paceStatusEl) {
     paceStatusEl.textContent = paceStatus;
@@ -1348,6 +1899,8 @@ function renderDashboard() {
     paceStatusEl.style.borderColor = paceColor;
     paceStatusEl.style.backgroundColor = paceColor + '1A'; // 10% opacity
   }
+  
+  safeSetText('activeEmployeesCount', '1'); // Placeholder para Funcionários Ativos
 
   // Highlight current active goal level (next milestone)
   const minEl = document.getElementById('goalLevelMin');
@@ -1371,6 +1924,17 @@ function renderDashboard() {
     const confirmed = confirmedLeads * (state.settings.servicePrice || 0);
     confEl.textContent = `R$ ${confirmed.toLocaleString('pt-BR')}`;
   }
+  const followUpEl = document.getElementById('metricFollowUp');
+  if (followUpEl) {
+    const followUpLeads = state.leads.filter(l => ['follow_up_1', 'follow_up_2', 'follow_up_3', 'proposta_enviada', 'nao_respondeu_proposta', 'ainda_nao_respondeu'].includes(stageOf(l))).length;
+    const followUpValue = followUpLeads * (state.settings.servicePrice || 0);
+    followUpEl.textContent = `R$ ${followUpValue.toLocaleString('pt-BR')}`;
+  }
+  const pipelineEl = document.getElementById('metricPipelineValue');
+  if (pipelineEl) {
+    const activeLeads = state.leads.filter(l => !['arquivado','fechado'].includes(stageOf(l))).length;
+    pipelineEl.textContent = `R$ ${(activeLeads * (state.settings.servicePrice || 0)).toLocaleString('pt-BR')}`;
+  }
   const leadsBadge = document.getElementById('leadsBadge');
   if (leadsBadge) leadsBadge.textContent = total;
 
@@ -1378,10 +1942,25 @@ function renderDashboard() {
     const stats = dash2ComputeStats();
     safeSetText('d1-bucket-a', stats?.buckets?.a ?? 0);
     safeSetText('d1-bucket-b', stats?.buckets?.b ?? 0);
-    safeSetText('d1-bucket-c', stats?.buckets?.c ?? 0);
-    safeSetText('d1-bucket-d', stats?.buckets?.d ?? 0);
-    safeSetText('d1-bucket-e', stats?.buckets?.e ?? 0);
-    safeSetText('d1-bucket-f', stats?.buckets?.f ?? 0);
+    // New bucket metrics
+    safeSetText('d1-bucket-msgs', msgs);
+    const sc = (s) => state.leads.filter(l => stageOf(l) === s).length;
+    safeSetText('d1-bucket-nr', sc('nao_respondeu') + sc('follow_up_1') + sc('ainda_nao_respondeu') + sc('follow_up_2') + sc('proposta_enviada') + sc('nao_respondeu_proposta') + sc('follow_up_3'));
+    safeSetText('d1-bucket-fup', sc('follow_up_1') + sc('follow_up_2') + sc('follow_up_3'));
+    const convRate = total > 0 ? ((confirmedLeads / total) * 100).toFixed(1) : '0.0';
+    safeSetText('d1-conv-rate', `${convRate}%`);
+    const closedWithDate = state.leads.filter(l => stageOf(l) === 'fechado' && l.createdAt);
+    if (closedWithDate.length > 0) {
+      const avgDays = (closedWithDate.reduce((s, l) => s + (Date.now() - new Date(l.createdAt).getTime()) / 86400000, 0) / closedWithDate.length).toFixed(1);
+      safeSetText('d1-tpl', `${avgDays}d`);
+    } else {
+      safeSetText('d1-tpl', '—');
+    }
+    const todayStr = now.toISOString().slice(0, 10);
+    const storiesPosted = (state.stories || []).filter(s => (s.date || '').slice(0, 10) === todayStr).length;
+    const storiesGoal = state.settings?.storiesGoal || 8;
+    safeSetText('d1-stories-count', storiesPosted);
+    safeSetText('d1-stories-goal', storiesGoal);
   }
 
   renderMiniKanbanV2();
@@ -2417,18 +2996,24 @@ const DASH2_STAGES = [
   { id: 'coletados', label: 'Coletados', color: '#7c3aed' },
   { id: 'perfil_engajado', label: 'Perfil Engajado', color: '#64748b' },
   { id: 'dm1_enviada', label: 'DM1 Enviada', color: '#3b82f6' },
-  { id: 'nao_respondeu', label: 'Não Respondeu', color: '#06b6d4' },
-  { id: 'respondeu', label: 'Respondeu', color: '#8b5cf6' },
-  { id: 'follow_up_1', label: 'Follow-up 1', color: '#fb923c' },
+  { id: 'nao_respondeu', label: 'Não Respondeu DM1', color: '#06b6d4' },
+  { id: 'follow_up_1', label: 'Follow Up 1', color: '#fb923c' },
   { id: 'chat_gerado', label: 'Gerar Site', color: '#ec4899' },
+  { id: 'site_pronto', label: 'Site Pronto', color: '#e879f9' },
   { id: 'dm2_enviada', label: 'DM2 Enviada', color: '#db2777' },
-  { id: 'ainda_nao_respondeu', label: 'Ainda Não Respondeu', color: '#0891b2' },
-  { id: 'follow_up_2', label: 'Follow-up 2', color: '#f97316' },
+  { id: 'ainda_nao_respondeu', label: 'Não Respondeu DM2', color: '#0891b2' },
+  { id: 'follow_up_2', label: 'Follow Up 2', color: '#f97316' },
   { id: 'proposta_enviada', label: 'Proposta Enviada', color: '#f59e0b' },
   { id: 'nao_respondeu_proposta', label: 'Não Respondeu - Proposta', color: '#b91c1c' },
-  { id: 'follow_up_3', label: 'Follow-up 3', color: '#c2410c' },
+  { id: 'follow_up_3', label: 'Follow Up 3', color: '#c2410c' },
+  { id: 'nao_respondeu_follow_up_3', label: 'Não Respondeu Follow Up 3', color: '#dc2626' },
+  { id: 'remarketing_1', label: 'Remarketing 1', color: '#a855f7' },
+  { id: 'nao_respondeu_rmkt1', label: 'Não Respondeu RMKT 1', color: '#7c3aed' },
+  { id: 'promocao_final', label: 'Promoção Final', color: '#fbbf24' },
+  { id: 'reuniao', label: 'Reunião (Opcional)', color: '#38bdf8' },
+  { id: 'aguardando_resposta_final', label: 'Aguardando Resposta Final', color: '#6366f1' },
   { id: 'fechado', label: 'Fechado', color: '#22c55e' },
-  { id: 'arquivado', label: 'Arquivado / Sem Interesse / Remarketing', color: '#94a3b8' }
+  { id: 'arquivado', label: 'Arquivado / Sem Interesse', color: '#94a3b8' }
 ];
 
 function formatBRL(value) {
@@ -2439,9 +3024,9 @@ function formatBRL(value) {
 function dash2ComputeStats() {
   const stageOf = (l) => l.pipelineStageV2 || 'coletados';
   const isArchived = (l) => stageOf(l) === 'arquivado';
-  const conversationStages = new Set(['dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3']);
-  const siteStages = new Set(['dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado']);
-  const stageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'fechado', 'arquivado'];
+  const conversationStages = new Set(['dm1_enviada', 'nao_respondeu', 'follow_up_1', 'chat_gerado', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'nao_respondeu_follow_up_3', 'remarketing_1', 'remarketing_2', 'promocao_final']);
+  const siteStages = new Set(['dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'nao_respondeu_follow_up_3', 'remarketing_1', 'remarketing_2', 'promocao_final', 'fechado']);
+  const stageOrder = ['coletados', 'perfil_engajado', 'dm1_enviada', 'nao_respondeu', 'follow_up_1', 'chat_gerado', 'site_pronto', 'dm2_enviada', 'ainda_nao_respondeu', 'follow_up_2', 'proposta_enviada', 'nao_respondeu_proposta', 'follow_up_3', 'nao_respondeu_follow_up_3', 'remarketing_1', 'nao_respondeu_rmkt1', 'promocao_final', 'reuniao', 'aguardando_resposta_final', 'fechado', 'arquivado'];
   const stageIndex = (st) => {
     const i = stageOrder.indexOf(st);
     return i >= 0 ? i : -1;
@@ -2690,12 +3275,31 @@ window.moveLeadToStageDash2 = function (leadId, stageId) {
   const lead = state.leads[idx];
   const oldStage = lead.pipelineStageV2 || 'coletados';
   const nextStage = String(stageId || '').trim().toLowerCase();
+  
   if (!Array.isArray(lead.v2StageEntries) || !lead.v2StageEntries.length) normalizeV2StageEntries(lead);
   if (oldStage) pushV2StageEntry(lead, oldStage, toTsAny(lead.createdAt) || Date.now());
-  lead.pipelineStageV2 = stageId;
-  lead.v2LastMovedAt = Date.now();
+  
+  const stageOrder = DASH2_STAGES.map(s => s.id);
+  const oldIdx = stageOrder.indexOf(oldStage);
+  const nextIdx = stageOrder.indexOf(nextStage);
+  
   if (!lead.history) lead.history = [];
-  lead.history.push({ date: new Date().toISOString(), action: `V2: Moved: ${oldStage} -> ${stageId}` });
+  
+  const now = Date.now();
+  if (oldIdx !== -1 && nextIdx !== -1 && nextIdx > oldIdx + 1) {
+    for (let i = oldIdx + 1; i < nextIdx; i++) {
+      const intermediateStage = stageOrder[i];
+      pushV2StageEntry(lead, intermediateStage, now);
+      lead.history.push({ date: new Date(now).toISOString(), action: `V2: Moved (Skipped): ${stageOrder[i-1]} -> ${intermediateStage}` });
+    }
+  }
+
+  lead.pipelineStageV2 = stageId;
+  lead.v2LastMovedAt = now;
+  
+  const actualOldForHistory = (oldIdx !== -1 && nextIdx > oldIdx + 1) ? stageOrder[nextIdx - 1] : oldStage;
+  lead.history.push({ date: new Date(now).toISOString(), action: `V2: Moved: ${actualOldForHistory} -> ${stageId}` });
+  
   if (nextStage && nextStage !== String(oldStage || '').toLowerCase()) pushV2StageEntry(lead, nextStage, lead.v2LastMovedAt);
 
   if (stageId === 'dm1_enviada') {
@@ -3375,8 +3979,8 @@ function generateNutri({ name, specialty, city, attendance, tagline, services, w
         .btn:hover { transform: translateY(-3px); }
         .services { padding: 4rem 2rem; }
         .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 2rem; }
-        .service-card { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .hero-img { width: 100%; max-width: 500px; border-radius: 30px; margin-top: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .service-card { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(var(--shadow-rgb),0.05); }
+        .hero-img { width: 100%; max-width: 500px; border-radius: 30px; margin-top: 2rem; box-shadow: 0 20px 40px rgba(var(--shadow-rgb),0.1); }
     </style>
 </head>
 <body>
@@ -3786,19 +4390,13 @@ async function analyzeWithGroq(bio) {
 
 BIO: ${bio}`;
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system: 'Você é um extrator de dados de bios do Instagram. Retorne APENAS JSON puro, sem markdown.',
-      messages: [{ role: 'user', content: prompt }],
-      maxTokens: 400
-    })
+  const res = await window.apiFetchChat({
+    system: 'Você é um extrator de dados de bios do Instagram. Retorne APENAS JSON puro, sem markdown.',
+    messages: [{ role: 'user', content: prompt }],
+    maxTokens: 400
   });
 
-  if (!res.ok) throw new Error('Groq indisponível');
-  const data = await res.json();
-  const text = (data.text || '').trim().replace(/```json|```/g, '');
+  const text = (res.text || '').trim().replace(/```json|```/g, '');
   return JSON.parse(text);
 }
 
@@ -4335,7 +4933,7 @@ function renderSectionPicker() {
     if (!sections || !sections.length) continue;
 
     var catRow = document.createElement('div');
-    catRow.style.cssText = 'background:rgba(255,255,255,.03);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06)';
+    catRow.style.cssText = 'background:rgba(var(--glass-rgb),.03);border-radius:10px;overflow:hidden;border:1px solid rgba(var(--glass-rgb),.06)';
 
     var header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;';
@@ -4365,7 +4963,7 @@ function renderSectionPicker() {
         (function(sec) {
           var isActive = state._previewSection === sec.id;
           var card = document.createElement('div');
-          card.style.cssText = 'border-radius:10px;cursor:pointer;border:2px solid ' + (isActive ? '#7C3AED' : 'rgba(255,255,255,.07)') + ';background:' + (isActive ? 'rgba(124,58,237,.1)' : 'rgba(255,255,255,.03)') + ';overflow:hidden;transition:.15s;position:relative;';
+          card.style.cssText = 'border-radius:10px;cursor:pointer;border:2px solid ' + (isActive ? '#7C3AED' : 'rgba(var(--glass-rgb),.07)') + ';background:' + (isActive ? 'rgba(124,58,237,.1)' : 'rgba(var(--glass-rgb),.03)') + ';overflow:hidden;transition:.15s;position:relative;';
           card.draggable = true;
           card.addEventListener('dragstart', function(e) {
             e.dataTransfer.setData('text/plain', sec.id);
@@ -4397,7 +4995,7 @@ function renderSectionPicker() {
           });
           card.addEventListener('mouseleave', function() {
             overlay.style.opacity = '0';
-            if (!isActive) card.style.borderColor = 'rgba(255,255,255,.07)';
+            if (!isActive) card.style.borderColor = 'rgba(var(--glass-rgb),.07)';
           });
 
           if (isActive) {
@@ -4411,7 +5009,7 @@ function renderSectionPicker() {
           info.style.cssText = 'padding:8px 10px';
           var secLabel = sec.name.replace(sec.fromTemplate ? sec.fromTemplate + ' — ' : '', '');
           info.innerHTML = '<div style="font-size:11px;font-weight:700;color:' + (isActive ? '#c4b5fd' : 'var(--text-secondary)') + ';margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + (sec.name||'') + '">' + secLabel + '</div>' +
-            '<div style="font-size:10px;color:rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (sec.fromTemplate || '') + '</div>';
+            '<div style="font-size:10px;color:rgba(var(--glass-rgb),.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (sec.fromTemplate || '') + '</div>';
 
           card.appendChild(previewWrap);
           card.appendChild(info);
@@ -4493,25 +5091,35 @@ function setGeneratorMode(mode) {
 }
 
 
+
 function updateQuickPreview(tpl) {
   try {
-    // Use real form data if available, otherwise placeholders
-    const data = (typeof getSiteFormData === 'function') ? getSiteFormData() : {
-      name: "Dra. Ana Lima", specialty: "Nutricionista", city: "Sao Paulo",
-      attendance: "Online", tagline: "Nutricao personalizada", bio: "Especialista em nutricao.",
-      services: ["Consulta"], whatsapp: "11999999999", whatsapp_clean: "11999999999",
-      instagram: "@draana", cta: "Agendar Consulta", photo: "", initials: "DA", images: {}
+    const data = {
+      name: (document.getElementById("genName")||{}).value || "Dra. Ana Lima",
+      specialty: (document.getElementById("genSpecialty")||{}).value || "Nutricionista",
+      city: (document.getElementById("genCity")||{}).value || "Sao Paulo",
+      attendance: (document.getElementById("genAttendance")||{}).value || "Online",
+      tagline: (document.getElementById("genTagline")||{}).value || "Nutricao personalizada",
+      bio: (document.getElementById("genBio")||{}).value || "Especialista em nutricao.",
+      services: ((document.getElementById("genServices")||{}).value || "Consulta").split("\n").filter(Boolean),
+      whatsapp: ((document.getElementById("genWhatsapp")||{}).value || "11999999999").replace(/[^0-9]/g, ""),
+      whatsapp_clean: ((document.getElementById("genWhatsapp")||{}).value || "11999999999").replace(/[^0-9]/g, ""),
+      instagram: (document.getElementById("genInstagram")||{}).value || "@draana",
+      cta: "Agendar Consulta",
+      photo: (document.getElementById("genAvatar")||{}).value || "",
+      initials: "DA",
+      images: {}
     };
     var html = tpl.isCustom ? generateCustomTemplate(tpl.html, data) : tpl.generator(data);
-    var iframe = document.getElementById('sitePreview');
-    var ph = document.getElementById('previewPlaceholder');
+    var iframe = document.getElementById("sitePreview");
+    var ph = document.getElementById("previewPlaceholder");
     if (iframe && html) {
       iframe.srcdoc = html;
-      if (ph) ph.style.display = 'none';
-      iframe.style.display = 'block';
+      if (ph) ph.style.display = "none";
+      iframe.style.display = "block";
       state.generatedHTML = html;
     }
-  } catch(e) { console.warn('updateQuickPreview failed', e); }
+  } catch(e) { /* silent */ }
 }
 
 function renderGeneratorTemplates() {
@@ -4645,10 +5253,10 @@ function deleteCustomTemplate(id) {
 function openNewTemplateModal() {
   const overlay = document.createElement('div');
   overlay.id = 'new-template-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(var(--shadow-rgb),.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:#13131f;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;';
+  modal.style.cssText = 'background:#13131f;border:1px solid rgba(var(--glass-rgb),.1);border-radius:16px;width:100%;max-width:820px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;';
 
   // Helper: build type dropdown options
   function buildTypeOptions(selectedName) {
@@ -4659,7 +5267,7 @@ function openNewTemplateModal() {
   }
 
   modal.innerHTML = `
-    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(var(--glass-rgb),.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div>
         <div style="font-size:16px;font-weight:700;color:#e0e0e0;">+ Novo Template de Landing Page</div>
         <div id="ntm-subtitle" style="font-size:12px;color:#6b6b80;margin-top:2px;">Passo 1 de 2 — Cole o HTML e converta as variáveis</div>
@@ -4671,11 +5279,11 @@ function openNewTemplateModal() {
     <div id="ntm-step1" style="padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;">
       <div>
         <label style="display:block;font-size:13px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Nome do Template</label>
-        <input id="ntm-name" type="text" placeholder="Ex: Landing Nutricionista Dark" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
+        <input id="ntm-name" type="text" placeholder="Ex: Landing Nutricionista Dark" style="width:100%;padding:10px 14px;background:rgba(var(--glass-rgb),.05);border:1px solid rgba(var(--glass-rgb),.12);border-radius:8px;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
       <div style="flex:1;">
         <label style="display:block;font-size:13px;font-weight:600;color:#c0c0d0;margin-bottom:6px;">Código HTML</label>
-        <textarea id="ntm-html" placeholder="Cole o HTML completo aqui. Use {{nome}}, {{bio}}, {{tagline}}, {{servicos}}, {{foto}}, {{whatsapp}}, {{instagram}}, {{cta}}..." style="width:100%;height:280px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#c0c0d0;font-family:monospace;font-size:12px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+        <textarea id="ntm-html" placeholder="Cole o HTML completo aqui. Use {{nome}}, {{bio}}, {{tagline}}, {{servicos}}, {{foto}}, {{whatsapp}}, {{instagram}}, {{cta}}..." style="width:100%;height:280px;padding:12px 14px;background:rgba(var(--glass-rgb),.04);border:1px solid rgba(var(--glass-rgb),.1);border-radius:8px;color:#c0c0d0;font-family:monospace;font-size:12px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
         <div style="font-size:11px;color:#5a5a70;margin-top:6px;">Variáveis disponíveis: {{nome}}, {{bio}}, {{tagline}}, {{servico_1}}, {{servicos}}, {{foto}}, {{cta}}, {{whatsapp}}, {{instagram}}, {{especialidade}}, {{cidade}}</div>
       </div>
     </div>
@@ -4692,7 +5300,7 @@ function openNewTemplateModal() {
         <span style="color:#e0e0e0;font-size:13px;">Usar tipo existente</span>
       </label>
       <div id="ntm-existing-block" style="padding-left:26px;">
-        <select id="ntm-type-select" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;">
+        <select id="ntm-type-select" style="width:100%;padding:9px 12px;background:rgba(var(--glass-rgb),.06);border:1px solid rgba(var(--glass-rgb),.14);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;">
           ${buildTypeOptions('landing_servicos')}
         </select>
       </div>
@@ -4701,14 +5309,14 @@ function openNewTemplateModal() {
         <span style="color:#e0e0e0;font-size:13px;">Criar novo tipo</span>
       </label>
       <div id="ntm-new-block" style="padding-left:26px;display:none;">
-        <input id="ntm-new-type-name" type="text" placeholder="Nome do tipo (ex: landing_fisio)" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
-        <input id="ntm-new-type-label" type="text" placeholder="Rótulo visível (ex: Landing Fisioterapia)" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
+        <input id="ntm-new-type-name" type="text" placeholder="Nome do tipo (ex: landing_fisio)" style="width:100%;padding:9px 12px;background:rgba(var(--glass-rgb),.05);border:1px solid rgba(var(--glass-rgb),.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
+        <input id="ntm-new-type-label" type="text" placeholder="Rótulo visível (ex: Landing Fisioterapia)" style="width:100%;padding:9px 12px;background:rgba(var(--glass-rgb),.05);border:1px solid rgba(var(--glass-rgb),.12);border-radius:8px;color:#e0e0e0;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;">
         <div style="font-size:12px;color:#6b6b80;margin-bottom:8px;">Campos incluídos neste tipo:</div>
         <div id="ntm-field-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
     </div>
 
-    <div id="ntm-footer" style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+    <div id="ntm-footer" style="padding:12px 20px;border-top:1px solid rgba(var(--glass-rgb),.08);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
       <button id="ntm-convert" class="btn-secondary" style="flex:1;min-width:140px;">⚡ Converter Variáveis</button>
       <button id="ntm-save" style="flex:1;min-width:140px;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:none;">💾 Salvar Template</button>
     </div>
@@ -4762,7 +5370,7 @@ function openNewTemplateModal() {
     const checkboxContainer = modal.querySelector('#ntm-field-checkboxes');
     checkboxContainer.innerHTML = ALL_VARS.map(v => {
       const checked = detectedVars.includes(v) ? 'checked' : '';
-      return `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:4px 10px;">
+      return `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(var(--glass-rgb),.04);border:1px solid rgba(var(--glass-rgb),.09);border-radius:6px;padding:4px 10px;">
         <input type="checkbox" value="${v}" ${checked} style="accent-color:#7c3aed;">
         <span style="font-size:12px;font-family:monospace;color:#c0c0d0;">{{${v}}}</span>
       </label>`;
@@ -5063,16 +5671,16 @@ function placeholderTemplateImageDataUri(data, index) {
     </linearGradient>
   </defs>
   <rect width="1200" height="800" fill="url(#g)"/>
-  <rect width="1200" height="800" fill="rgba(0,0,0,0.28)"/>
-  <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2">
+  <rect width="1200" height="800" fill="rgba(var(--shadow-rgb),0.28)"/>
+  <g fill="none" stroke="rgba(var(--glass-rgb),0.08)" stroke-width="2">
     <path d="M-50 690 C 200 610, 360 780, 640 690 S 1080 610, 1250 700"/>
     <path d="M-80 560 C 180 490, 420 650, 700 560 S 1100 480, 1280 590"/>
     <path d="M-100 430 C 190 360, 420 520, 740 430 S 1120 350, 1300 450"/>
   </g>
   <g font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" text-anchor="middle">
-    <text x="600" y="420" font-size="54" font-weight="800" fill="rgba(255,255,255,0.92)">${title}</text>
-    ${sub ? `<text x="600" y="475" font-size="26" font-weight="600" fill="rgba(255,255,255,0.75)">${sub}</text>` : ''}
-    <text x="600" y="540" font-size="16" font-weight="700" letter-spacing="0.12em" fill="rgba(255,255,255,0.55)">IMAGEM EXEMPLO</text>
+    <text x="600" y="420" font-size="54" font-weight="800" fill="rgba(var(--glass-rgb),0.92)">${title}</text>
+    ${sub ? `<text x="600" y="475" font-size="26" font-weight="600" fill="rgba(var(--glass-rgb),0.75)">${sub}</text>` : ''}
+    <text x="600" y="540" font-size="16" font-weight="700" letter-spacing="0.12em" fill="rgba(var(--glass-rgb),0.55)">IMAGEM EXEMPLO</text>
   </g>
 </svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -5118,19 +5726,14 @@ Tagline original: ${data.tagline || 'não informada'}
 Serviços: ${(data.services||[]).join(', ') || 'não informados'}
 Atendimento: ${data.attendance || 'presencial'}`;
 
-    const res = await fetch('http://localhost:3000/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system: 'Você é copywriter. Responda SOMENTE com JSON puro, sem markdown, sem blocos de código.',
-        messages: [{ role: 'user', content: prompt }],
-        maxTokens: 500
-      })
+    const aiRes = await window.apiFetchChat({
+      system: 'Você é copywriter. Responda SOMENTE com JSON puro, sem markdown, sem blocos de código.',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 500
     });
-    if (!res.ok) return null;
-    const d = await res.json();
-    if (d.error) return null;
-    const text = (d.text || '').trim().replace(/^```json\s*|^```\s*|```$/gm, '');
+    
+    if (!aiRes || !aiRes.text) return null;
+    const text = (aiRes.text || '').trim().replace(/^```json\s*|^```\s*|```$/gm, '');
     const ai = JSON.parse(text);
     return {
       tagline:  ai.tagline  || data.tagline,
@@ -5216,10 +5819,10 @@ function injectEditor(html, data) {
 .lf-sec-btn-del{background:#DC2626}
 .lf-sec-btn:hover{filter:brightness(1.2)}
 /* Gradient popover */
-.lf-grad-pop{position:absolute;top:4px;right:124px;z-index:2147483648;background:#1e1b4b;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;display:none;flex-direction:column;gap:6px;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
+.lf-grad-pop{position:absolute;top:4px;right:124px;z-index:2147483648;background:#1e1b4b;border:1px solid rgba(var(--glass-rgb),.18);border-radius:8px;padding:8px 10px;display:none;flex-direction:column;gap:6px;pointer-events:auto;box-shadow:0 4px 20px rgba(var(--shadow-rgb),.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
 .lf-grad-pop label{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
 .lf-grad-pop input[type=color]{width:28px;height:20px;border:none;border-radius:3px;cursor:pointer;padding:0}
-.lf-grad-pop select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,.1)}
+.lf-grad-pop select{all:unset;background:rgba(var(--glass-rgb),.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(var(--glass-rgb),.1)}
 .lf-grad-pop .lf-gp-btn{all:unset;cursor:pointer;display:block;padding:4px 0;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:#7C3AED;text-align:center;width:100%;box-sizing:border-box;margin-top:2px}
 .lf-grad-pop .lf-gp-rem{background:rgba(220,38,38,.7)!important;margin-top:2px}
 /* Section top resize bar */
@@ -5234,20 +5837,20 @@ function injectEditor(html, data) {
 /* Remove grayscale from images */
 img{filter:none!important}
 /* Format bar */
-#lf-fmt-bar{display:none;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:2147483647;background:linear-gradient(90deg,#1e1b4b,#312e81);color:#fff;border-radius:12px;padding:7px 12px;gap:7px;align-items:center;box-shadow:0 4px 24px rgba(0,0,0,.6);font-family:system-ui,sans-serif;font-size:12px;flex-wrap:wrap;max-width:96vw;justify-content:center}
-#lf-fmt-bar button{all:unset;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:12px;font-weight:700;background:rgba(255,255,255,.12);color:#fff;transition:.12s}
-#lf-fmt-bar button:hover{background:rgba(255,255,255,.28)}
-#lf-fmt-bar input[type=color]{width:24px;height:24px;border:2px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer;padding:0;background:none;flex-shrink:0}
-#lf-fmt-bar label{font-size:10px;display:flex;align-items:center;gap:3px;color:rgba(255,255,255,.8);white-space:nowrap}
-#lf-fmt-bar .lf-sep{width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;flex-shrink:0}
+#lf-fmt-bar{display:none;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:2147483647;background:linear-gradient(90deg,#1e1b4b,#312e81);color:#fff;border-radius:12px;padding:7px 12px;gap:7px;align-items:center;box-shadow:0 4px 24px rgba(var(--shadow-rgb),.6);font-family:system-ui,sans-serif;font-size:12px;flex-wrap:wrap;max-width:96vw;justify-content:center}
+#lf-fmt-bar button{all:unset;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:12px;font-weight:700;background:rgba(var(--glass-rgb),.12);color:#fff;transition:.12s}
+#lf-fmt-bar button:hover{background:rgba(var(--glass-rgb),.28)}
+#lf-fmt-bar input[type=color]{width:24px;height:24px;border:2px solid rgba(var(--glass-rgb),.3);border-radius:4px;cursor:pointer;padding:0;background:none;flex-shrink:0}
+#lf-fmt-bar label{font-size:10px;display:flex;align-items:center;gap:3px;color:rgba(var(--glass-rgb),.8);white-space:nowrap}
+#lf-fmt-bar .lf-sep{width:1px;height:18px;background:rgba(var(--glass-rgb),.2);margin:0 2px;flex-shrink:0}
 #lf-fmt-bar .lf-done{background:rgba(5,150,105,.8)}
 #lf-fmt-bar .lf-done:hover{background:rgba(5,150,105,1)}
-#lf-fmt-bar select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:4px 7px;border-radius:5px;font-size:11px;cursor:pointer}
+#lf-fmt-bar select{all:unset;background:rgba(var(--glass-rgb),.12);color:#fff;padding:4px 7px;border-radius:5px;font-size:11px;cursor:pointer}
 /* Image overlay */
-#lf-img-overlay{position:fixed;z-index:2147483646;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(0,0,0,.6);border-radius:8px;padding:10px 14px;pointer-events:auto}
+#lf-img-overlay{position:fixed;z-index:2147483646;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(var(--shadow-rgb),.6);border-radius:8px;padding:10px 14px;pointer-events:auto}
 #lf-img-overlay button{all:unset;cursor:pointer;background:#7C3AED;color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;font-family:system-ui,sans-serif}
 #lf-img-overlay button:hover{filter:brightness(1.2)}
-#lf-img-overlay .lf-cancel-img{background:rgba(255,255,255,.18)!important;font-size:11px!important;padding:4px 10px!important}
+#lf-img-overlay .lf-cancel-img{background:rgba(var(--glass-rgb),.18)!important;font-size:11px!important;padding:4px 10px!important}
 /* Resize wrap */
 #lf-resize-wrap{position:fixed;pointer-events:none;z-index:2147483645;display:none;border:2px solid #7C3AED;box-sizing:border-box}
 .lf-resize-handle{position:absolute;width:10px;height:10px;background:#7C3AED;border:2px solid #fff;border-radius:2px;z-index:2147483647;cursor:nwse-resize;pointer-events:auto}
@@ -5261,14 +5864,14 @@ img{filter:none!important}
 /* Multi-seleção com Shift */
 .lf-multi-sel{outline:2px solid #0891b2!important;outline-offset:1px}
 /* Gradiente em imagem — popup */
-#lf-img-grad-pop{position:fixed;z-index:2147483648;display:none;flex-direction:column;gap:6px;background:#1e1b4b;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
+#lf-img-grad-pop{position:fixed;z-index:2147483648;display:none;flex-direction:column;gap:6px;background:#1e1b4b;border:1px solid rgba(var(--glass-rgb),.18);border-radius:8px;padding:8px 10px;pointer-events:auto;box-shadow:0 4px 20px rgba(var(--shadow-rgb),.7);min-width:160px;font-family:system-ui,sans-serif;font-size:11px;color:#fff}
 #lf-img-grad-pop label{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
 #lf-img-grad-pop input[type=color]{width:28px;height:20px;border:none;border-radius:3px;cursor:pointer;padding:0}
 #lf-img-grad-pop input[type=range]{width:80px}
-#lf-img-grad-pop select{all:unset;background:rgba(255,255,255,.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,.1)}
+#lf-img-grad-pop select{all:unset;background:rgba(var(--glass-rgb),.12);color:#fff;padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid rgba(var(--glass-rgb),.1)}
 #lf-img-grad-pop button{all:unset;cursor:pointer;display:block;padding:4px 0;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:#7C3AED;text-align:center;width:100%;box-sizing:border-box;margin-top:2px}
 #lf-img-grad-pop .igp-rem{background:rgba(220,38,38,.7)!important}
-#lf-img-grad-pop .igp-close{background:rgba(255,255,255,.14)!important;font-size:11px}
+#lf-img-grad-pop .igp-close{background:rgba(var(--glass-rgb),.14)!important;font-size:11px}
 </style>
 <div id="lf-fmt-bar">
   <label>Texto<input type="color" id="lf-tc" value="#000000" oninput="lfTC(this.value)"></label>
@@ -5325,6 +5928,21 @@ img{filter:none!important}
   var _fmtVisible = false;
   var _history = [];
   var _activeDragCleanup = null; // garante só 1 drag ativo por vez
+  function ensureAbs(el) {
+    if (!el) return;
+    var container = el.closest('.lf-edit-wrapper') || el.parentElement || document.body;
+    var cs = window.getComputedStyle(container);
+    if (cs.position === 'static') container.style.position = 'relative';
+    var rEl = el.getBoundingClientRect();
+    var rCt = container.getBoundingClientRect();
+    el.style.position = 'absolute';
+    el.style.left = (rEl.left - rCt.left) + 'px';
+    el.style.top = (rEl.top - rCt.top) + 'px';
+    el.style.transform = '';
+    el.setAttribute('draggable','false');
+    el.style.cursor = 'move';
+  }
+  Array.from(document.querySelectorAll('img')).forEach(function(im){ try{ im.setAttribute('draggable','false'); }catch(e){} });
 
   function snapshotHistory() {
     try { _history.push(document.body.innerHTML); if (_history.length > 20) _history.shift(); } catch(e) {}
@@ -5332,7 +5950,7 @@ img{filter:none!important}
 
   /* ---------- helpers ---------- */
   function toHex(rgb) {
-    if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return null;
+    if (!rgb || rgb === 'transparent' || rgb === 'rgba(var(--shadow-rgb), 0)') return null;
     var m = rgb.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
     if (!m) return null;
     return '#' + [m[1],m[2],m[3]].map(function(x){return ('0'+parseInt(x).toString(16)).slice(-2);}).join('');
@@ -5443,7 +6061,7 @@ img{filter:none!important}
       '<label>Dir.<select class="lf-gdir"><option value="to bottom">↓ Baixo</option><option value="to top">↑ Cima</option><option value="to right">→ Dir.</option><option value="to left">← Esq.</option><option value="135deg">↘ Diag.</option></select></label>' +
       '<button class="lf-gp-btn lf-gp-apply">Aplicar</button>' +
       '<button class="lf-gp-btn lf-gp-rem">Remover</button>' +
-      '<button class="lf-gp-btn" style="background:rgba(255,255,255,.14);margin-top:2px" data-close="1">✕ Fechar</button>';
+      '<button class="lf-gp-btn" style="background:rgba(var(--glass-rgb),.14);margin-top:2px" data-close="1">✕ Fechar</button>';
     gradBtn.onclick = function(e) {
       e.preventDefault(); e.stopPropagation();
       gradPop.style.display = gradPop.style.display === 'flex' ? 'none' : 'flex';
@@ -5543,9 +6161,46 @@ img{filter:none!important}
   document.addEventListener('click', function(e) {
     var t = e.target;
     if (!t) return;
-    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay'))) return;
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-img-grad-pop'))) return;
     var anchor = t.closest ? (t.tagName === 'A' ? t : t.closest('a')) : null;
     if (anchor || t.tagName === 'BUTTON') { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  /* ---------- dblclick: edição de texto inline ---------- */
+  document.addEventListener('dblclick', function(e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.closest && (t.closest('.lf-sec-controls') || t.closest('#lf-fmt-bar') || t.closest('#lf-img-overlay') || t.closest('#lf-resize-wrap'))) return;
+    // Elemento já selecionado ou texto direto
+    var editTarget = null;
+    var TEXT_TAGS = {P:1, H1:1, H2:1, H3:1, H4:1, H5:1, H6:1, SPAN:1, LI:1, STRONG:1, EM:1, B:1, I:1, LABEL:1, TD:1, TH:1, FIGCAPTION:1, BLOCKQUOTE:1};
+    if (TEXT_TAGS[t.tagName]) {
+      editTarget = t;
+    } else if (t.tagName === 'DIV') {
+      var hasDirectText = Array.from(t.childNodes).some(function(n) { return n.nodeType === 3 && n.textContent.trim().length > 0; });
+      if (hasDirectText) editTarget = t;
+    } else if (t.tagName === 'A' || t.tagName === 'BUTTON') {
+      // editar o span de texto interno se houver, senão o próprio elemento
+      var inner = t.querySelector('span') || t;
+      editTarget = inner;
+    }
+    if (!editTarget) return;
+    e.preventDefault(); e.stopPropagation();
+    editTarget.contentEditable = 'true';
+    editTarget.focus();
+    // Posiciona cursor no final
+    try {
+      var range = document.createRange(); range.selectNodeContents(editTarget); range.collapse(false);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    } catch(_e) {}
+    function onBlurEdit() {
+      editTarget.contentEditable = 'false';
+      editTarget.removeEventListener('blur', onBlurEdit);
+      editTarget.removeEventListener('keydown', onKeyEdit);
+    }
+    function onKeyEdit(ev) { if (ev.key === 'Escape') { editTarget.blur(); } }
+    editTarget.addEventListener('blur', onBlurEdit);
+    editTarget.addEventListener('keydown', onKeyEdit);
   }, true);
 
   /* ---------- helpers: image overlay + resize ---------- */
@@ -5581,10 +6236,15 @@ img{filter:none!important}
         if (pos === 'static') el.style.position = 'relative';
         // Overflow hidden = comportamento de crop (igual Canva)
         el.style.overflow = 'hidden';
+        // Para imagens: remove max-width para permitir expansão horizontal livre
+        if (el.tagName === 'IMG') { el.style.maxWidth = 'none'; el.style.minWidth = '0'; }
+        // Fixa dimensões atuais explicitamente antes de qualquer resize
+        if (!el.style.width)  el.style.width  = el.offsetWidth  + 'px';
+        if (!el.style.height) el.style.height = el.offsetHeight + 'px';
         var startX = ev.clientX; var startY = ev.clientY;
         var startW = el.offsetWidth; var startH = el.offsetHeight;
-        var startLeft = parseInt(el.style.left) || 0;
-        var startTop  = parseInt(el.style.top)  || 0;
+        var startLeft = parseFloat(el.style.left)  || 0;
+        var startTop  = parseFloat(el.style.top)   || 0;
         var affW = h[1], affH = h[2], xSign = h[3], ySign = h[4], affL = h[5], affT = h[6];
         function onMove(em) {
           var dx = em.clientX - startX; var dy = em.clientY - startY;
@@ -5669,13 +6329,26 @@ img{filter:none!important}
       overlay.style.display = 'none';
       snapshotHistory();
       var sec = img.closest('.lf-edit-wrapper');
-      if (sec) {
-        sec.style.backgroundImage = 'url("' + img.src + '")';
-        sec.style.backgroundSize = 'cover';
-        sec.style.backgroundPosition = 'center';
-        sec.style.backgroundRepeat = 'no-repeat';
-        img.style.display = 'none'; // esconde o img original; não remove para preservar no export
+      if (!sec) {
+        var node = img.parentElement;
+        while (node && node !== document.body) {
+          var tag = node.tagName;
+          if (tag === 'SECTION' || tag === 'HEADER' || tag === 'FOOTER' || tag === 'MAIN') { sec = node; break; }
+          if (tag === 'DIV' && node.offsetHeight > 100) { sec = node; break; }
+          node = node.parentElement;
+        }
       }
+      if (!sec) sec = document.body;
+      var url = 'url(\"' + img.src + '\")';
+      sec.style.setProperty('background', url + ' center / cover no-repeat', 'important');
+      sec.style.setProperty('background-image', url, 'important');
+      sec.style.setProperty('background-size', 'cover', 'important');
+      sec.style.setProperty('background-position', 'center', 'important');
+      sec.style.setProperty('background-repeat', 'no-repeat', 'important');
+      sec.style.setProperty('background-color', 'transparent', 'important');
+      var ov = sec.querySelector('.elementor-background-overlay');
+      if (ov) { ov.style.setProperty('opacity', '0', 'important'); ov.style.setProperty('pointer-events', 'none', 'important'); }
+      img.style.display = 'none';
     };
 
     document.getElementById('lf-img-cancel-btn').onclick = function() { overlay.style.display = 'none'; };
@@ -5704,7 +6377,33 @@ img{filter:none!important}
       if (t.tagName === 'DIV' || t.tagName === 'FIGURE') {
         var isEditable = t.getAttribute('contenteditable') === 'true';
         var hasDirectText = Array.from(t.childNodes).some(function(n) { return n.nodeType === 3 && n.textContent.trim().length > 0; });
-        if (!isEditable && !hasDirectText) { hideResizeWrap(); return; }
+        if (!isEditable && !hasDirectText) {
+          // Check for background-image container (permite arrastar background-position)
+          var _bgVal = t.style.backgroundImage || getComputedStyle(t).backgroundImage || '';
+          var _hasBgImg = _bgVal && _bgVal !== 'none' && _bgVal.includes('url(');
+          if (_hasBgImg) {
+            // Permite selecionar e arrastar para reposicionar o background
+            t.setAttribute('data-lf-bgdrag', '1');
+          } else if (t.getAttribute('data-element_type') === 'widget' || t.hasAttribute('data-widget_type') ||
+              t.classList.contains('elementor-widget')) {
+            // Elementor widget (card, icon-box, etc.) → seleciona o widget diretamente
+          } else {
+            // Tenta encontrar uma IMG descendente sob o cursor (imagens dentro de seções Elementor)
+            var imgs = t.querySelectorAll('img');
+            var foundImg = null;
+            imgs.forEach(function(im) {
+              if (foundImg) return;
+              var r = im.getBoundingClientRect();
+              if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+                foundImg = im;
+              }
+            });
+            // Fallback: se só tem uma img nesse container, seleciona ela
+            if (!foundImg && imgs.length === 1) foundImg = imgs[0];
+            if (foundImg) { t = foundImg; }
+            else { hideResizeWrap(); return; }
+          }
+        }
       } else {
         hideResizeWrap(); return;
       }
@@ -5738,10 +6437,16 @@ img{filter:none!important}
     showFmt();
     syncFmt(t);
 
-    // IMG: mostrar overlay; previne drag nativo do browser
+    // IMG/A/BUTTON: previne drag nativo do browser (links e imagens) para o arraste customizado funcionar
+    var _ovTimer = null;
+    var _isBgDrag = t.getAttribute('data-lf-bgdrag') === '1';
     if (t.tagName === 'IMG') {
       e.preventDefault();
-      showImgOverlay(t);
+      _ovTimer = setTimeout(function(){ showImgOverlay(t); }, 180);
+    } else if (t.tagName === 'A' || t.tagName === 'BUTTON') {
+      e.preventDefault();
+    } else if (_isBgDrag) {
+      e.preventDefault();
     }
 
     // TODOS os elementos: mostrar resize handles
@@ -5753,39 +6458,69 @@ img{filter:none!important}
     var _dragStartX = e.clientX; var _dragStartY = e.clientY;
     var _dragging = false;
     var _grid = document.getElementById('lf-drag-grid');
-    // Captura posições iniciais dos multi-sel para drag em grupo
-    var _multiStartPos = _multiSel.map(function(el) {
-      return { el: el, l: parseInt(el.style.left) || 0, t2: parseInt(el.style.top) || 0 };
-    });
+    var _curLeft = null, _curTop = null;
+    // Helper: lê acumulado de translate atual de um elemento
+    function _getTx(el) {
+      var m = (el.style.transform || '').match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+      return m ? [parseFloat(m[1]), parseFloat(m[2])] : [0, 0];
+    }
     function onDragMove(em) {
       var dx = em.clientX - _dragStartX; var dy = em.clientY - _dragStartY;
       if (!_dragging && Math.abs(dx) + Math.abs(dy) > 5) {
         _dragging = true;
         snapshotHistory();
-        var pos = window.getComputedStyle(_dragEl).position;
-        if (pos === 'static') _dragEl.style.position = 'relative';
-        // Garante posição relativa para elementos multi-sel
-        _multiSel.forEach(function(el) {
-          if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
-        });
         if (_grid) _grid.style.display = 'block';
+        if (_ovTimer) { clearTimeout(_ovTimer); _ovTimer = null; }
+        var ovAuto = document.getElementById('lf-img-overlay'); if (ovAuto) ovAuto.style.display = 'none';
+        var gpAuto = document.getElementById('lf-img-grad-pop'); if (gpAuto) gpAuto.style.display = 'none';
+        if (_dragEl.tagName === 'IMG') {
+          ensureAbs(_dragEl);
+          _curLeft = parseFloat(_dragEl.style.left) || 0;
+          _curTop = parseFloat(_dragEl.style.top) || 0;
+          _multiSel.forEach(function(el){ try{ if(el.tagName==='IMG'){ ensureAbs(el); } }catch(e){} });
+        } else if (_isBgDrag) {
+          // Inicializa posição do background em percentagem
+          var _bgPosInit = (_dragEl.style.backgroundPosition || '50% 50%').trim().split(/\s+/);
+          _curLeft = parseFloat(_bgPosInit[0]) || 50;
+          _curTop  = parseFloat(_bgPosInit[1] !== undefined ? _bgPosInit[1] : _bgPosInit[0]) || 50;
+        }
       }
       if (_dragging) {
         var dx2 = em.clientX - _dragStartX; var dy2 = em.clientY - _dragStartY;
-        var curL = parseInt(_dragEl.style.left) || 0; var curT = parseInt(_dragEl.style.top) || 0;
-        _dragEl.style.left = (curL + dx2) + 'px';
-        _dragEl.style.top  = (curT + dy2) + 'px';
-        // Mover também os elementos multi-selecionados juntos
-        _multiSel.forEach(function(el) {
-          var ml = parseInt(el.style.left) || 0; var mt2 = parseInt(el.style.top) || 0;
-          el.style.left = (ml + dx2) + 'px'; el.style.top = (mt2 + dy2) + 'px';
-        });
+        if (_dragEl.tagName === 'IMG') {
+          _curLeft = (_curLeft == null ? (parseFloat(_dragEl.style.left)||0) : _curLeft) + dx2;
+          _curTop = (_curTop == null ? (parseFloat(_dragEl.style.top)||0) : _curTop) + dy2;
+          _dragEl.style.left = _curLeft + 'px';
+          _dragEl.style.top = _curTop + 'px';
+          _multiSel.forEach(function(el) {
+            try {
+              var cl = parseFloat(el.style.left) || 0;
+              var ct = parseFloat(el.style.top) || 0;
+              el.style.left = (cl + dx2) + 'px';
+              el.style.top = (ct + dy2) + 'px';
+            } catch(e){}
+          });
+        } else if (_isBgDrag) {
+          // Reposiciona background-position em percentagem
+          var cw = _dragEl.offsetWidth || 300;
+          var ch = _dragEl.offsetHeight || 300;
+          _curLeft = Math.max(0, Math.min(100, (_curLeft || 50) + (dx2 / cw) * 100));
+          _curTop  = Math.max(0, Math.min(100, (_curTop  || 50) + (dy2 / ch) * 100));
+          _dragEl.style.setProperty('background-position', _curLeft + '% ' + _curTop + '%', 'important');
+        } else {
+          var tx = _getTx(_dragEl);
+          _dragEl.style.transform = 'translate(' + (tx[0] + dx2) + 'px,' + (tx[1] + dy2) + 'px)';
+          _multiSel.forEach(function(el) {
+            var mt = _getTx(el);
+            el.style.transform = 'translate(' + (mt[0] + dx2) + 'px,' + (mt[1] + dy2) + 'px)';
+          });
+        }
         _dragStartX = em.clientX; _dragStartY = em.clientY;
-        // rAF loop já cuida de atualizar o resize wrap — nada a fazer aqui
       }
     }
     function onDragUp() {
       document.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragUp);
+      if (_ovTimer) { clearTimeout(_ovTimer); _ovTimer = null; }
       if (_grid) _grid.style.display = 'none'; _dragging = false; _activeDragCleanup = null;
     }
     // Cancela qualquer drag anterior antes de iniciar novo
@@ -5802,6 +6537,8 @@ img{filter:none!important}
   window.lfBC = function(v) {
     if (!_sel) return; snapshotHistory();
     _sel.style.setProperty('background-color', v, 'important');
+    // Também sobrescreve a shorthand background para vencer CSS Elementor
+    _sel.style.setProperty('background', v, 'important');
   };
   window.lfSC = function(v) {
     snapshotHistory();
@@ -5830,11 +6567,21 @@ img{filter:none!important}
     if (_sel && v) { snapshotHistory(); _sel.style.setProperty('font-size', v, 'important'); }
   };
   window.lfDelEl = function() {
-    if (_sel && confirm('Apagar este elemento?')) {
-      snapshotHistory();
-      var el = _sel; _sel = null;
-      el.remove(); hideResizeWrap();
+    if (!_sel) return;
+    var ok = true;
+    try { if (typeof confirm === 'function') ok = confirm('Apagar este elemento?'); } catch(e) { ok = true; }
+    if (!ok) return;
+    snapshotHistory();
+    var el = _sel;
+    _sel = null;
+    // Se for img dentro de wrapper de gradiente, remove o wrapper quando ficar vazio
+    var wrap = el.closest && el.closest('.lf-img-grad-wrap');
+    el.remove();
+    if (wrap && (!wrap.querySelector('img') || wrap.querySelectorAll('img').length === 0)) {
+      wrap.remove();
     }
+    hideResizeWrap();
+    var b = document.getElementById('lf-fmt-bar'); if (b) b.style.display = 'none';
   };
   window.lfPadZero = function() {
     if (!_sel) return; snapshotHistory();
@@ -5908,19 +6655,25 @@ img{filter:none!important}
     btn.textContent = '⏳';
     btn.disabled = true;
 
-    p.fetch('http://localhost:3000/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ system:'Responda SOMENTE JSON puro.', messages:[{role:'user',content:prompt}], maxTokens:600 })
-    }).then(function(r){ return r.json(); }).then(function(d){
+    if (!p.apiFetchChat) {
+      alert('Erro: apiFetchChat não encontrado no contexto principal.');
+      btn.textContent = orig; btn.disabled = false;
+      return;
+    }
+
+    p.apiFetchChat({
+      system: 'Responda SOMENTE JSON puro.',
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 600
+    }).then(function(d){
       var txt = (d.text||'').replace(/^[\s\S]*?\\{/, '{').replace(/\\}[^\\}]*$/, '}');
       var arr = JSON.parse(txt).textos || [];
       arr.forEach(function(t, i){ if (textEls[i] && t) textEls[i].textContent = t; });
       btn.textContent = '✅';
       setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1500);
-    }).catch(function(){
+    }).catch(function(e){
       btn.textContent = orig; btn.disabled = false;
-      alert('Erro ao chamar IA. Verifique se o servidor está rodando.');
+      alert('Erro ao chamar IA: ' + e.message);
     });
   }
 
@@ -5949,9 +6702,9 @@ img{filter:none!important}
 
 
 
-function getCleanHTML() {
+function getCleanHTML(iframeId) {
   try {
-    const iframe = document.getElementById('sitePreview');
+    const iframe = document.getElementById(iframeId || 'sitePreview');
     if (!iframe || !iframe.contentDocument) return state.generatedHTML;
     const doc = iframe.contentDocument;
     const clone = doc.documentElement.cloneNode(true);
@@ -5960,6 +6713,7 @@ function getCleanHTML() {
       const el = clone.querySelector(sel); if (el) el.remove();
     });
     clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('[data-lf-bgdrag]').forEach(el => el.removeAttribute('data-lf-bgdrag'));
     clone.querySelectorAll('.lf-section-selected,.lf-section-hover,.lf-el-selected,.lf-editable-mode').forEach(el => {
       el.classList.remove('lf-section-selected','lf-section-hover','lf-el-selected','lf-editable-mode');
     });
@@ -6263,7 +7017,7 @@ function renderButtonsList(iframeId) {
 
   btns.forEach(function(btn, idx) {
     const item = document.createElement('div');
-    item.style.cssText = 'background:rgba(255,255,255,.04);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;border:1px solid rgba(255,255,255,.06)';
+    item.style.cssText = 'background:rgba(var(--glass-rgb),.04);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;border:1px solid rgba(var(--glass-rgb),.06)';
 
     const label = document.createElement('div');
     label.style.cssText = 'font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em';
@@ -6390,7 +7144,7 @@ function rebuildPreviewImagesList(iframeId) {
     const item = document.createElement('div');
     item.className = 'preview-image-item';
     const thumb = document.createElement('div');
-    thumb.style.cssText = 'width:60px;height:45px;background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    thumb.style.cssText = 'width:60px;height:45px;background:rgba(var(--glass-rgb),.08);border:2px dashed rgba(var(--glass-rgb),.2);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
     thumb.innerHTML = '<span style="font-size:18px;opacity:.5">🖼</span>';
     const meta = document.createElement('div');
     meta.className = 'preview-image-meta'; meta.textContent = 'Slot ' + (idx+1) + ' (vazio)';
@@ -6417,7 +7171,7 @@ function rebuildPreviewImagesList(iframeId) {
   // ---- Helper: build accordion group ----
   function makeAccordion(label, count, renderFn) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'background:rgba(255,255,255,.03);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.06);margin-bottom:6px';
+    wrap.style.cssText = 'background:rgba(var(--glass-rgb),.03);border-radius:8px;overflow:hidden;border:1px solid rgba(var(--glass-rgb),.06);margin-bottom:6px';
     const hdr = document.createElement('div');
     hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px';
     const lbl = document.createElement('span'); lbl.textContent = label + ' (' + count + ')';
@@ -6649,7 +7403,7 @@ function initPreviewToolsUI() {
           const wrap = document.createElement('div');
           wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
           const img = document.createElement('img');
-          img.src = dataUrl; img.style.cssText = 'width:60px;height:45px;object-fit:cover;border-radius:6px;border:2px solid rgba(255,255,255,.15)';
+          img.src = dataUrl; img.style.cssText = 'width:60px;height:45px;object-fit:cover;border-radius:6px;border:2px solid rgba(var(--glass-rgb),.15)';
           const insertBtn = document.createElement('button');
           insertBtn.type = 'button'; insertBtn.className = 'btn-secondary';
           insertBtn.style.cssText = 'font-size:10px;padding:3px 7px';
@@ -6658,8 +7412,35 @@ function initPreviewToolsUI() {
             const doc = getIframeDoc('sitePreview');
             if (!doc || !doc.body) { toast('Gere um site primeiro'); return; }
             const newImg = doc.createElement('img');
-            newImg.src = dataUrl; newImg.style.cssText = 'max-width:100%;height:auto;display:block';
-            doc.body.insertBefore(newImg, doc.body.firstChild);
+            newImg.src = dataUrl;
+            newImg.style.cssText = 'max-width:320px;height:auto;display:block;position:relative;z-index:1;cursor:pointer';
+            // Insere dentro da seção mais visível no centro do viewport do preview
+            try {
+              var win = doc.defaultView;
+              var viewH = win.innerHeight || 600;
+              // Coleta seções editáveis (lf-edit-wrapper) ou elementos semânticos de seção
+              var secs = Array.from(doc.querySelectorAll('.lf-edit-wrapper, section, header, footer'));
+              // Exclui elementos do próprio editor (position:fixed)
+              var EDITOR_IDS = {
+                'lf-fmt-bar':1,'lf-resize-wrap':1,'lf-drag-grid':1,'lf-img-overlay':1,'lf-img-grad-pop':1
+              };
+              secs = secs.filter(function(s) { return !EDITOR_IDS[s.id]; });
+              var target = null; var bestDist = Infinity;
+              secs.forEach(function(s) {
+                var r = s.getBoundingClientRect();
+                if (r.bottom < 0 || r.top > viewH) return; // fora do viewport
+                var dist = Math.abs((r.top + r.bottom) / 2 - viewH / 2);
+                if (dist < bestDist) { bestDist = dist; target = s; }
+              });
+              if (target) {
+                target.appendChild(newImg);
+              } else {
+                doc.body.appendChild(newImg);
+              }
+            } catch(ex) {
+              doc.body.appendChild(newImg);
+            }
+            newImg.scrollIntoView({ behavior: 'smooth', block: 'center' });
             toast('Foto inserida no preview!');
           });
           wrap.appendChild(img); wrap.appendChild(insertBtn);
@@ -6690,7 +7471,8 @@ function initPreviewToolsUI() {
   }
 
   ensurePreviewButtonColors('sitePreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
-  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
+  ensurePreviewButtonColors('fullPreview', state.previewSettings?.btnPrimary, state.previewSettings?.btnSecondary);
+
   rebuildPreviewSectionsList('sitePreview');
   rebuildPreviewImagesList('sitePreview');
   updatePreviewButtonsMeta('sitePreview');
@@ -7046,7 +7828,7 @@ function generatePremium({ name, specialty, city, attendance, tagline, services,
   const data = { name, specialty, city, attendance, tagline, services, whatsapp, instagram, images };
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name} | ${specialty}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"><style>
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#0a0a10;color:#fff}a{text-decoration:none}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(var(--glass-rgb),0.07)}
 .logo-nav{font-weight:800;font-size:18px;background:linear-gradient(135deg,#A78BFA,#67E8F9);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hero{min-height:90vh;display:flex;align-items:center;justify-content:center;padding:60px 48px;background:radial-gradient(ellipse at 20% 50%,rgba(124,58,237,0.15) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(6,182,212,0.1) 0%,transparent 50%);position:relative;overflow:hidden}
 .hero-img-bg { position: absolute; inset: 0; z-index: -1; opacity: 0.2; object-fit: cover; width: 100%; height: 100%; }
@@ -7057,21 +7839,21 @@ function generatePremium({ name, specialty, city, attendance, tagline, services,
 .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 .btn-main{background:linear-gradient(135deg,#7C3AED,#06B6D4);color:#fff;padding:16px 32px;border-radius:12px;font-weight:700;font-size:15px;transition:.2s}
 .btn-main:hover{transform:translateY(-2px);box-shadow:0 0 32px rgba(124,58,237,0.4)}
-.btn-out{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:16px 32px;border-radius:12px;font-weight:600;font-size:15px}
+.btn-out{background:rgba(var(--glass-rgb),0.07);border:1px solid rgba(var(--glass-rgb),0.12);color:#fff;padding:16px 32px;border-radius:12px;font-weight:600;font-size:15px}
 .services{padding:80px 48px;background:#0d0d18}
 .s-head{text-align:center;margin-bottom:48px}
 .s-head h2{font-size:38px;font-weight:800;letter-spacing:-1px}
 .s-head p{color:#71717A;margin-top:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;margin:0 auto}
-.card{background:#13131f;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:24px;transition:.2s}
+.card{background:#13131f;border:1px solid rgba(var(--glass-rgb),0.07);border-radius:16px;padding:24px;transition:.2s}
 .card:hover{border-color:rgba(124,58,237,0.4);transform:translateY(-4px)}
 .card-icon{width:44px;height:44px;background:rgba(124,58,237,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
 .card h3{font-size:15px;font-weight:700;margin-bottom:6px}
 .card p{font-size:13px;color:#71717A;line-height:1.5}
-.cta-sec{padding:80px 48px;text-align:center;background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(6,182,212,0.05));border-top:1px solid rgba(255,255,255,0.05)}
+.cta-sec{padding:80px 48px;text-align:center;background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(6,182,212,0.05));border-top:1px solid rgba(var(--glass-rgb),0.05)}
 .cta-sec h2{font-size:38px;font-weight:800;margin-bottom:12px}
 .cta-sec p{color:#A1A1AA;margin-bottom:32px}
-footer{padding:24px;text-align:center;font-size:12px;color:#52525B;border-top:1px solid rgba(255,255,255,0.05)}
+footer{padding:24px;text-align:center;font-size:12px;color:#52525B;border-top:1px solid rgba(var(--glass-rgb),0.05)}
 </style></head><body>
 <nav class="nav"><div class="logo-nav">✦ ${name.split(' ')[0]}</div><span style="font-size:13px;color:#71717A">${city}</span></nav>
 <section class="hero">
@@ -7100,7 +7882,7 @@ function generateModern({ name, specialty, city, attendance, tagline, services, 
   const data = { name, specialty, city, attendance, tagline, services, whatsapp, instagram, images };
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name} | ${specialty}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"><style>
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#fff;color:#111}a{text-decoration:none}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 48px;position:fixed;top:0;width:100%;z-index:100;background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);border-bottom:1px solid #f5f5f5}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 48px;position:fixed;top:0;width:100%;z-index:100;background:rgba(var(--glass-rgb),0.9);backdrop-filter:blur(12px);border-bottom:1px solid #f5f5f5}
 .logo-nav{font-weight:900;font-size:18px}
 .hero{display:grid;grid-template-columns:1fr 1fr;min-height:100vh;padding-top:64px}
 .hero-left{background:linear-gradient(rgba(16,185,129,0.8),rgba(6,182,212,0.8)), url('${getTemplateImage(data, 0, 'https://picsum.photos/id/1015/1000/1000')}'); background-size: cover; background-position: center; display:flex; align-items:center; padding:60px 48px}
@@ -7108,7 +7890,7 @@ function generateModern({ name, specialty, city, attendance, tagline, services, 
 .hero-left h1{font-size:52px;font-weight:900;line-height:1.1;letter-spacing:-2px;margin-bottom:16px}
 .hero-left p{font-size:16px;opacity:.85;line-height:1.7;margin-bottom:32px}
 .cta-white{background:#fff;color:#10B981;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;transition:.2s}
-.cta-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.cta-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(var(--shadow-rgb),0.15)}
 .hero-right{display:flex;flex-direction:column;justify-content:center;padding:60px 48px;background:#f9f9f9}
 .tag-green{display:inline-block;background:#d1fae5;color:#065F46;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px}
 .hero-right h2{font-size:36px;font-weight:800;margin-bottom:12px}
@@ -7125,8 +7907,8 @@ function generateModern({ name, specialty, city, attendance, tagline, services, 
 .contact{padding:60px 48px;background:linear-gradient(135deg,#10B981,#065F46);color:#fff;text-align:center}
 .contact h2{font-size:36px;font-weight:800;margin-bottom:8px}
 .contact p{opacity:.85;margin-bottom:28px}
-.cta-light{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);color:#fff;padding:14px 28px;border-radius:10px;font-weight:700;display:inline-block;transition:.2s}
-.cta-light:hover{background:rgba(255,255,255,0.25)}
+.cta-light{background:rgba(var(--glass-rgb),0.15);border:2px solid rgba(var(--glass-rgb),0.3);color:#fff;padding:14px 28px;border-radius:10px;font-weight:700;display:inline-block;transition:.2s}
+.cta-light:hover{background:rgba(var(--glass-rgb),0.25)}
 footer{padding:20px;text-align:center;font-size:12px;color:#999}
 @media(max-width:768px){.hero{grid-template-columns:1fr}.hero-left h1{font-size:36px}.nav{padding:16px 20px}.hero-left,.hero-right{padding:40px 20px}.services,.contact{padding:60px 20px}}
 </style></head><body>
@@ -7185,7 +7967,7 @@ function generateElite({ name, specialty, city, tagline, services, whatsapp, ins
     body { font-family: 'Inter', system-ui, sans-serif; }
     .heading-font { font-family: 'Playfair Display', serif; }
     .hero-bg {
-      background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.35)), 
+      background-image: linear-gradient(rgba(var(--shadow-rgb),0.45),rgba(var(--shadow-rgb),0.35)), 
       url('${getTemplateImage(data, 0, 'https://picsum.photos/id/1015/2000/1200')}');
       background-size: cover; background-position: center;
     }
@@ -7609,14 +8391,35 @@ function resolveMsg() {
 
 async function loadApiConfig() {
   try {
-    const res = await fetch('/api/getconfig');
-    if (!res.ok) { renderApiStatus(null); return; }
+    const res = await (async function(path){ 
+      const urls = ['http://localhost:3000'+path, 'http://127.0.0.1:3000'+path];
+      for (let u of urls) { try { const r = await fetch(u); if (r.ok) return r; } catch(e){} }
+      return null;
+    })('/api/getconfig');
+    if (!res) {
+      const ls = localStorage.getItem('lf_api_config');
+      if (ls) {
+        const c = JSON.parse(ls);
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        set('cfgGroqKey1', c.groq_key ? '••••••••' : '');
+        set('cfgGroqKey2', c.groq_key_2 ? '••••••••' : '');
+        set('cfgGroqKey3', c.groq_key_3 ? '••••••••' : '');
+        const gm = document.getElementById('cfgGroqModel'); if (gm) gm.value = c.groq_model || 'llama-3.3-70b-versatile';
+        renderApiStatus({ has_groq: !!c.groq_key, has_groq_2: !!c.groq_key_2, has_groq_3: !!c.groq_key_3 });
+        return;
+      }
+      renderApiStatus(null);
+      return;
+    }
     const c = await res.json();
-    // Preenche campos com valores mascarados
+    
+    // Atualiza o localStorage com as chaves recebidas do servidor
+    localStorage.setItem('lf_api_config', JSON.stringify(c));
+
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    set('cfgGroqKey1', c.groq_key);
-    set('cfgGroqKey2', c.groq_key_2);
-    set('cfgGroqKey3', c.groq_key_3);
+    set('cfgGroqKey1', c.groq_key ? '••••••••' : '');
+    set('cfgGroqKey2', c.groq_key_2 ? '••••••••' : '');
+    set('cfgGroqKey3', c.groq_key_3 ? '••••••••' : '');
     const gm = document.getElementById('cfgGroqModel');
     if (gm) gm.value = c.groq_model || 'llama-3.3-70b-versatile';
     renderApiStatus(c);
@@ -7640,17 +8443,28 @@ function renderApiStatus(c) {
   ];
   el.innerHTML = items.map(b => `
     <span style="padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;
-      background:${b.ok ? b.color+'22' : 'rgba(255,255,255,.05)'};
+      background:${b.ok ? b.color+'22' : 'rgba(var(--glass-rgb),.05)'};
       color:${b.ok ? b.color : '#6b7280'};
-      border:1px solid ${b.ok ? b.color+'44' : 'rgba(255,255,255,.08)'}">
+      border:1px solid ${b.ok ? b.color+'44' : 'rgba(var(--glass-rgb),.08)'}">
       ${b.ok ? '✓' : '✗'} ${b.label}
     </span>`).join('');
 }
 
 async function exportApiConfig() {
   try {
-    const res = await fetch('/api/exportconfig');
-    if (!res.ok) throw new Error('Erro ' + res.status);
+    const res = await (async function(path){ 
+      const urls = ['http://localhost:3000'+path, 'http://127.0.0.1:3000'+path];
+      for (let u of urls) { try { const r = await fetch(u); if (r.ok) return r; } catch(e){} }
+      return null;
+    })('/api/exportconfig');
+    if (!res) {
+      const ls = localStorage.getItem('lf_api_config') || '{}';
+      const blob = new Blob([ls], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'vjoseph-api-keys.json'; a.click(); URL.revokeObjectURL(url);
+      toast('📤 Backup das chaves baixado!');
+      return;
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -7670,15 +8484,20 @@ async function importApiConfig(input) {
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    // Valida que é um arquivo de config válido
     if (!data || typeof data !== 'object') throw new Error('Arquivo inválido');
 
-    const res = await fetch('/api/setconfig', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Erro ' + res.status);
+    const res = await (async function(path, init){ 
+      const urls = ['http://localhost:3000'+path, 'http://127.0.0.1:3000'+path];
+      for (let u of urls) { try { const r = await fetch(u, init); if (r.ok) return r; } catch(e){} }
+      return null;
+    })('/api/setconfig', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (!res) {
+      localStorage.setItem('lf_api_config', JSON.stringify(data));
+      await loadApiConfig();
+      toast('✅ Chaves restauradas localmente!');
+      if (input) input.value = '';
+      return;
+    }
 
     await loadApiConfig(); // recarrega campos e badges
     toast('✅ Chaves restauradas com sucesso!');
@@ -7695,24 +8514,46 @@ async function saveApiConfig() {
   const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Salvando...'; }
   try {
-    const body = {
-      groq_key:   (document.getElementById('cfgGroqKey1')?.value || '').trim(),
-      groq_key_2: (document.getElementById('cfgGroqKey2')?.value || '').trim(),
-      groq_key_3: (document.getElementById('cfgGroqKey3')?.value || '').trim(),
-      groq_model: document.getElementById('cfgGroqModel')?.value || 'llama-3.3-70b-versatile',
+    const getVal = (id, oldVal) => {
+      const v = document.getElementById(id)?.value || '';
+      if (v === '••••••••') return oldVal || ''; // Mantém a antiga
+      return v.trim(); // Se não for os pontos, pega o que estiver lá (mesmo que vazio, para permitir deletar)
     };
-    const res = await fetch('/api/setconfig', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error('Erro ' + res.status);
-    const result = await res.json();
-    // Atualiza badges com resultado real do servidor
-    renderApiStatus(result);
-    // Recarrega valores mascarados nos campos
-    await loadApiConfig();
-    toast('✅ Chaves salvas com sucesso!');
+    
+    // Precisamos mesclar com os valores antigos do localStorage caso seja ••••••••
+    const lsStr = localStorage.getItem('lf_api_config') || '{}';
+    let ls = {};
+    try { ls = JSON.parse(lsStr); } catch(e){}
+
+    const body = {
+      groq_key:   getVal('cfgGroqKey1', ls.groq_key),
+      groq_key_2: getVal('cfgGroqKey2', ls.groq_key_2),
+      groq_key_3: getVal('cfgGroqKey3', ls.groq_key_3),
+      groq_model: document.getElementById('cfgGroqModel')?.value || ls.groq_model || 'llama-3.3-70b-versatile',
+    };
+    const res = await (async function(path, init){ 
+      const urls = ['http://localhost:3000'+path, 'http://127.0.0.1:3000'+path];
+      for (let u of urls) { try { const r = await fetch(u, init); if (r.ok) return r; } catch(e){} }
+      return null;
+    })('/api/setconfig', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    
+    // Sempre salva localmente para garantir persistência (inclusive entre abas)
+    localStorage.setItem('lf_api_config', JSON.stringify(body));
+
+    if (!res) {
+      renderApiStatus({ has_groq: !!body.groq_key, has_groq_2: !!body.groq_key_2, has_groq_3: !!body.groq_key_3 });
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+      set('cfgGroqKey1', body.groq_key ? '••••••••' : '');
+      set('cfgGroqKey2', body.groq_key_2 ? '••••••••' : '');
+      set('cfgGroqKey3', body.groq_key_3 ? '••••••••' : '');
+      const gm = document.getElementById('cfgGroqModel'); if (gm) gm.value = body.groq_model || 'llama-3.3-70b-versatile';
+      toast('✅ Chaves salvas localmente!');
+    } else {
+      const result = await res.json();
+      renderApiStatus(result);
+      await loadApiConfig();
+      toast('✅ Chaves salvas com sucesso!');
+    }
   } catch(e) {
     toast('❌ Erro ao salvar: ' + e.message);
   } finally {
@@ -7725,11 +8566,46 @@ function loadSettingsForm() {
   const vercelTokenEl = document.getElementById('vercelToken');
   if (vercelTokenEl) vercelTokenEl.value = state.settings.vercelToken || '';
 
-  document.getElementById('servicePrice').value = state.settings.servicePrice;
-  document.getElementById('dailyLeadGoal').value = state.settings.dailyLeadGoal;
+  document.getElementById('servicePrice').value = state.settings.servicePrice || 350;
+  document.getElementById('dailyLeadGoal').value = state.settings.dailyLeadGoal || 100;
   document.getElementById('monthlySiteGoal').value = state.settings.monthlySiteGoal || 30;
   document.getElementById('yourName').value = state.settings.yourName || '';
   document.getElementById('yourInstagram').value = state.settings.yourInstagram || '';
+
+  const tb = state.settings.timeBlocks || [
+    { start: 6, end: 12 },
+    { start: 12, end: 14 },
+    { start: 14, end: 18 },
+    { start: 18, end: 24 },
+    { start: 0, end: 6 }
+  ];
+  const tbMornStart = document.getElementById('tbMorningStart');
+  if (tbMornStart) {
+    tbMornStart.value = tb[0].start;
+    document.getElementById('tbMorningEnd').value = tb[0].end;
+    document.getElementById('tbNoonStart').value = tb[1].start;
+    document.getElementById('tbNoonEnd').value = tb[1].end;
+    document.getElementById('tbAfternoonStart').value = tb[2].start;
+    document.getElementById('tbAfternoonEnd').value = tb[2].end;
+    document.getElementById('tbNightStart').value = tb[3].start;
+    document.getElementById('tbNightEnd').value = tb[3].end;
+    document.getElementById('tbLateNightStart').value = tb[4].start;
+    document.getElementById('tbLateNightEnd').value = tb[4].end;
+  }
+}
+
+function saveTimeBlocksSettings() {
+  if (!state.settings) state.settings = {};
+  state.settings.timeBlocks = [
+    { start: parseInt(document.getElementById('tbMorningStart').value) || 6, end: parseInt(document.getElementById('tbMorningEnd').value) || 12 },
+    { start: parseInt(document.getElementById('tbNoonStart').value) || 12, end: parseInt(document.getElementById('tbNoonEnd').value) || 14 },
+    { start: parseInt(document.getElementById('tbAfternoonStart').value) || 14, end: parseInt(document.getElementById('tbAfternoonEnd').value) || 18 },
+    { start: parseInt(document.getElementById('tbNightStart').value) || 18, end: parseInt(document.getElementById('tbNightEnd').value) || 24 },
+    { start: parseInt(document.getElementById('tbLateNightStart').value) || 0, end: parseInt(document.getElementById('tbLateNightEnd').value) || 6 }
+  ];
+  save();
+  updateTimeBlocksWidget();
+  toast('Horários dos blocos salvos!');
 }
 
 function saveSettings() {
@@ -8114,7 +8990,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // Import
-  document.getElementById('importLeadsBtn').addEventListener('click', () => document.getElementById('importModal').classList.add('open'));
   document.getElementById('doImportBtn').addEventListener('click', doImport);
   document.getElementById('closeImportModal').addEventListener('click', () => closeModal('importModal'));
   document.getElementById('cancelImportModal').addEventListener('click', () => closeModal('importModal'));
@@ -8191,7 +9066,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('previewModal').classList.add('open');
   });
 
-  document.getElementById('closePreviewModal').addEventListener('click', () => closeModal('previewModal'));
+  document.getElementById('closePreviewModal').addEventListener('click', () => {
+    // Sync edits from fullPreview back to sitePreview before closing
+    const editedHtml = getCleanHTML('fullPreview');
+    if (editedHtml && editedHtml !== state.generatedHTML) {
+      state.generatedHTML = editedHtml;
+      const siteIframe = document.getElementById('sitePreview');
+      if (siteIframe) {
+        siteIframe.removeAttribute('srcdoc');
+        setTimeout(function(){ siteIframe.srcdoc = injectEditor(editedHtml); }, 10);
+      }
+    }
+    closeModal('previewModal');
+  });
 
   // Toggle Preview Device (Mobile/PC)
   const toggleDeviceBtn = document.getElementById('toggleDeviceBtn');
@@ -8221,7 +9108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         iframe.style.margin = '20px auto';
         iframe.style.border = '8px solid #111'; // Thicker border for phone frame
         iframe.style.borderRadius = '32px';
-        iframe.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2)';
+        iframe.style.boxShadow = '0 20px 40px rgba(var(--shadow-rgb),0.2)';
 
         // Icon: PC (to indicate next state is PC)
         toggleDeviceBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
@@ -8318,6 +9205,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveSettingsBtn = document.getElementById('saveSettings');
   if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
 
+  const saveTimeBlocksBtn = document.getElementById('saveTimeBlocksBtn');
+  if (saveTimeBlocksBtn) saveTimeBlocksBtn.addEventListener('click', saveTimeBlocksSettings);
+
   const addTplBtn = document.getElementById('addTemplateBtn');
   if (addTplBtn) addTplBtn.addEventListener('click', addCustomTemplate);
 
@@ -8369,7 +9259,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(overlay.id); });
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) {
+        // If closing previewModal, sync edits back first
+        if (overlay.id === 'previewModal') {
+          const editedHtml = getCleanHTML('fullPreview');
+          if (editedHtml && editedHtml !== state.generatedHTML) {
+            state.generatedHTML = editedHtml;
+            const siteIframe = document.getElementById('sitePreview');
+            if (siteIframe) {
+              siteIframe.removeAttribute('srcdoc');
+              setTimeout(function(){ siteIframe.srcdoc = injectEditor(editedHtml); }, 10);
+            }
+          }
+        }
+        closeModal(overlay.id);
+      }
+    });
   });
 
   // Initial select all
@@ -8907,6 +9813,99 @@ window.prospectAction = function (leadId, action) {
     }, 500);
   }
 }
+
+// ── Josephine Central: snapshot ao vivo para IA ─────────────────────────────
+window.getLiveData = function() {
+  try {
+    const nowTs = Date.now();
+    const stageOf = (l) => l.pipelineStageV2 || 'coletados';
+    const toTs = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const d = new Date(v); return isNaN(d) ? 0 : d.getTime(); };
+    const daysSince = (ts) => ts ? ((nowTs - toTs(ts)) / 86400000).toFixed(1) : null;
+    const price = Number(state.settings?.servicePrice) || 350;
+    const goal = 50000;
+
+    // Stage counts
+    const stageCounts = {};
+    const STAGE_IDS = ['coletados','perfil_engajado','dm1_enviada','nao_respondeu','respondeu','follow_up_1','chat_gerado','dm2_enviada','ainda_nao_respondeu','follow_up_2','proposta_enviada','nao_respondeu_proposta','follow_up_3','fechado','arquivado'];
+    STAGE_IDS.forEach(s => stageCounts[s] = 0);
+    state.leads.forEach(l => { const s = stageOf(l); if (stageCounts[s] !== undefined) stageCounts[s]++; else stageCounts[s] = 1; });
+
+    // Average time per stage (from v2LastMovedAt or createdAt to now, for active leads)
+    const stageAges = {};
+    state.leads.forEach(l => {
+      const st = stageOf(l);
+      if (st === 'fechado' || st === 'arquivado') return;
+      const base = toTs(l.v2LastMovedAt) || toTs(l.createdAt) || nowTs;
+      const days = (nowTs - base) / 86400000;
+      if (!stageAges[st]) stageAges[st] = [];
+      stageAges[st].push(days);
+    });
+    const stageAvgDays = {};
+    Object.keys(stageAges).forEach(st => {
+      const arr = stageAges[st];
+      stageAvgDays[st] = arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '0';
+    });
+
+    // Key stats
+    const total = state.leads.length;
+    const active = state.leads.filter(l => !['arquivado','fechado'].includes(stageOf(l))).length;
+    const closed = stageCounts['fechado'] || 0;
+    const archived = stageCounts['arquivado'] || 0;
+    const inProposta = (stageCounts['proposta_enviada']||0) + (stageCounts['nao_respondeu_proposta']||0) + (stageCounts['follow_up_3']||0);
+    const revenue = closed * price;
+    const goalPct = ((closed / goal) * 100).toFixed(2);
+
+    // Leads urgentes: em follow-up ou sem resposta há mais de 2 dias
+    const urgentStages = new Set(['nao_respondeu','follow_up_1','follow_up_2','follow_up_3','nao_respondeu_proposta','ainda_nao_respondeu']);
+    const urgentLeads = state.leads
+      .filter(l => {
+        if (!urgentStages.has(stageOf(l))) return false;
+        const base = toTs(l.v2LastMovedAt) || toTs(l.dm1SentAt) || toTs(l.createdAt) || nowTs;
+        return (nowTs - base) >= 48 * 3600 * 1000;
+      })
+      .slice(0, 8)
+      .map(l => ({ name: l.name, handle: l.handle, stage: stageOf(l), daysInStage: daysSince(l.v2LastMovedAt || l.dm1SentAt || l.createdAt) }));
+
+    // Top 10 leads mais avançados no funil (excl. fechados/arquivados)
+    const stageRank = Object.fromEntries(STAGE_IDS.map((s,i)=>[s,i]));
+    const topLeads = [...state.leads]
+      .filter(l => !['arquivado','fechado'].includes(stageOf(l)))
+      .sort((a,b) => (stageRank[stageOf(b)]||0) - (stageRank[stageOf(a)]||0))
+      .slice(0, 30)
+      .map(l => ({ name: l.name, handle: l.handle, niche: l.niche, city: l.city, stage: stageOf(l), daysInStage: daysSince(l.v2LastMovedAt || l.createdAt) }));
+
+    // Today stats
+    const isToday = (ts) => { if (!ts) return false; const d = new Date(toTs(ts)); const t = new Date(); return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); };
+    const leadsToday = state.leads.filter(l => isToday(l.createdAt)).length;
+    const closedToday = state.leads.filter(l => stageOf(l)==='fechado' && isToday(l.closedAt)).length;
+    const dm1Today = state.leads.filter(l => isToday(l.dm1SentAt)).length;
+    const sitesToday = state.leads.filter(l => isToday(l.siteGeneratedAt)).length;
+
+    // Avg funnel days (lead criado → fechado)
+    const funnelDiffs = state.leads.filter(l=>stageOf(l)==='fechado'&&l.closedAt&&l.createdAt).map(l=>(toTs(l.closedAt)-toTs(l.createdAt))/86400000).filter(d=>d>=0);
+    const avgFunnelDays = funnelDiffs.length ? (funnelDiffs.reduce((a,b)=>a+b,0)/funnelDiffs.length).toFixed(1) : null;
+
+    // Settings
+    const settings = {
+      servicePrice: price,
+      dailyLeadGoal: state.settings?.dailyLeadGoal || 100,
+      monthlySiteGoal: state.settings?.monthlySiteGoal || 30,
+      yourName: state.settings?.yourName || 'Thomas',
+    };
+
+    return {
+      timestamp: new Date().toISOString(),
+      settings,
+      pipeline: { total, active, closed, archived, inProposta, revenue, goal, goalPct: goalPct+'%' },
+      stageCounts,
+      stageAvgDays,
+      today: { leadsAdded: leadsToday, dm1Sent: dm1Today, sitesGenerated: sitesToday, closed: closedToday },
+      urgentLeads,
+      topLeads,
+      avgFunnelDays,
+    };
+  } catch(e) { return { error: e.message }; }
+};
 
 // ── Sincronização em tempo real com HQ (iframe) via storage events ──────────
 // Quando o HQ (rodando no iframe) salva algo no localStorage,

@@ -34,17 +34,16 @@ def save_cfg(data):
     """Salva config no disco de forma segura (nunca perde chaves existentes)."""
     current = cfg()
     secret_fields = ['groq_key', 'groq_key_2', 'groq_key_3']
-    plain_fields  = ['groq_model', 'groq_model_pipeline']
+    plain_fields  = ['groq_model', 'groq_model_pipeline',
+                     'cal_url', 'wa_url', 'wa_key', 'wa_instance']
 
     for field in secret_fields:
         val = str(data.get(field, '')).strip()
-        # Se vier mascarado (contém ****) ou vazio, mantém o valor já salvo
         if val and '****' not in val:
             current[field] = val
-        # Se vier vazio e campo não existia, deixa vazio (não cria)
 
     for field in plain_fields:
-        if field in data and data[field]:
+        if field in data:
             current[field] = data[field]
 
     with open(CFG, 'w', encoding='utf-8') as f:
@@ -74,6 +73,8 @@ class H(http.server.SimpleHTTPRequestHandler):
             self._getconfig()
         elif path == '/api/exportconfig':
             self._exportconfig()
+        elif path == '/api/calendar':
+            self._proxycalendar()
         else:
             super().do_GET()
 
@@ -86,6 +87,25 @@ class H(http.server.SimpleHTTPRequestHandler):
             self._setconfig()
         else:
             self.send_error(404)
+
+    def _proxycalendar(self):
+        """Proxy para buscar feed iCal do Google Calendar (evita CORS)."""
+        try:
+            from urllib.parse import urlparse, parse_qs, unquote
+            qs = parse_qs(urlparse(self.path).query)
+            url = unquote(qs.get('url', [''])[0])
+            if not url or 'calendar.google.com' not in url:
+                self._err(400, 'URL invalida'); return
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 VJoseph/1.0'})
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                content = resp.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/calendar; charset=utf-8')
+            self.send_header('Content-Length', str(len(content)))
+            self._cors(); self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self._err(500, str(e))
 
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -101,10 +121,13 @@ class H(http.server.SimpleHTTPRequestHandler):
             'groq_key_3':          mask_key(c.get('groq_key_3', '')),
             'groq_model':          c.get('groq_model', 'llama-3.3-70b-versatile'),
             'groq_model_pipeline': c.get('groq_model_pipeline', 'llama-3.3-70b-versatile'),
-            # Indica quais chaves estão preenchidas (sem expor o valor)
             'has_groq':            bool(c.get('groq_key', '').strip()),
             'has_groq_2':          bool(c.get('groq_key_2', '').strip()),
             'has_groq_3':          bool(c.get('groq_key_3', '').strip()),
+            'cal_url':             c.get('cal_url', ''),
+            'wa_url':              c.get('wa_url', 'http://localhost:8081'),
+            'wa_key':              c.get('wa_key', ''),
+            'wa_instance':         c.get('wa_instance', 'vjoseph'),
         })
 
     def _exportconfig(self):

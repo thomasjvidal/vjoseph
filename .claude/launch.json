@@ -5,8 +5,14 @@
       "name": "vjoseph",
       "runtimeExecutable": "C:\\Users\\milen\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "runtimeArgs": ["serve.py"],
-      "env": { "PORT": "8080" },
-      "port": 8080
+      "env": { "PORT": "3000" },
+      "port": 3000
+    },
+    {
+      "name": "wa-office",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["wa-server.js"],
+      "port": 8090
     }
   ]
 }

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <div id="test"></div>
+  <script>
+    try {
+      document.getElementById('test').innerHTML = '<button onclick="console.log(\'a\nb\')">Click</button>';
+      console.log("innerHTML set successfully");
+    } catch(e) {
+      console.log("Error:", e.message);
+    }
+  </script>
+</body>
+</html>

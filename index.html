@@ -11,9 +11,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
-  <link rel="stylesheet" href="lead-carousel-premium.css" />
+  <link rel="stylesheet" href="style.css?v=14" />
+  <link rel="stylesheet" href="lead-carousel-premium.css?v=2" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    (function() {
+      if (localStorage.getItem('leadflow-theme') === 'light') {
+        document.documentElement.classList.add('light-mode');
+      }
+    })();
+  </script>
 </head>
 
 <body>
@@ -46,7 +53,6 @@
     </div>
 
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Principal</div>
       <a href="#" class="nav-item active" data-view="dashboard" id="nav-dashboard">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="7" />
@@ -62,21 +68,13 @@
         </svg>
         <span>Lab de Mensagens</span>
       </a>
-      <a href="#" class="nav-item" data-view="generator" id="nav-generator">
+      <a href="#" class="nav-item" data-view="stories" id="nav-stories">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2" />
-          <path d="M8 21h8M12 17v4" />
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
         </svg>
-        <span>Gerador de Sites</span>
-      </a>
-      <div class="nav-divider" aria-hidden="true"></div>
-      <div class="nav-section-label">Sistema</div>
-      <a href="#" class="nav-item" data-view="biblioteca-templates" id="nav-biblioteca-templates">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-        </svg>
-        <span>Biblioteca Templates</span>
+        <span>Stories Control</span>
       </a>
       <a href="#" class="nav-item" data-view="office" id="nav-office">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,13 +83,29 @@
         </svg>
         <span>Office</span>
       </a>
-      <a href="#" class="nav-item" data-view="stories" id="nav-stories">
+      <div class="nav-divider" aria-hidden="true"></div>
+      <a href="#" class="nav-item" data-view="generator" id="nav-generator">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-          <circle cx="12" cy="12" r="4"/>
-          <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
         </svg>
-        <span>Stories</span>
+        <span>Gerador de Sites</span>
+      </a>
+      <a href="#" class="nav-item" data-view="biblioteca-templates" id="nav-biblioteca-templates">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>Biblioteca Templates</span>
+      </a>
+      <div class="nav-divider" aria-hidden="true"></div>
+      <a href="#" class="nav-item" data-view="cultura" id="nav-cultura">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <span>Cultura</span>
       </a>
       <a href="#" class="nav-item" data-view="leads" id="nav-leads">
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
@@ -101,32 +115,14 @@
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          <span id="nav-leads-count" style="
-            position: absolute; 
-            top: -4px; 
-            right: -6px; 
-            font-size: 8px; 
-            background: var(--bg-surface); 
-            color: var(--text-secondary); 
-            border: 1px solid var(--border); 
-            padding: 0 3px; 
-            border-radius: 6px; 
-            min-width: 12px; 
-            height: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            line-height: 1;
-            font-weight: 600;
-          ">0</span>
+          <span id="nav-leads-count" style="position:absolute;top:-4px;right:-6px;font-size:8px;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);padding:0 3px;border-radius:6px;min-width:12px;height:12px;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:600;">0</span>
         </div>
         <span>Leads</span>
       </a>
       <a href="#" class="nav-item" data-view="settings" id="nav-settings">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.07 4.93A9.97 9.97 0 0 0 12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10a9.97 9.97 0 0 0-2.93-7.07z" />
+          <path d="M19.07 4.93A9.97 9.97 0 0 0 12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10a9.97 9.97 0 0 0-2.93-7.07z" />
         </svg>
         <span>Configurações</span>
       </a>
@@ -161,6 +157,31 @@
           <div class="breadcrumb" id="breadcrumb">Visão geral do sistema</div>
         </div>
       <div class="topbar-right">
+        <button id="toggleClockBtn" style="background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; margin-right: 8px; display: flex; align-items: center; justify-content: center;" title="Ocultar/Mostrar Relógio">
+          <svg id="clockIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </button>
+        <button id="toggleMoneyBtn" style="background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; margin-right: 8px; display: flex; align-items: center; justify-content: center;" title="Ocultar/Mostrar Valores">
+          <svg id="eyeIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+        <button id="themeToggleBtn" style="background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center;" title="Alternar Modo Claro/Escuro">
+          <svg id="themeIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
         <div id="saveIndicator" class="save-indicator"></div>
       </div>
     </header>
@@ -172,11 +193,34 @@
       <section class="view active" id="view-dashboard">
         
         <!-- HEADER CARD -->
-        <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
-          <div class="metrics-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div id="dashboardHeaderCard" class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: stretch; gap: 16px;">
+          <!-- LEFT: Date -->
+          <div class="metrics-header" style="display: flex; flex-direction: column; justify-content: center; flex: 1;">
             <div>
               <h2 style="font-size: 20px; font-weight: 600; color: var(--text-primary);">Hoje</h2>
               <p style="color: var(--text-muted); font-size: 13px;" id="currentDateDisplay">--</p>
+            </div>
+          </div>
+          
+          <!-- CENTER: Current Time -->
+          <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1;">
+            <h2 id="current-clock-display" style="font-size: 32px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; tracking: tight; margin: 0;">--:--</h2>
+          </div>
+          
+          <!-- RIGHT: TIME BLOCKS WIDGET -->
+          <div id="time-blocks-widget" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-end; flex: 1;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;" id="current-time-block-label">BLOCO ATUAL</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+               <div id="time-block-indicator" style="width: 10px; height: 10px; border-radius: 50%; background-color: var(--text-muted); box-shadow: 0 0 8px rgba(var(--glass-rgb),0.2);"></div>
+               <span id="current-time-block-name" style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-right: 8px;">--</span>
+               <div id="time-block-timer" style="background: rgba(var(--glass-rgb),0.05); border: 1px solid rgba(var(--glass-rgb),0.1); padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; font-family: monospace; color: var(--text-secondary);">--:--</div>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;" id="time-block-next-text">-- para o próximo bloco</div>
+            <div style="display: flex; gap: 4px; width: 100%; max-width: 200px;" id="time-blocks-progress">
+               <div class="block-dot" data-block="morning" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(var(--glass-rgb),0.1);"></div>
+               <div class="block-dot" data-block="noon" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(var(--glass-rgb),0.1);"></div>
+               <div class="block-dot" data-block="afternoon" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(var(--glass-rgb),0.1);"></div>
+               <div class="block-dot" data-block="night" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(var(--glass-rgb),0.1);"></div>
             </div>
           </div>
         </div>
@@ -184,10 +228,10 @@
         <!-- METRICS & BUCKETS CAROUSEL -->
         <div class="dashboard-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); overflow: hidden;">
           
-          <div class="metrics-tabs" style="display: flex; gap: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0;">
-            <button class="metrics-tab-btn active" id="btn-tab-metrics" onclick="document.getElementById('tab-metrics-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Métricas</button>
-            <button class="metrics-tab-btn" id="btn-tab-buckets" onclick="document.getElementById('tab-buckets-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Visão Geral</button>
+          <div class="metrics-tabs" style="display: flex; gap: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(var(--glass-rgb),0.1); padding-bottom: 0;">
+            <button class="metrics-tab-btn active" id="btn-tab-metrics" onclick="document.getElementById('tab-metrics-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Visão Geral</button>
             <button class="metrics-tab-btn" id="btn-tab-funnel" onclick="document.getElementById('tab-funnel-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Funil</button>
+            <button class="metrics-tab-btn" id="btn-tab-buckets" onclick="document.getElementById('tab-buckets-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Métricas</button>
             <button class="metrics-tab-btn" id="btn-tab-finance" onclick="document.getElementById('tab-finance-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Financeiro & Meta</button>
             <button class="metrics-tab-btn" id="btn-tab-cycle" onclick="document.getElementById('tab-cycle-content').scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'start'})" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Ciclo</button>
           </div>
@@ -196,9 +240,9 @@
             <style>#metricsCarousel::-webkit-scrollbar { display: none; }</style>
             
             <!-- GRID CARD CONTENT -->
-            <div id="tab-metrics-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0;">
-              <div id="dashboardMetricsPanel" style="display: flex; flex-direction: column; gap: 12px;">
-                <div class="metrics-grid">
+            <div id="tab-metrics-content" style="min-width: 100%; width: 100%; max-width: 100%; scroll-snap-align: start; flex-shrink: 0; order: 1;">
+              <div id="dashboardMetricsPanel" style="display: flex; flex-direction: column; gap: 24px;">
+                <div class="metrics-grid" style="order: 2; margin-bottom: -12px;">
             <div class="metric-card gradient-violet">
               <div class="metric-header">
                 <div class="metric-icon">
@@ -225,7 +269,7 @@
                 <div class="metric-trend" id="trendMessages" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2);"></div>
               </div>
               <div class="metric-info">
-                <span class="metric-label">Mensagens Enviadas</span>
+                <span class="metric-label">Em Conversa</span>
                 <span class="metric-value" id="metricMessages">0</span>
               </div>
             </div>
@@ -241,8 +285,23 @@
                 <div class="metric-trend" id="trendSites" style="background: rgba(255, 20, 147, 0.1); color: #FF1493; border: 1px solid rgba(255, 20, 147, 0.2);"></div>
               </div>
               <div class="metric-info">
-                <span class="metric-label">Sites Gerados</span>
+                <span class="metric-label">Sites Prontos</span>
                 <span class="metric-value" id="metricSites">0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-cyan">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z" />
+                  </svg>
+                </div>
+                <div class="metric-trend" id="trendPipeline" style="background: rgba(6, 182, 212, 0.1); color: #67E8F9; border: 1px solid rgba(6, 182, 212, 0.2);"></div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Pipeline Value</span>
+                <span class="metric-value" id="metricPipelineValue">R$ 0</span>
               </div>
             </div>
 
@@ -259,6 +318,21 @@
               <div class="metric-info">
                 <span class="metric-label">Receita Potencial</span>
                 <span class="metric-value" id="metricRevenue">R$ 0</span>
+              </div>
+            </div>
+
+            <div class="metric-card gradient-red">
+              <div class="metric-header">
+                <div class="metric-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div class="metric-trend" id="trendFollowUp" style="background: rgba(234, 88, 12, 0.1); color: #FB923C; border: 1px solid rgba(234, 88, 12, 0.2);"></div>
+              </div>
+              <div class="metric-info">
+                <span class="metric-label">Dinheiro em follow-up</span>
+                <span class="metric-value" id="metricFollowUp">R$ 0</span>
               </div>
             </div>
 
@@ -279,60 +353,92 @@
             </div>
                 </div>
                 
-                <div class="dash2-buckets" id="dashBuckets" style="margin-top: 12px;">
-                  <div class="dash2-bucket" data-accent="slate">
-                    <span class="dash2-bucket-label">Entrada</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-a">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
-                  <div class="dash2-bucket" data-accent="indigo">
-                    <span class="dash2-bucket-label">Em Conversa</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-b">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
-                  <div class="dash2-bucket" data-accent="amber">
-                    <span class="dash2-bucket-label">Proposta</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-c">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
-                  <div class="dash2-bucket" data-accent="green">
-                    <span class="dash2-bucket-label">Fechado</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-d">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
-                  <div class="dash2-bucket" data-accent="gray">
-                    <span class="dash2-bucket-label">Arquivado</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-e">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
-                  <div class="dash2-bucket" data-accent="orange">
-                    <span class="dash2-bucket-label">Follow-up</span>
-                    <span class="dash2-bucket-value" id="d1-bucket-f">0</span>
-                    <span class="dash2-bucket-sub"></span>
-                  </div>
+                <div class="dash2-buckets" id="dashBuckets" style="margin-top: 0; margin-bottom: 0px; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); order: 1;">
                   <div class="dash2-bucket" data-accent="blue">
                     <span class="dash2-bucket-label">Meta Mensal</span>
                     <div class="dash2-bucket-row">
                       <div class="dash2-bucket-value">
                         <span id="goalCurrent">0</span><span class="dash2-bucket-sep">/</span><span id="goalTarget">0</span>
                       </div>
-                      <div class="dash2-bucket-badge" id="goalPercentage">0%</div>
                     </div>
                     <span class="dash2-bucket-sub">sites</span>
                   </div>
-                  <div class="dash2-bucket" data-accent="pink">
-                    <span class="dash2-bucket-label">Ritmo</span>
+                  <div class="dash2-bucket" data-accent="yellow" style="cursor: pointer; transition: transform 0.2s;" onclick="document.getElementById('nav-stories').click();" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Stories do Dia
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
                     <div class="dash2-bucket-row">
-                      <div class="dash2-bucket-value"><span id="goalPaceValue">0.0</span></div>
+                      <div class="dash2-bucket-value"><span id="d1-stories-count">0</span><span class="dash2-bucket-sep">/</span><span id="d1-stories-goal">8</span></div>
                     </div>
-                    <span class="dash2-bucket-sub">sites/dia</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="slate" style="cursor: pointer; transition: transform 0.2s;" onclick="dashboardFilterByStage('coletados')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Coletados
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <span class="dash2-bucket-value" id="d1-bucket-a">0</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="indigo" style="cursor: pointer; transition: transform 0.2s;" onclick="dashboardFilterByStage('perfil_engajado')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Engajados
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <span class="dash2-bucket-value" id="d1-bucket-b">0</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="green" style="cursor: pointer; transition: transform 0.2s;" onclick="dashboardFilterByStage('dm1_enviada', true)" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Msgs Enviadas
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <span class="dash2-bucket-value" id="d1-bucket-msgs">0</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="orange" style="cursor: pointer; transition: transform 0.2s;" onclick="dashboardFilterByStage('follow_up_1')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Em Follow-up
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <span class="dash2-bucket-value" id="d1-bucket-fup">0</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="red" style="cursor: pointer; transition: transform 0.2s;" onclick="dashboardFilterByStage('nao_respondeu')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Não Respondeu
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <span class="dash2-bucket-value" id="d1-bucket-nr">0</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="cyan">
+                    <span class="dash2-bucket-label">Taxa de Conversão</span>
+                    <span class="dash2-bucket-value" id="d1-conv-rate">0%</span>
+                    <span class="dash2-bucket-sub"></span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="violet">
+                    <span class="dash2-bucket-label">Tempo por Lead</span>
+                    <span class="dash2-bucket-value" id="d1-tpl">—</span>
+                    <span class="dash2-bucket-sub">dias até fechar</span>
+                  </div>
+                  <div class="dash2-bucket" data-accent="pink" style="cursor: pointer; transition: transform 0.2s;" onclick="document.getElementById('nav-office').click();" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="dash2-bucket-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      Funcionários Ativos
+                      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <div class="dash2-bucket-row">
+                      <div class="dash2-bucket-value"><span id="activeEmployeesCount">1</span></div>
+                    </div>
+                    <span class="dash2-bucket-sub">ativos no office</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- BUCKETS CARD CONTENT -->
-            <div id="tab-buckets-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0;">
+            <div id="tab-buckets-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; order: 3;">
               <style>
                 #tab-buckets-content {
                   overflow: hidden; /* Prevent horizontal scroll from inner elements expanding */
@@ -548,11 +654,22 @@
                     <div class="kpi-card-sub" style="font-size: 10px;">Tempo médio até fechar</div>
                   </div>
                 </div>
+
+                <div class="kpi-card" data-accent="pink" style="padding: 12px;">
+                  <div class="kpi-card-top" style="margin-bottom: 8px;">
+                    <div class="kpi-card-label" style="font-size: 11px;">Velocidade</div>
+                    <div class="kpi-badge warn" style="font-size: 10px; padding: 2px 6px;">—</div>
+                  </div>
+                  <div class="kpi-card-value" style="font-size: 18px; font-weight: 700;" id="kpiPaceValue">0.0</div>
+                  <div class="kpi-card-foot" style="margin-top: 8px;">
+                    <div class="kpi-card-sub" style="font-size: 10px;">sites/dia para bater a meta</div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <!-- FUNNEL CARD CONTENT -->
-            <div id="tab-funnel-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box;">
+            <div id="tab-funnel-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; order: 2;">
               <style>
                 #tab-funnel-content .kpi-funnel-steps { gap: 6px; }
                 #tab-funnel-content .kpi-funnel-step { padding: 6px 12px; border-radius: 12px; }
@@ -620,11 +737,11 @@
             </div>
 
             <!-- FINANCE CARD CONTENT -->
-            <div id="tab-finance-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+            <div id="tab-finance-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%; order: 4;">
               <div class="kpi-grid-3" style="gap: 12px; display: grid; grid-template-columns: repeat(3, 1fr); height: 100%;">
                 
                 <!-- PIPELINE FINANCEIRO -->
-                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; border: 1px solid rgba(var(--glass-rgb),0.05);">
                   <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
                     <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Pipeline Financeiro</div>
                     <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Dinheiro no funil</div>
@@ -653,7 +770,7 @@
                 </div>
 
                 <!-- META DO MÊS -->
-                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; border: 1px solid rgba(var(--glass-rgb),0.05);">
                   <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
                     <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Meta do Mês</div>
                     <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Ritmo e projeção</div>
@@ -694,7 +811,7 @@
                 </div>
 
                 <!-- VELOCIDADE -->
-                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: center; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; border: 1px solid rgba(var(--glass-rgb),0.05);">
                   <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
                     <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Velocidade</div>
                     <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Ritmo operacional</div>
@@ -738,11 +855,11 @@
             </div>
 
             <!-- CYCLE CARD CONTENT -->
-            <div id="tab-cycle-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+            <div id="tab-cycle-content" style="min-width: 100%; scroll-snap-align: start; flex-shrink: 0; padding-right: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 12px; height: 100%; order: 5;">
               <div class="kpi-grid-2" style="gap: 12px; display: grid; grid-template-columns: repeat(2, 1fr); height: 100%;">
                 
                 <!-- TEMPO POR ETAPA -->
-                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;">
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; border: 1px solid rgba(var(--glass-rgb),0.05); overflow-y: auto;">
                   <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
                     <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Tempo por Etapa</div>
                     <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Quanto tempo cada lead fica em cada etapa</div>
@@ -804,7 +921,7 @@
                 </div>
 
                 <!-- TOP CIDADES -->
-                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;">
+                <div class="kpi-block" style="padding: 16px; display: flex; flex-direction: column; height: 100%; justify-content: flex-start; background: rgba(var(--glass-rgb),0.02); border-radius: 12px; border: 1px solid rgba(var(--glass-rgb),0.05); overflow-y: auto;">
                   <div class="kpi-block-head" style="margin-bottom: 16px; text-align: center;">
                     <div class="kpi-block-title" style="font-size: 15px; color: var(--text-primary);">Top Cidades</div>
                     <div class="kpi-block-subtitle" style="font-size: 12px; color: var(--text-muted);">Distribuição geográfica</div>
@@ -894,8 +1011,8 @@
               resetBtn(btnCycle);
               
               if (activeIndex === 0) activeBtn(btnMetrics);
-              else if (activeIndex === 1) activeBtn(btnBuckets);
-              else if (activeIndex === 2) activeBtn(btnFunnel);
+              else if (activeIndex === 1) activeBtn(btnFunnel);
+              else if (activeIndex === 2) activeBtn(btnBuckets);
               else if (activeIndex === 3) activeBtn(btnFinance);
               else if (activeIndex === 4) activeBtn(btnCycle);
             });
@@ -904,16 +1021,17 @@
 
       <!-- CAROUSEL CARD -->
       <div class="dashboard-card lead-carousel" id="leadCarousel" aria-label="Carrossel de Leads" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 10px; box-shadow: var(--shadow-sm);">
-            <div class="lead-tabs" style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0;">
-              <button class="lead-tab-btn active" id="btn-tab-pipeline" onclick="switchLeadTab('pipeline')" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Pipeline</button>
-              <button class="lead-tab-btn" id="btn-tab-unico" onclick="switchLeadTab('unico')" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Único</button>
+            <div class="lead-tabs" style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(var(--glass-rgb),0.1); padding-bottom: 0;">
+              <button class="lead-tab-btn active" id="btn-tab-unico" onclick="switchLeadTab('unico')" style="background: none; border: none; padding: 8px 12px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600; font-size: 14px; transition: all 0.2s;">Único</button>
+              <button class="lead-tab-btn" id="btn-tab-pipeline" onclick="switchLeadTab('pipeline')" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">Pipeline</button>
+              <button class="lead-tab-btn" id="btn-tab-daily" onclick="switchLeadTab('daily')" style="background: none; border: none; padding: 8px 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; font-size: 14px; transition: all 0.2s;">⚡ Daily</button>
             </div>
 
-            <div id="tab-unico" class="lead-tab-content" style="display: none;">
+            <div id="tab-unico" class="lead-tab-content" style="display: block;">
               <div class="lead-carousel-body" id="leadCarouselBody"></div>
             </div>
 
-            <div id="tab-pipeline" class="lead-tab-content" style="display: block;">
+            <div id="tab-pipeline" class="lead-tab-content" style="display: none;">
               <div class="kanban-mini" id="kanbanMiniDashboard" style="overflow-x: auto; padding-bottom: 12px;">
                 <div class="kanban-col">
                   <div class="kanban-col-header">
@@ -942,23 +1060,15 @@
                 <div class="kanban-col">
                   <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#06b6d4"></span>
-                    <span>Não Respondeu</span>
+                    <span>Não Respondeu DM1</span>
                     <span class="kanban-count" id="k3-nao_respondeu">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-nao_respondeu"></div>
                 </div>
                 <div class="kanban-col">
                   <div class="kanban-col-header">
-                    <span class="kanban-dot" style="background:#8b5cf6"></span>
-                    <span>Respondeu</span>
-                    <span class="kanban-count" id="k3-respondeu">0</span>
-                  </div>
-                  <div class="kanban-cards" id="kanbanv3-respondeu"></div>
-                </div>
-                <div class="kanban-col">
-                  <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#fb923c"></span>
-                    <span>Follow-up 1</span>
+                    <span>Follow Up 1</span>
                     <span class="kanban-count" id="k3-follow_up_1">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-follow_up_1"></div>
@@ -973,6 +1083,14 @@
                 </div>
                 <div class="kanban-col">
                   <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#e879f9"></span>
+                    <span>Site Pronto</span>
+                    <span class="kanban-count" id="k3-site_pronto">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-site_pronto"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#db2777"></span>
                     <span>DM2 Enviada</span>
                     <span class="kanban-count" id="k3-dm2_enviada">0</span>
@@ -982,7 +1100,7 @@
                 <div class="kanban-col">
                   <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#0891b2"></span>
-                    <span>Ainda Não Respondeu</span>
+                    <span>Não Respondeu DM2</span>
                     <span class="kanban-count" id="k3-ainda_nao_respondeu">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-ainda_nao_respondeu"></div>
@@ -990,7 +1108,7 @@
                 <div class="kanban-col">
                   <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#f97316"></span>
-                    <span>Follow-up 2</span>
+                    <span>Follow Up 2</span>
                     <span class="kanban-count" id="k3-follow_up_2">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-follow_up_2"></div>
@@ -1014,10 +1132,58 @@
                 <div class="kanban-col">
                   <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#c2410c"></span>
-                    <span>Follow-up 3</span>
+                    <span>Follow Up 3</span>
                     <span class="kanban-count" id="k3-follow_up_3">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-follow_up_3"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#dc2626"></span>
+                    <span>Não Respondeu Follow Up 3</span>
+                    <span class="kanban-count" id="k3-nao_respondeu_follow_up_3">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-nao_respondeu_follow_up_3"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#a855f7"></span>
+                    <span>Remarketing 1</span>
+                    <span class="kanban-count" id="k3-remarketing_1">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-remarketing_1"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#7c3aed"></span>
+                    <span>Não Respondeu RMKT 1</span>
+                    <span class="kanban-count" id="k3-nao_respondeu_rmkt1">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-nao_respondeu_rmkt1"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#fbbf24"></span>
+                    <span>Promoção Final</span>
+                    <span class="kanban-count" id="k3-promocao_final">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-promocao_final"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#38bdf8"></span>
+                    <span>Reunião (Opcional)</span>
+                    <span class="kanban-count" id="k3-reuniao">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-reuniao"></div>
+                </div>
+                <div class="kanban-col">
+                  <div class="kanban-col-header">
+                    <span class="kanban-dot" style="background:#6366f1"></span>
+                    <span>Aguardando Resposta Final</span>
+                    <span class="kanban-count" id="k3-aguardando_resposta_final">0</span>
+                  </div>
+                  <div class="kanban-cards" id="kanbanv3-aguardando_resposta_final"></div>
                 </div>
                 <div class="kanban-col">
                   <div class="kanban-col-header">
@@ -1030,13 +1196,15 @@
                 <div class="kanban-col">
                   <div class="kanban-col-header">
                     <span class="kanban-dot" style="background:#94a3b8"></span>
-                    <span>Arquivado / Sem Interesse / Remarketing</span>
+                    <span>Arquivado / Sem Interesse</span>
                     <span class="kanban-count" id="k3-arquivado">0</span>
                   </div>
                   <div class="kanban-cards" id="kanbanv3-arquivado"></div>
                 </div>
               </div>
             </div>
+
+            <div id="tab-daily" class="lead-tab-content" style="display: none;"></div>
       </div>
 
 
@@ -1054,20 +1222,35 @@
               <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Lab de Mensagens</h2>
               <p style="color: var(--text-muted); font-size: 14px;">Teste, compare e otimize suas mensagens de prospecção</p>
             </div>
-            <button id="btn-new-lab-test" class="btn-primary" onclick="addNewLabMessage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              Nova Copy
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-export-lab" class="btn-secondary" onclick="exportLabMessages()" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Exportar
+              </button>
+              <button id="btn-import-lab" class="btn-secondary" onclick="document.getElementById('import-lab-file').click()" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Importar
+              </button>
+              <input type="file" id="import-lab-file" accept=".json" style="display: none;" onchange="importLabMessages(event)">
+              <button id="btn-new-lab-test" class="btn-primary" onclick="addNewLabMessage()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: text-bottom;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nova Copy
+              </button>
+            </div>
           </div>
 
           <!-- PIPELINE STAGES TABS -->
           <div class="lab-tabs" style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
-            <button class="lab-tab active" data-stage="dm1" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">DM1 - Primeiro Contato</button>
-            <button class="lab-tab" data-stage="dm2" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM2 - Follow-up</button>
-            <button class="lab-tab" data-stage="dm3" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM3 - Qualificação</button>
-            <button class="lab-tab" data-stage="proposta" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Proposta</button>
-            <button class="lab-tab" data-stage="follow_proposta" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Follow-up Proposta</button>
-            <button class="lab-tab" data-stage="fechamento" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Fechamento</button>
+            <button class="lab-tab active" data-stage="todas" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Todas</button>
+            <button class="lab-tab" data-stage="dm1" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM1</button>
+            <button class="lab-tab" data-stage="fu1" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">FU1</button>
+            <button class="lab-tab" data-stage="dm2" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">DM2</button>
+            <button class="lab-tab" data-stage="fu2" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">FU2</button>
+            <button class="lab-tab" data-stage="proposta_wpp" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Proposta WPP</button>
+            <button class="lab-tab" data-stage="rmkt1" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Remarketing 1</button>
+            <button class="lab-tab" data-stage="promocao_final" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Promoção Final</button>
+            <button class="lab-tab" data-stage="reuniao" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Reunião</button>
+            <button class="lab-tab" data-stage="encerramento" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Encerramento</button>
           </div>
 
           <!-- METRICS SUMMARY -->
@@ -1092,6 +1275,8 @@
           <div class="lab-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 24px;">
             <!-- Content rendered via JS -->
           </div>
+          <!-- LEAD TRACKING SECTION -->
+          <div id="lab-lead-tracking"></div>
         </div>
       </section>
 
@@ -1124,8 +1309,16 @@
       </section>
 
       <!-- OFFICE VIEW -->
-      <section class="view" id="view-office" style="padding:0; overflow:hidden; height:calc(100vh - 60px);">
-        <iframe id="office-iframe" src="vjoseph-completo.html" style="width:100%; height:100%; border:none; display:block;"></iframe>
+      <section class="view" id="view-office" style="padding:0; overflow:hidden; height:calc(100vh - 64px); position:relative;">
+        <iframe id="office-iframe" src="/office-game.html" style="width:100%; height:100%; border:none; display:block;" allow="camera; microphone; fullscreen" allowfullscreen></iframe>
+        <!-- Fullscreen toggle button -->
+        <button id="office-fullscreen-btn" onclick="toggleOfficeFullscreen()" title="Fullscreen (F)" style="
+          position:absolute; bottom:16px; right:16px; z-index:200;
+          background:rgba(10,20,35,0.82); border:1px solid rgba(255,255,255,0.15);
+          border-radius:8px; padding:7px 10px; color:#c8e0ff; font-size:16px;
+          cursor:pointer; backdrop-filter:blur(6px); line-height:1;
+          transition:background 0.15s, transform 0.1s;
+        " onmouseenter="this.style.background='rgba(30,60,100,0.9)'" onmouseleave="this.style.background='rgba(10,20,35,0.82)'">⛶</button>
       </section>
 
       <!-- KPI View Removed -->
@@ -1354,13 +1547,13 @@
               </svg>
               Adicionar Lead
             </button>
-            <button class="btn-secondary" id="importLeadsBtn">
+            <button class="btn-secondary" id="importLeadsBtn" onclick="document.getElementById('restoreInput').click()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Importar
+              Restaurar
             </button>
           </div>
         </div>
@@ -1552,7 +1745,7 @@
                       <button class="btn-secondary" id="downloadAllPreviewImagesBtn" title="Baixar todas">Baixar todas</button>
                     </div>
                   </div>
-                  <div id="fotosUploadZone" style="border:2px dashed rgba(255,255,255,.15);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:.15s" onmouseover="this.style.borderColor='rgba(124,58,237,.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+                  <div id="fotosUploadZone" style="border:2px dashed rgba(var(--glass-rgb),.15);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:.15s" onmouseover="this.style.borderColor='rgba(124,58,237,.5)'" onmouseout="this.style.borderColor='rgba(var(--glass-rgb),.15)'">
                     📤 Clique para subir uma foto e inserir no preview
                     <input type="file" id="fotosUploadInput" accept="image/*" style="display:none">
                   </div>
@@ -2046,6 +2239,11 @@
 
       <section class="view" id="view-stories" style="padding:0;overflow-y:auto"></section>
 
+      <!-- CULTURA VIEW -->
+      <section class="view" id="view-cultura" style="padding:0;overflow-y:auto">
+        <div id="cultura-content"></div>
+      </section>
+
       <!-- SETTINGS VIEW -->
       <section class="view" id="view-settings">
         <div class="settings-layout">
@@ -2146,6 +2344,52 @@
               <button class="btn-primary" id="saveSettings">Salvar Configurações</button>
             </div>
           </div>
+          
+          <div class="settings-section">
+            <h2>Horários dos Blocos</h2>
+            <div class="settings-card">
+              <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Configure a hora de início e fim (0 a 24) de cada bloco do dia.</p>
+              <div class="gen-form-grid" id="timeBlocksSettingsGrid">
+                <div class="form-group">
+                  <label>Manhã (Início - Fim)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="tbMorningStart" min="0" max="24" value="6" class="form-input" style="flex:1;" />
+                    <input type="number" id="tbMorningEnd" min="0" max="24" value="12" class="form-input" style="flex:1;" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Meio-dia (Início - Fim)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="tbNoonStart" min="0" max="24" value="12" class="form-input" style="flex:1;" />
+                    <input type="number" id="tbNoonEnd" min="0" max="24" value="14" class="form-input" style="flex:1;" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Tarde (Início - Fim)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="tbAfternoonStart" min="0" max="24" value="14" class="form-input" style="flex:1;" />
+                    <input type="number" id="tbAfternoonEnd" min="0" max="24" value="18" class="form-input" style="flex:1;" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Noite (Início - Fim)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="tbNightStart" min="0" max="24" value="18" class="form-input" style="flex:1;" />
+                    <input type="number" id="tbNightEnd" min="0" max="24" value="24" class="form-input" style="flex:1;" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Madrugada (Início - Fim)</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="tbLateNightStart" min="0" max="24" value="0" class="form-input" style="flex:1;" />
+                    <input type="number" id="tbLateNightEnd" min="0" max="24" value="6" class="form-input" style="flex:1;" />
+                  </div>
+                </div>
+              </div>
+              <button class="btn-primary" id="saveTimeBlocksBtn" style="margin-top: 16px;">Salvar Horários</button>
+            </div>
+          </div>
+
           <div class="settings-section">
             <h2>Biblioteca de Templates</h2>
             <div class="settings-card">
@@ -2234,7 +2478,7 @@
             <span class="modal-avatar-initials" id="modalAvatarInitials">?</span>
             <img id="modalAvatarImg" src="" alt="Lead" referrerpolicy="no-referrer">
             <div class="avatar-overlay"
-              style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; border-radius: 50%;">
+              style="position: absolute; inset: 0; background: rgba(var(--shadow-rgb),0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; border-radius: 50%;">
               <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
@@ -2490,14 +2734,18 @@
           <textarea id="labMsgText" class="form-input" rows="6" placeholder="Escreva sua mensagem aqui..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); resize: vertical; font-family: inherit;"></textarea>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Envios (Opcional)</label>
+            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Envios</label>
             <input type="number" id="labMsgSent" class="form-input" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
           </div>
           <div class="form-group">
-            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Taxa de Resposta (Opcional)</label>
-            <input type="text" id="labMsgRate" class="form-input" placeholder="0%" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Visu.</label>
+            <input type="number" id="labMsgViewed" class="form-input" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
+          </div>
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">Respostas</label>
+            <input type="number" id="labMsgRate" class="form-input" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary);">
           </div>
         </div>
       </div>
@@ -2508,9 +2756,10 @@
     </div>
   </div>
 
-  <script src="app.js?v=canva1"></script>
-  <script src="lab-library.js"></script>
-  <script src="stories.js?v=stories1"></script>
+  <script src="app.js?v=canva16"></script>
+  <script src="lab-library.js?v=lab5"></script>
+  <script src="stories.js?v=stories4"></script>
+  <script src="theme.js"></script>
 </body>
 
 </html>

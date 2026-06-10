@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VJ Office</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1b2a3b; }
+    #game-container canvas { display: block; image-rendering: pixelated; }
+
+    /* ── WorkAdventure-style bottom action bar ── */
+    #action-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: rgba(12,20,35,0.92);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      z-index: 200;
+      padding: 0 20px;
+    }
+    .ab-btn {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.75);
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .ab-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.08); }
+    .ab-btn:active { transform: scale(0.95); }
+    .ab-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+    .ab-player-name {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: rgba(200,220,255,0.8);
+      font-weight: 600;
+      padding: 0 10px;
+    }
+    .ab-controls {
+      position: absolute;
+      right: 18px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 10px;
+      color: rgba(180,200,230,0.5);
+    }
+
+    /* ── Top-right badge ── */
+    #top-badge {
+      position: fixed;
+      top: 10px; right: 10px;
+      background: rgba(12,22,40,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 5px 12px;
+      color: #c8e0ff;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    /* ── NPC popup card ── */
+    #npc-card {
+      position: fixed;
+      z-index: 300;
+      background: rgba(10,18,35,0.96);
+      border: 1px solid rgba(80,140,255,0.3);
+      border-radius: 12px;
+      padding: 14px 18px;
+      min-width: 160px;
+      pointer-events: none;
+      display: none;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #npc-card .nc-name { font-size: 14px; font-weight: 700; color: #e0f0ff; margin-bottom: 3px; }
+    #npc-card .nc-role { font-size: 11px; color: rgba(160,200,255,0.7); }
+    #npc-card .nc-hint { font-size: 10px; color: rgba(140,180,230,0.5); margin-top: 8px; }
+
+    /* ── Loading screen ── */
+    #loading-screen {
+      position: fixed; inset: 0;
+      background: #1b2a3b;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 1000;
+      gap: 16px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #loading-screen .logo { font-size: 28px; font-weight: 800; color: #60a5fa; letter-spacing: 1px; }
+    #loading-screen .sub  { font-size: 13px; color: rgba(180,210,255,0.6); }
+    #loading-bar-wrap { width: 280px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+    #loading-bar { height: 100%; background: #3b82f6; border-radius: 2px; width: 0%; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-screen">
+  <div class="logo">🏢 VJ Office</div>
+  <div class="sub">Carregando mapa e personagens…</div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+</div>
+
+<div id="game-container"></div>
+
+<!-- Top badge -->
+<div id="top-badge">🏢 VJ Office &mdash; <span id="badge-count">14 agentes</span></div>
+
+<!-- Action bar (WorkAdventure style) -->
+<div id="action-bar">
+  <span class="ab-player-name" id="player-label">👤 Você</span>
+  <div class="ab-sep"></div>
+  <div class="ab-btn" title="Emote">😄</div>
+  <div class="ab-btn" title="Chat">💬</div>
+  <div class="ab-btn" title="Câmera">📷</div>
+  <div class="ab-btn" title="Microfone">🎤</div>
+  <div class="ab-sep"></div>
+  <div class="ab-btn" title="Mapa">🗺️</div>
+  <div class="ab-controls">WASD / ⬆⬇⬅➡ para mover</div>
+</div>
+
+<!-- NPC popup -->
+<div id="npc-card">
+  <div class="nc-name" id="nc-name"></div>
+  <div class="nc-role" id="nc-role"></div>
+  <div class="nc-hint">Clique para interagir</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════
+   VJ Office — Phaser 3 com sprites WOKA reais do WorkAdventure
+   Mapa: workadventure/maps/starter/map.json
+   Sprites: workadventure/play/public/resources/characters/pipoya/
+   ══════════════════════════════════════════════════════════ */
+
+const CHAR_BASE = '/workadventure/play/public/resources/characters/pipoya/';
+
+// Atribuição de sprites WOKA reais a cada agente
+const NPC_CONFIG = {
+  'Josephine':    { sprite: 'Female 01-1.png', role: 'Diretora Executiva' },
+  'Natália':      { sprite: 'Female 02-1.png', role: 'Head de Operações' },
+  'Nicolas':      { sprite: 'Headmaster male.png', role: 'Fundador & CEO' },
+  'VJ Comercial': { sprite: 'Male 01-1.png',   role: 'Agente Comercial' },
+  'VJ Sites':     { sprite: 'Male 02-1.png',   role: 'Agente de Sites' },
+  'VJ Copy':      { sprite: 'Female 03-1.png', role: 'Agente de Copywriting' },
+  'VJ Suporte':   { sprite: 'Male 03-1.png',   role: 'Agente de Suporte' },
+  'VJ Financeiro':{ sprite: 'Female 04-1.png', role: 'Agente Financeiro' },
+  'VJ Growth':    { sprite: 'Male 04-1.png',   role: 'Agente de Growth' },
+  'VJ Mensagens': { sprite: 'Female 05-1.png', role: 'Agente de Mensagens' },
+  'VJ Dashboard': { sprite: 'Male 05-1.png',   role: 'Agente de Dashboard' },
+  'VJ Afiliados': { sprite: 'Female 06-1.png', role: 'Agente de Afiliados' },
+  'VJ Domínios':  { sprite: 'Male 06-1.png',   role: 'Agente de Domínios' },
+  'VJ Pipeline':  { sprite: 'Male 07-1.png',   role: 'Agente de Pipeline' },
+};
+
+// Sprite do jogador
+const PLAYER_SPRITE = 'Male 08-1.png';
+// Frame layout WOKA (96×128 → 12 frames 32×32):
+//   0-2  → walk down   (row 0)
+//   3-5  → walk left   (row 1)
+//   6-8  → walk right  (row 2)
+//   9-11 → walk up     (row 3)
+const WOKA_FW = 32, WOKA_FH = 32;
+
+/* ─────────────────── SCENE: Loading ─────────────────── */
+class LoadingScene extends Phaser.Scene {
+  constructor() { super({ key: 'LoadingScene' }); }
+
+  preload() {
+    const bar = document.getElementById('loading-bar');
+    this.load.on('progress', v => { bar.style.width = (v * 100) + '%'; });
+    this.load.on('complete', () => {
+      const ls = document.getElementById('loading-screen');
+      ls.style.opacity = '0';
+      ls.style.transition = 'opacity 0.4s';
+      setTimeout(() => ls.remove(), 450);
+    });
+
+    // Mapa Tiled
+    this.load.tilemapTiledJSON('map', '/workadventure/maps/starter/map.json');
+
+    // Tilesets
+    const ts = [
+      ['tileset5_export',        'tileset5_export.png'],
+      ['tileset6_export',        'tileset6_export.png'],
+      ['tileset1',               'tileset1.png'],
+      ['tileset1-repositioning', 'tileset1-repositioning.png'],
+      ['Special_Zones',          'Special_Zones.png'],
+    ];
+    ts.forEach(([key, file]) =>
+      this.load.image(key, '/workadventure/maps/assets/' + file)
+    );
+
+    // Player sprite (spritesheet WOKA 96×128)
+    this.load.spritesheet('player', CHAR_BASE + PLAYER_SPRITE,
+      { frameWidth: WOKA_FW, frameHeight: WOKA_FH });
+
+    // NPC sprites
+    const loaded = new Set();
+    Object.entries(NPC_CONFIG).forEach(([name, cfg]) => {
+      const key = 'npc_' + cfg.sprite.replace(/[^a-z0-9]/gi, '_');
+      if (!loaded.has(key)) {
+        this.load.spritesheet(key, CHAR_BASE + cfg.sprite,
+          { frameWidth: WOKA_FW, frameHeight: WOKA_FH });
+        loaded.add(key);
+      }
+    });
+  }
+
+  create() { this.scene.start('OfficeScene'); }
+}
+
+/* ─────────────────── SCENE: Office ─────────────────── */
+class OfficeScene extends Phaser.Scene {
+  constructor() { super({ key: 'OfficeScene' }); }
+
+  create() {
+    /* ── Tilemap ── */
+    const map = this.make.tilemap({ key: 'map' });
+    const allTS = [
+      map.addTilesetImage('tileset5_export',        'tileset5_export'),
+      map.addTilesetImage('tileset6_export',        'tileset6_export'),
+      map.addTilesetImage('tileset1',               'tileset1'),
+      map.addTilesetImage('tileset1-repositioning', 'tileset1-repositioning'),
+      map.addTilesetImage('Special_Zones',          'Special_Zones'),
+    ];
+
+    map.createLayer('floor',    allTS, 0, 0).setDepth(0);
+    map.createLayer('walls',    allTS, 0, 0).setDepth(1);
+
+    const collLayer = map.createLayer('collisions', allTS, 0, 0);
+    collLayer.setCollisionByExclusion([-1]);
+    collLayer.setAlpha(0).setDepth(2);
+
+    map.createLayer('furniture',      allTS, 0, 0).setDepth(3);
+
+    /* ── Animações WOKA ── */
+    this._makeAnims('player', 'player');
+    const npcKeySet = new Set();
+    Object.values(NPC_CONFIG).forEach(cfg => {
+      const key = 'npc_' + cfg.sprite.replace(/[^a-z0-9]/gi, '_');
+      if (!npcKeySet.has(key)) {
+        this._makeAnims(key, key);
+        npcKeySet.add(key);
+      }
+    });
+
+    /* ── Player ── */
+    this.player = this.physics.add.sprite(15 * 32 + 16, 8 * 32 + 16, 'player');
+    this.player.setCollideWorldBounds(true);
+    this.player.setDepth(5);
+    this.player.body.setSize(20, 20).setOffset(6, 10);
+    this.player.anims.play('player-idle-down', true);
+    this.physics.add.collider(this.player, collLayer);
+
+    /* ── NPCs do mapa ── */
+    const objLayer = map.getObjectLayer('floorLayer');
+    this.npcList = [];
+    if (objLayer) {
+      objLayer.objects.forEach(obj => {
+        const props = {};
+        (obj.properties || []).forEach(p => { props[p.name] = p.value; });
+        const name = props.name || obj.name;
+        const cfg  = NPC_CONFIG[name];
+        if (!name || (!cfg && obj.type !== 'character' && obj.class !== 'character')) return;
+
+        const cx = obj.x + 16;
+        const cy = obj.y + 16;
+        const key = cfg
+          ? 'npc_' + cfg.sprite.replace(/[^a-z0-9]/gi, '_')
+          : 'player'; // fallback
+
+        const sprite = this.physics.add.sprite(cx, cy, key);
+        sprite.setDepth(5).setImmovable(true);
+        sprite.body.setSize(20, 20).setOffset(6, 10);
+        sprite.anims.play(key + '-idle-down', true);
+
+        // Name tag
+        const shortName = name.replace('VJ ', '').replace('Natália', 'Natália');
+        const tag = this.add.text(cx, cy - 20, shortName, {
+          fontSize: '7px',
+          fontFamily: '"Segoe UI", sans-serif',
+          color: '#ffffff',
+          backgroundColor: '#00000099',
+          padding: { x: 4, y: 2 },
+        }).setOrigin(0.5, 1).setDepth(6);
+
+        // Subtle idle bob animation on name tag
+        this.tweens.add({
+          targets: tag,
+          y: cy - 22,
+          duration: 1800 + Math.random() * 600,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          delay: Math.random() * 1000
+        });
+
+        // Collide player with NPC
+        this.physics.add.collider(this.player, sprite);
+
+        this.npcList.push({ sprite, tag, name, cx, cy, cfg });
+      });
+    }
+
+    /* ── Layers acima do player ── */
+    ['aboveFurniture','abovePlayer1','abovePlayer2','abovePlayer3'].forEach((n,i) => {
+      const l = map.createLayer(n, allTS, 0, 0);
+      if (l) l.setDepth(7 + i);
+    });
+
+    /* ── World + camera ── */
+    const mapW = map.widthInPixels;
+    const mapH = map.heightInPixels;
+    this.physics.world.setBounds(0, 0, mapW, mapH);
+    this.cameras.main.setBounds(0, 0, mapW, mapH);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // Zoom que preenche bem a tela
+    const zx = this.scale.width  / mapW;
+    const zy = (this.scale.height - 56) / mapH; // desconta action bar
+    this.cameras.main.setZoom(Math.max(zx, zy, 1.9));
+
+    /* ── Input ── */
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd    = this.input.keyboard.addKeys({
+      up:    Phaser.Input.Keyboard.KeyCodes.W,
+      down:  Phaser.Input.Keyboard.KeyCodes.S,
+      left:  Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+
+    /* ── NPC interaction (hover/click) ── */
+    this._card = document.getElementById('npc-card');
+    this._ncName = document.getElementById('nc-name');
+    this._ncRole = document.getElementById('nc-role');
+    this._hoveredNpc = null;
+
+    this.input.on('pointermove', ptr => this._checkNpcHover(ptr));
+    this.input.on('pointerdown', ptr => this._checkNpcClick(ptr));
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#npc-card')) this._hideCard();
+    });
+
+    /* ── Estado de movimento ── */
+    this._moving   = false;
+    this._lastDir  = 'down';
+    this._playerKey = 'player';
+  }
+
+  /* WOKA: gera as 4 animações walk + idle para um key de spritesheet */
+  _makeAnims(animPrefix, textureKey) {
+    const dirs = [
+      { name: 'down',  start: 0 },
+      { name: 'left',  start: 3 },
+      { name: 'right', start: 6 },
+      { name: 'up',    start: 9 },
+    ];
+    dirs.forEach(({ name, start }) => {
+      this.anims.create({
+        key:       animPrefix + '-walk-' + name,
+        frames:    this.anims.generateFrameNumbers(textureKey, { start, end: start + 2 }),
+        frameRate: 8,
+        repeat:    -1,
+      });
+      this.anims.create({
+        key:       animPrefix + '-idle-' + name,
+        frames:    this.anims.generateFrameNumbers(textureKey, { start: start + 1, end: start + 1 }),
+        frameRate: 1,
+        repeat:    -1,
+      });
+    });
+  }
+
+  update() {
+    const SPEED = 130;
+    let vx = 0, vy = 0;
+
+    if (this.cursors.left.isDown  || this.wasd.left.isDown)  vx = -SPEED;
+    else if (this.cursors.right.isDown || this.wasd.right.isDown) vx =  SPEED;
+    if (this.cursors.up.isDown    || this.wasd.up.isDown)    vy = -SPEED;
+    else if (this.cursors.down.isDown  || this.wasd.down.isDown)  vy =  SPEED;
+
+    // Diagonal normalise
+    if (vx && vy) { vx *= 0.707; vy *= 0.707; }
+
+    this.player.setVelocity(vx, vy);
+
+    // Animação conforme direção
+    const pk = this._playerKey;
+    if (vx !== 0 || vy !== 0) {
+      let dir;
+      if (Math.abs(vy) >= Math.abs(vx))  dir = vy > 0 ? 'down' : 'up';
+      else                               dir = vx > 0 ? 'right': 'left';
+      if (dir !== this._lastDir || !this._moving) {
+        this.player.anims.play(pk + '-walk-' + dir, true);
+        this._lastDir = dir;
+      }
+      this._moving = true;
+    } else if (this._moving) {
+      this.player.anims.play(pk + '-idle-' + this._lastDir, true);
+      this._moving = false;
+    }
+  }
+
+  _checkNpcHover(ptr) {
+    const wx = ptr.worldX, wy = ptr.worldY;
+    for (const npc of this.npcList) {
+      if (Math.abs(wx - npc.cx) < 22 && Math.abs(wy - npc.cy) < 22) {
+        if (this._hoveredNpc !== npc.name) {
+          this._hoveredNpc = npc.name;
+          this._showCard(npc, ptr.x, ptr.y);
+        }
+        return;
+      }
+    }
+    this._hoveredNpc = null;
+  }
+
+  _checkNpcClick(ptr) {
+    const wx = ptr.worldX, wy = ptr.worldY;
+    for (const npc of this.npcList) {
+      if (Math.abs(wx - npc.cx) < 22 && Math.abs(wy - npc.cy) < 22) {
+        this._showCard(npc, ptr.x, ptr.y);
+        return;
+      }
+    }
+  }
+
+  _showCard(npc, px, py) {
+    this._ncName.textContent = npc.name;
+    this._ncRole.textContent = npc.cfg ? npc.cfg.role : 'Agente VJ';
+    this._card.style.display = 'block';
+    // Position avoiding edges
+    const cx = Math.min(px + 16, window.innerWidth  - 190);
+    const cy = Math.max(py - 90, 10);
+    this._card.style.left = cx + 'px';
+    this._card.style.top  = cy + 'px';
+  }
+
+  _hideCard() {
+    this._card.style.display = 'none';
+    this._hoveredNpc = null;
+  }
+}
+
+/* ── Game config ── */
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width:  window.innerWidth,
+  height: window.innerHeight,
+  backgroundColor: '#1b2a3b',
+  pixelArt: true,        // sem blur nos sprites pixel-art
+  physics: {
+    default: 'arcade',
+    arcade:  { gravity: { y: 0 }, debug: false },
+  },
+  scene: [LoadingScene, OfficeScene],
+};
+
+const game = new Phaser.Game(config);
+
+window.addEventListener('resize', () => {
+  game.scale.resize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
